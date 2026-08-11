@@ -1,0 +1,107 @@
+{
+  "registry": "market_watchlist",
+  "path": "03-Market/watchlist.csv",
+  "id_prefix": "WATCH",
+  "id_width": 3,
+  "description": "What to monitor and why. If a term isn't here, signals about it are noise. Edit this to change what the system pays attention to.",
+  "picklists_overridable": [
+    "kind",
+    "cadence"
+  ],
+  "columns": [
+    {
+      "name": "id",
+      "type": "id",
+      "required": true
+    },
+    {
+      "name": "term",
+      "type": "text",
+      "required": true,
+      "note": "Company, keyword, regulation, technology, event, or \u2014 for Newsletter and Feed kinds \u2014 the publication's name."
+    },
+    {
+      "name": "kind",
+      "type": "enum",
+      "required": true,
+      "values": [
+        "Account",
+        "Prospect",
+        "Theme",
+        "Regulation",
+        "Technology",
+        "Event",
+        "Person",
+        "Publication",
+        "Newsletter",
+        "Feed"
+      ],
+      "note": "Newsletter and Feed are SOURCES rather than subjects \u2014 they get swept for anything touching the other watch terms, instead of being searched for by name."
+    },
+    {
+      "name": "why",
+      "type": "text",
+      "required": true,
+      "note": "What you'd do differently if this moved. A watch item with no answer here is a news habit, not a sales tool."
+    },
+    {
+      "name": "linked_account",
+      "type": "text",
+      "note": "Account name if this watch exists because of a specific customer or deal"
+    },
+    {
+      "name": "linked_id",
+      "type": "text",
+      "note": "CUST-/OPP-/LEAD- id if tied to a tracked record"
+    },
+    {
+      "name": "cadence",
+      "type": "enum",
+      "values": [
+        "Daily",
+        "Weekly",
+        "Monthly",
+        "Quarterly",
+        "Ad hoc"
+      ]
+    },
+    {
+      "name": "sources",
+      "type": "text",
+      "note": "Where to look. For Newsletter entries put the sender address (e.g. news@example.com); for Feed entries the site or RSS URL; for everything else specific sites worth checking. Semicolon-separated. Blank = general search."
+    },
+    {
+      "name": "discovered_how",
+      "type": "enum",
+      "values": [
+        "user-named",
+        "inbox-scan",
+        "derived-from-folder",
+        "suggested"
+      ],
+      "note": "How this entry got here. Inbox-scan entries are guesses and deserve a confirmation pass."
+    },
+    {
+      "name": "enabled",
+      "type": "bool",
+      "required": true
+    },
+    {
+      "name": "last_checked",
+      "type": "date"
+    },
+    {
+      "name": "signals_found",
+      "type": "number"
+    },
+    {
+      "name": "notes",
+      "type": "text"
+    },
+    {
+      "name": "last_updated",
+      "type": "date"
+    }
+  ],
+  "browsable": true
+}

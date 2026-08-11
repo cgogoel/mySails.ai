@@ -1,0 +1,293 @@
+{
+  "registry": "partners",
+  "path": "11-Partners/partners.csv",
+  "id_prefix": "PARTNER",
+  "id_width": 3,
+  "browsable": true,
+  "description": "Channel and technology partners. Two fundamentally different motions live here: sell-THROUGH, where the partner transacts and owns the customer relationship, and sell-WITH, where you transact but win together. They are measured differently and must never be summed into one 'partner revenue' number.",
+  "picklists_overridable": [
+    "tier",
+    "health",
+    "status",
+    "motion",
+    "partner_type"
+  ],
+  "columns": [
+    {
+      "name": "id",
+      "type": "id",
+      "required": true
+    },
+    {
+      "name": "name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "website",
+      "type": "url"
+    },
+    {
+      "name": "partner_type",
+      "type": "enum",
+      "required": true,
+      "values": [
+        "Reseller",
+        "Distributor",
+        "MSP/MSSP",
+        "Systems Integrator",
+        "Technology Partner",
+        "Referral Partner",
+        "OEM",
+        "Marketplace"
+      ]
+    },
+    {
+      "name": "motion",
+      "type": "enum",
+      "required": true,
+      "values": [
+        "Sell-through",
+        "Sell-with",
+        "Referral",
+        "Both"
+      ],
+      "note": "THE defining field. Sell-through: they transact, margin applies, you may not see the end customer. Sell-with: you transact, no margin, the partner brings access or completes the solution."
+    },
+    {
+      "name": "roles_supported",
+      "note": "Semicolon-separated tiers this partner may occupy: Distributor;Reseller;Referral;Technology. A partner can hold more than one \u2014 Carahsoft acting as both distributor and reseller on the same deal is normal, not a conflict. partner_type records what they primarily are; this records what they're permitted to do."
+    },
+    {
+      "name": "tier",
+      "type": "enum",
+      "values": [
+        "Strategic",
+        "Gold",
+        "Silver",
+        "Registered",
+        "Prospective",
+        "Dormant"
+      ]
+    },
+    {
+      "name": "status",
+      "type": "enum",
+      "required": true,
+      "values": [
+        "Prospective",
+        "In Onboarding",
+        "Active",
+        "Underperforming",
+        "Paused",
+        "Terminated"
+      ]
+    },
+    {
+      "name": "region",
+      "type": "text"
+    },
+    {
+      "name": "segments_served",
+      "type": "text"
+    },
+    {
+      "name": "verticals",
+      "type": "text"
+    },
+    {
+      "name": "exclusive_territory",
+      "type": "bool",
+      "note": "Whether the agreement grants exclusivity in their region/segment. Exclusive overlaps are a contract breach, not just an awkward conversation."
+    },
+    {
+      "name": "countries",
+      "note": "Semicolon-separated. Territory is checked against this, not against free-text region."
+    },
+    {
+      "name": "named_accounts",
+      "note": "Semicolon-separated accounts assigned specifically to this partner, overriding territory."
+    },
+    {
+      "name": "excluded_accounts",
+      "note": "Accounts this partner may NOT register \u2014 usually direct-managed or assigned elsewhere."
+    },
+    {
+      "name": "agreement_start",
+      "type": "date"
+    },
+    {
+      "name": "agreement_end",
+      "type": "date"
+    },
+    {
+      "name": "margin_pct",
+      "type": "number",
+      "note": "Sell-through only. Blank for sell-with \u2014 a technology partner has no margin, and a blank here is meaningful rather than missing."
+    },
+    {
+      "name": "deal_reg_required",
+      "type": "bool"
+    },
+    {
+      "name": "deal_reg_protection_days",
+      "type": "number"
+    },
+    {
+      "name": "min_commit",
+      "type": "money"
+    },
+    {
+      "name": "integration_type",
+      "type": "text",
+      "note": "Sell-with: how the products connect \u2014 API, MDM, CI/CD, SIEM"
+    },
+    {
+      "name": "joint_solution",
+      "type": "text",
+      "note": "What the combined offer actually does for a customer"
+    },
+    {
+      "name": "joint_customers",
+      "type": "number"
+    },
+    {
+      "name": "co_marketing",
+      "type": "bool"
+    },
+    {
+      "name": "owner",
+      "type": "text",
+      "note": "Our partner manager"
+    },
+    {
+      "name": "partner_contact",
+      "type": "text"
+    },
+    {
+      "name": "partner_contact_email",
+      "type": "email"
+    },
+    {
+      "name": "exec_sponsor",
+      "type": "text"
+    },
+    {
+      "name": "last_qbr_date",
+      "type": "date"
+    },
+    {
+      "name": "last_activity_date",
+      "type": "date"
+    },
+    {
+      "name": "enablement_status",
+      "type": "enum",
+      "values": [
+        "Not started",
+        "Trained",
+        "Certified",
+        "Lapsed"
+      ],
+      "note": "Sell-through partners who can't demo don't sell. Lapsed certification is a leading indicator of a dormant partner."
+    },
+    {
+      "name": "deals_registered",
+      "type": "number",
+      "note": "DERIVED"
+    },
+    {
+      "name": "deals_open",
+      "type": "number",
+      "note": "DERIVED"
+    },
+    {
+      "name": "deals_won",
+      "type": "number",
+      "note": "DERIVED"
+    },
+    {
+      "name": "deals_lost",
+      "type": "number",
+      "note": "DERIVED"
+    },
+    {
+      "name": "pipeline_open",
+      "type": "money",
+      "note": "DERIVED"
+    },
+    {
+      "name": "revenue_won",
+      "type": "money",
+      "note": "DERIVED. Gross. Net of margin is a different number \u2014 say which you're quoting."
+    },
+    {
+      "name": "revenue_net",
+      "type": "money",
+      "note": "DERIVED: revenue_won less margin, for sell-through only"
+    },
+    {
+      "name": "win_rate",
+      "type": "number",
+      "note": "DERIVED %. Blank when the sample is too small."
+    },
+    {
+      "name": "avg_deal_size",
+      "type": "money",
+      "note": "DERIVED"
+    },
+    {
+      "name": "first_deal_date",
+      "type": "date",
+      "note": "DERIVED"
+    },
+    {
+      "name": "last_deal_date",
+      "type": "date",
+      "note": "DERIVED"
+    },
+    {
+      "name": "months_since_last_deal",
+      "type": "number",
+      "note": "DERIVED. The single best signal of a partner going quiet."
+    },
+    {
+      "name": "health",
+      "type": "enum",
+      "values": [
+        "Green",
+        "Yellow",
+        "Red",
+        "Too new"
+      ],
+      "note": "DERIVED from recency, pipeline, and enablement \u2014 not from how the relationship feels"
+    },
+    {
+      "name": "risk_flags",
+      "type": "text",
+      "note": "DERIVED: no-deals-90d;enablement-lapsed;agreement-expiring;single-rep-dependency;no-qbr"
+    },
+    {
+      "name": "notes",
+      "type": "text"
+    },
+    {
+      "name": "crm_id",
+      "type": "text"
+    },
+    {
+      "name": "sync_status",
+      "type": "enum",
+      "values": [
+        "local-only",
+        "synced",
+        "pending-push",
+        "conflict"
+      ]
+    },
+    {
+      "name": "last_updated",
+      "type": "date"
+    }
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "registry": "task_rules",
+  "path": "01-Tasks/task-rules.csv",
+  "id_prefix": "RULE",
+  "id_width": 3,
+  "description": "Configurable policy: what the system may raise, how far it may act on its own, and when. Edit this to change system behaviour.",
+  "columns": [
+    {
+      "name": "id",
+      "type": "id",
+      "required": true
+    },
+    {
+      "name": "rule_name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "enabled",
+      "type": "bool",
+      "required": true
+    },
+    {
+      "name": "trigger",
+      "type": "text",
+      "note": "Plain-language condition, e.g. 'lead in Engaged with no touch for 5 days'"
+    },
+    {
+      "name": "task_type",
+      "type": "enum",
+      "values": [
+        "Email Follow-up",
+        "Cold Outreach",
+        "Call",
+        "Meeting",
+        "Meeting Prep",
+        "Research",
+        "Send Content",
+        "Proposal",
+        "CRM Update",
+        "Internal",
+        "Admin",
+        "Other"
+      ]
+    },
+    {
+      "name": "automation",
+      "type": "enum",
+      "required": true,
+      "values": [
+        "auto",
+        "review",
+        "manual"
+      ]
+    },
+    {
+      "name": "applies_to",
+      "type": "enum",
+      "values": [
+        "lead",
+        "opportunity",
+        "renewal",
+        "customer",
+        "campaign",
+        "competitor",
+        "account",
+        "brief",
+        "none"
+      ]
+    },
+    {
+      "name": "due_offset_days",
+      "type": "number",
+      "note": "Days from creation to due date"
+    },
+    {
+      "name": "priority",
+      "type": "enum",
+      "values": [
+        "High",
+        "Medium",
+        "Low"
+      ]
+    },
+    {
+      "name": "verify_by",
+      "type": "enum",
+      "values": [
+        "email-sent",
+        "email-reply",
+        "calendar-event",
+        "crm-activity",
+        "crm-field",
+        "file-created",
+        "manual-only"
+      ]
+    },
+    {
+      "name": "daily_cap",
+      "type": "number",
+      "note": "Max tasks this rule may raise per day. Blank = no cap."
+    },
+    {
+      "name": "raised_by",
+      "type": "text",
+      "note": "Which skill evaluates this rule"
+    },
+    {
+      "name": "notes",
+      "type": "text"
+    },
+    {
+      "name": "last_updated",
+      "type": "date"
+    }
+  ],
+  "browsable": true
+}

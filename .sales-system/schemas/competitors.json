@@ -1,0 +1,209 @@
+{
+  "registry": "competitors",
+  "path": "04-Competitors/competitors.csv",
+  "id_prefix": "COMP",
+  "id_width": 3,
+  "browsable": true,
+  "description": "Named competitors, how you beat them, and what your own pipeline says about whether that's working. The win/loss columns are computed from opportunities \u2014 not opinion.",
+  "picklists_overridable": [
+    "tier",
+    "trend",
+    "pricing_posture"
+  ],
+  "columns": [
+    {
+      "name": "id",
+      "type": "id",
+      "required": true
+    },
+    {
+      "name": "name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "website",
+      "type": "url"
+    },
+    {
+      "name": "aliases",
+      "type": "text",
+      "note": "Other names they appear under in deal records, semicolon-separated. Matching fails without these."
+    },
+    {
+      "name": "tier",
+      "type": "enum",
+      "required": true,
+      "values": [
+        "Primary",
+        "Secondary",
+        "Adjacent",
+        "Watch",
+        "Retired"
+      ],
+      "note": "Primary = shows up in deals regularly and you lose to them. Reserve it; a long Primary list means none of them get real attention."
+    },
+    {
+      "name": "category",
+      "type": "text",
+      "note": "What kind of alternative: direct rival, adjacent tool, in-house build, do-nothing"
+    },
+    {
+      "name": "their_pitch",
+      "type": "text",
+      "note": "How they describe themselves, in their words not yours"
+    },
+    {
+      "name": "their_strengths",
+      "type": "text",
+      "note": "Where they genuinely win. A battlecard that claims a competitor has no strengths gets a rep ambushed."
+    },
+    {
+      "name": "their_weaknesses",
+      "type": "text"
+    },
+    {
+      "name": "our_win_themes",
+      "type": "text",
+      "note": "What actually wins against them, ideally traced to won deals"
+    },
+    {
+      "name": "landmines",
+      "type": "text",
+      "note": "Questions that surface their weaknesses without you naming them"
+    },
+    {
+      "name": "do_not_say",
+      "type": "text",
+      "note": "Claims that are wrong, stale, or legally risky. As valuable as the win themes."
+    },
+    {
+      "name": "pricing_posture",
+      "type": "enum",
+      "values": [
+        "Undercuts us",
+        "Comparable",
+        "Premium",
+        "Freemium",
+        "Unknown"
+      ]
+    },
+    {
+      "name": "typical_discounting",
+      "type": "text"
+    },
+    {
+      "name": "deals_met",
+      "type": "number",
+      "note": "DERIVED from opportunities where this competitor is named"
+    },
+    {
+      "name": "deals_won",
+      "type": "number",
+      "note": "DERIVED"
+    },
+    {
+      "name": "deals_lost",
+      "type": "number",
+      "note": "DERIVED"
+    },
+    {
+      "name": "deals_open",
+      "type": "number",
+      "note": "DERIVED"
+    },
+    {
+      "name": "win_rate",
+      "type": "number",
+      "note": "DERIVED: won / (won + lost), as a percentage. Blank when the sample is too small to mean anything."
+    },
+    {
+      "name": "sample_note",
+      "type": "text",
+      "note": "DERIVED. Says so plainly when the sample is too small \u2014 2 wins from 3 deals is not a 67% win rate."
+    },
+    {
+      "name": "avg_deal_size",
+      "type": "money",
+      "note": "DERIVED: average amount when they're in the deal"
+    },
+    {
+      "name": "last_seen_date",
+      "type": "date",
+      "note": "DERIVED: most recent deal they appeared in"
+    },
+    {
+      "name": "trend",
+      "type": "enum",
+      "values": [
+        "Winning more",
+        "Steady",
+        "Losing more",
+        "Too few deals"
+      ],
+      "note": "DERIVED: last two quarters against the two before"
+    },
+    {
+      "name": "where_we_win",
+      "type": "text",
+      "note": "DERIVED where possible: segments and use cases with the best record against them"
+    },
+    {
+      "name": "where_they_win",
+      "type": "text",
+      "note": "DERIVED where possible"
+    },
+    {
+      "name": "common_loss_reason",
+      "type": "text",
+      "note": "DERIVED from loss reasons on deals they were in"
+    },
+    {
+      "name": "last_signal_date",
+      "type": "date",
+      "note": "DERIVED: most recent market signal about this competitor"
+    },
+    {
+      "name": "signals_90d",
+      "type": "number",
+      "note": "DERIVED: signal count in the last 90 days. A quiet competitor and a busy one need different attention."
+    },
+    {
+      "name": "signals_since_battlecard",
+      "type": "number",
+      "note": "DERIVED: signals logged since last_researched. THE staleness measure \u2014 a battlecard is out of date because specific things happened, not because time passed. Non-zero on a Primary competitor means refresh before the next call."
+    },
+    {
+      "name": "latest_signal",
+      "type": "text",
+      "note": "DERIVED: headline and date of the most recent signal, so the registry is readable without opening the market log"
+    },
+    {
+      "name": "open_impacts",
+      "type": "text",
+      "note": "DERIVED: distinct competitive_impact values from signals since the battlecard was written, semicolon-separated"
+    },
+    {
+      "name": "battlecard_path",
+      "type": "text",
+      "note": "Relative path to the battlecard markdown"
+    },
+    {
+      "name": "last_researched",
+      "type": "date"
+    },
+    {
+      "name": "watch_id",
+      "type": "text",
+      "note": "Links to the market watchlist entry that monitors them"
+    },
+    {
+      "name": "notes",
+      "type": "text"
+    },
+    {
+      "name": "last_updated",
+      "type": "date"
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "registry": "sync_log",
+  "path": "00-Config/sync-log.csv",
+  "id_prefix": "SYNC",
+  "id_width": 6,
+  "description": "Audit trail of every CRM read and write. Append-only.",
+  "columns": [
+    {
+      "name": "id",
+      "type": "id",
+      "required": true
+    },
+    {
+      "name": "timestamp",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "direction",
+      "type": "enum",
+      "values": [
+        "pull",
+        "push"
+      ]
+    },
+    {
+      "name": "object",
+      "type": "text"
+    },
+    {
+      "name": "record_id",
+      "type": "text"
+    },
+    {
+      "name": "crm_id",
+      "type": "text"
+    },
+    {
+      "name": "fields_changed",
+      "type": "text"
+    },
+    {
+      "name": "outcome",
+      "type": "enum",
+      "values": [
+        "ok",
+        "skipped",
+        "conflict",
+        "error"
+      ]
+    },
+    {
+      "name": "confirmed_by",
+      "type": "text"
+    },
+    {
+      "name": "detail",
+      "type": "text"
+    }
+  ],
+  "browsable": false,
+  "archive": {
+    "when_column": null,
+    "when_values": [],
+    "age_column": "timestamp",
+    "keep_days": 365
+  }
+}

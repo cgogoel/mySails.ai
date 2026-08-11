@@ -1,0 +1,175 @@
+{
+  "registry": "forecast_snapshots",
+  "path": "09-Briefs/Forecast/snapshots.csv",
+  "id_prefix": "FCST",
+  "id_width": 4,
+  "browsable": true,
+  "description": "One row per forecast produced. Makes 'what changed since the last weekly' answerable without recomputing history, and makes forecast accuracy reviewable after the fact.",
+  "picklists_overridable": [
+    "cadence"
+  ],
+  "columns": [
+    {
+      "name": "id",
+      "type": "id",
+      "required": true
+    },
+    {
+      "name": "snapshot_date",
+      "type": "date",
+      "required": true
+    },
+    {
+      "name": "cadence",
+      "type": "enum",
+      "required": true,
+      "values": [
+        "Weekly",
+        "Monthly",
+        "Quarterly",
+        "Annual"
+      ],
+      "note": "Compare like with like \u2014 a weekly is measured against the previous weekly, not the last monthly"
+    },
+    {
+      "name": "period_start",
+      "type": "date"
+    },
+    {
+      "name": "period_end",
+      "type": "date"
+    },
+    {
+      "name": "scope",
+      "type": "text",
+      "note": "individual or team, and whose"
+    },
+    {
+      "name": "pipeline_total",
+      "type": "money"
+    },
+    {
+      "name": "commit",
+      "type": "money"
+    },
+    {
+      "name": "best_case",
+      "type": "money"
+    },
+    {
+      "name": "weighted",
+      "type": "money"
+    },
+    {
+      "name": "closed_won_in_period",
+      "type": "money"
+    },
+    {
+      "name": "closed_lost_in_period",
+      "type": "money"
+    },
+    {
+      "name": "renewal_value_due",
+      "type": "money",
+      "note": "Total contract value up for renewal in the period"
+    },
+    {
+      "name": "renewal_value_secured",
+      "type": "money",
+      "note": "Of that, renewed"
+    },
+    {
+      "name": "renewal_pct",
+      "type": "number",
+      "note": "Secured over due. The goal is always 100 \u2014 anything less is leakage."
+    },
+    {
+      "name": "renewals_at_risk",
+      "type": "number"
+    },
+    {
+      "name": "renewal_value_at_risk",
+      "type": "money"
+    },
+    {
+      "name": "renewals_lost",
+      "type": "number"
+    },
+    {
+      "name": "open_deal_count",
+      "type": "number"
+    },
+    {
+      "name": "gap_to_quarter_goal",
+      "type": "money"
+    },
+    {
+      "name": "gap_to_annual_goal",
+      "type": "money"
+    },
+    {
+      "name": "coverage_ratio",
+      "type": "number",
+      "note": "Open pipeline over remaining goal"
+    },
+    {
+      "name": "meetings_held",
+      "type": "number"
+    },
+    {
+      "name": "quotes_sent",
+      "type": "number"
+    },
+    {
+      "name": "stages_progressed",
+      "type": "number"
+    },
+    {
+      "name": "stages_regressed",
+      "type": "number"
+    },
+    {
+      "name": "new_opps_created",
+      "type": "number"
+    },
+    {
+      "name": "new_pipeline_created",
+      "type": "money"
+    },
+    {
+      "name": "inbound_replies",
+      "type": "number",
+      "note": "Replies received from leads and customers"
+    },
+    {
+      "name": "deals_slipped",
+      "type": "number"
+    },
+    {
+      "name": "heating_count",
+      "type": "number"
+    },
+    {
+      "name": "cooling_count",
+      "type": "number"
+    },
+    {
+      "name": "artifact_path",
+      "type": "text",
+      "note": "The HTML dashboard produced"
+    },
+    {
+      "name": "headline",
+      "type": "text",
+      "note": "The one-line story of this period"
+    },
+    {
+      "name": "notes",
+      "type": "text"
+    },
+    {
+      "name": "last_updated",
+      "type": "date"
+    }
+  ]
+}

@@ -1,0 +1,111 @@
+{
+  "registry": "customers",
+  "path": "02-Context/Customers/customers.csv",
+  "id_prefix": "CUST",
+  "id_width": 4,
+  "description": "Everyone who is already paying you. Feeds renewals, references, and expansion.",
+  "columns": [
+    {
+      "name": "id",
+      "type": "id",
+      "required": true
+    },
+    {
+      "name": "account_name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "website",
+      "type": "url"
+    },
+    {
+      "name": "industry",
+      "type": "text"
+    },
+    {
+      "name": "segment",
+      "type": "enum",
+      "values": [
+        "SMB",
+        "Mid-Market",
+        "Enterprise",
+        "Strategic"
+      ]
+    },
+    {
+      "name": "country",
+      "type": "text"
+    },
+    {
+      "name": "primary_contact",
+      "type": "text"
+    },
+    {
+      "name": "primary_contact_email",
+      "type": "email"
+    },
+    {
+      "name": "csm_or_owner",
+      "type": "text"
+    },
+    {
+      "name": "first_closed_date",
+      "type": "date"
+    },
+    {
+      "name": "arr",
+      "type": "money"
+    },
+    {
+      "name": "contract_start",
+      "type": "date"
+    },
+    {
+      "name": "contract_end",
+      "type": "date"
+    },
+    {
+      "name": "health",
+      "type": "enum",
+      "values": [
+        "Green",
+        "Yellow",
+        "Red"
+      ]
+    },
+    {
+      "name": "reference_ok",
+      "type": "bool",
+      "note": "Willing to be a reference?"
+    },
+    {
+      "name": "products",
+      "type": "text"
+    },
+    {
+      "name": "notes",
+      "type": "text"
+    },
+    {
+      "name": "crm_id",
+      "type": "text",
+      "note": "Salesforce record id. Leave blank for local-only records."
+    },
+    {
+      "name": "sync_status",
+      "type": "enum",
+      "values": [
+        "local-only",
+        "synced",
+        "pending-push",
+        "conflict"
+      ]
+    },
+    {
+      "name": "last_updated",
+      "type": "date"
+    }
+  ],
+  "browsable": true
+}

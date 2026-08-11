@@ -1,0 +1,221 @@
+{
+  "registry": "tasks",
+  "path": "01-Tasks/tasks.csv",
+  "id_prefix": "TASK",
+  "id_width": 5,
+  "description": "Every action the system or the user is tracking, across all modules. The one file a seller opens daily.",
+  "columns": [
+    {
+      "name": "id",
+      "type": "id",
+      "required": true
+    },
+    {
+      "name": "title",
+      "type": "text",
+      "required": true,
+      "note": "Imperative and specific: 'Send pricing follow-up to Jane Doe (Acme)'"
+    },
+    {
+      "name": "status",
+      "type": "enum",
+      "required": true,
+      "values": [
+        "Open",
+        "Drafted",
+        "Awaiting Approval",
+        "Scheduled",
+        "Done",
+        "Cancelled",
+        "Blocked",
+        "Snoozed"
+      ]
+    },
+    {
+      "name": "automation",
+      "type": "enum",
+      "required": true,
+      "values": [
+        "auto",
+        "review",
+        "manual"
+      ],
+      "note": "auto = system acts; review = system drafts, you approve; manual = you do it"
+    },
+    {
+      "name": "task_type",
+      "type": "enum",
+      "values": [
+        "Email Follow-up",
+        "Cold Outreach",
+        "Call",
+        "Meeting",
+        "Meeting Prep",
+        "Research",
+        "Send Content",
+        "Proposal",
+        "CRM Update",
+        "Internal",
+        "Admin",
+        "Other"
+      ]
+    },
+    {
+      "name": "priority",
+      "type": "enum",
+      "values": [
+        "High",
+        "Medium",
+        "Low"
+      ]
+    },
+    {
+      "name": "due_date",
+      "type": "date"
+    },
+    {
+      "name": "owner",
+      "type": "text"
+    },
+    {
+      "name": "related_type",
+      "type": "enum",
+      "values": [
+        "lead",
+        "opportunity",
+        "renewal",
+        "customer",
+        "campaign",
+        "competitor",
+        "account",
+        "brief",
+        "none"
+      ]
+    },
+    {
+      "name": "related_id",
+      "type": "text",
+      "note": "e.g. LEAD-0042, OPP-0031. The link back to the record."
+    },
+    {
+      "name": "account_name",
+      "type": "text",
+      "note": "Denormalised on purpose so the spreadsheet reads without lookups"
+    },
+    {
+      "name": "contact_name",
+      "type": "text"
+    },
+    {
+      "name": "contact_email",
+      "type": "email"
+    },
+    {
+      "name": "created_date",
+      "type": "date"
+    },
+    {
+      "name": "created_by",
+      "type": "text",
+      "note": "'user' or the skill that raised it, e.g. 'daily-brief'"
+    },
+    {
+      "name": "why",
+      "type": "text",
+      "note": "One line of justification. Tasks with no reason get ignored and erode trust."
+    },
+    {
+      "name": "draft_path",
+      "type": "text",
+      "note": "Relative path to the drafted email or asset awaiting approval"
+    },
+    {
+      "name": "verify_by",
+      "type": "enum",
+      "values": [
+        "email-sent",
+        "email-reply",
+        "calendar-event",
+        "crm-activity",
+        "crm-field",
+        "file-created",
+        "manual-only"
+      ],
+      "note": "How the system can tell this got done, including manually"
+    },
+    {
+      "name": "verify_target",
+      "type": "text",
+      "note": "What to look for: an email address, a meeting title, a CRM field"
+    },
+    {
+      "name": "completed_date",
+      "type": "date"
+    },
+    {
+      "name": "completed_how",
+      "type": "enum",
+      "values": [
+        "user-manual",
+        "user-approved",
+        "system-auto",
+        "detected",
+        "not-completed"
+      ]
+    },
+    {
+      "name": "completion_evidence",
+      "type": "text",
+      "note": "Human-readable proof, e.g. 'email to jane@acme.com sent 2026-08-04 09:12'"
+    },
+    {
+      "name": "recurrence",
+      "type": "enum",
+      "values": [
+        "none",
+        "daily",
+        "weekdays",
+        "weekly",
+        "biweekly",
+        "monthly",
+        "quarterly"
+      ]
+    },
+    {
+      "name": "snooze_until",
+      "type": "date"
+    },
+    {
+      "name": "blocked_reason",
+      "type": "text"
+    },
+    {
+      "name": "notes",
+      "type": "text"
+    },
+    {
+      "name": "external_system",
+      "type": "text",
+      "note": "Where else this task lives: todoist, reminders, asana, etc. Blank = this folder only."
+    },
+    {
+      "name": "external_id",
+      "type": "text",
+      "note": "That system's id for this task, so a two-way bridge can match without guessing."
+    },
+    {
+      "name": "last_updated",
+      "type": "date"
+    }
+  ],
+  "browsable": true,
+  "archive": {
+    "when_column": "status",
+    "when_values": [
+      "Done",
+      "Cancelled"
+    ],
+    "age_column": "completed_date",
+    "keep_days": 60
+  }
+}

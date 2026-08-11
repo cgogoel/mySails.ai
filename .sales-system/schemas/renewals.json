@@ -1,0 +1,225 @@
+{
+  "registry": "renewals",
+  "path": "08-Renewals/renewals.csv",
+  "id_prefix": "REN",
+  "id_width": 4,
+  "description": "Contract calendar. One row per active contract, tracking the window between 'this expires' and 'someone is working it'. NOT a second pipeline \u2014 once a renewal opportunity exists, this row points at it and the opportunity carries the commercial detail.",
+  "picklists_overridable": [
+    "status",
+    "outcome",
+    "health",
+    "churn_risk_reason"
+  ],
+  "columns": [
+    {
+      "name": "id",
+      "type": "id",
+      "required": true
+    },
+    {
+      "name": "account_name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "customer_id",
+      "type": "text",
+      "note": "Links to customers.csv"
+    },
+    {
+      "name": "contract_end_date",
+      "type": "date",
+      "required": true,
+      "note": "When the current contract expires"
+    },
+    {
+      "name": "contract_start_date",
+      "type": "date"
+    },
+    {
+      "name": "auto_renew",
+      "type": "bool",
+      "note": "Whether the contract renews without action. INVERTS the risk, so read it rather than assuming: 'no' means doing nothing loses the contract; 'yes' means doing nothing renews it. The profile records the org's default where contracts are consistent."
+    },
+    {
+      "name": "notice_period_days",
+      "type": "number",
+      "note": "Days before expiry that formal notice must be given. Many orgs have no formal notice period \u2014 the profile says. Blank means unknown or not applicable, never zero."
+    },
+    {
+      "name": "notice_deadline",
+      "type": "date",
+      "note": "DERIVED where a notice period exists: contract_end_date minus notice_period_days. Where there is no formal notice period, conversation_target_date is the operative deadline instead."
+    },
+    {
+      "name": "days_to_notice",
+      "type": "number",
+      "note": "DERIVED. Negative means the window has closed."
+    },
+    {
+      "name": "days_to_expiry",
+      "type": "number",
+      "note": "DERIVED"
+    },
+    {
+      "name": "current_value",
+      "type": "money",
+      "note": "Value of the contract now up for renewal"
+    },
+    {
+      "name": "term_months",
+      "type": "number"
+    },
+    {
+      "name": "status",
+      "type": "enum",
+      "required": true,
+      "values": [
+        "Not Started",
+        "Opp Created",
+        "Conversation Started",
+        "In Negotiation",
+        "Renewed",
+        "Churned",
+        "Downgraded",
+        "Auto-Renewed",
+        "On Hold"
+      ]
+    },
+    {
+      "name": "renewal_opp_id",
+      "type": "text",
+      "note": "Local OPP id once a renewal opportunity exists. Blank = nobody is working this yet, which is the whole reason this registry exists."
+    },
+    {
+      "name": "renewal_opp_stage",
+      "type": "text",
+      "note": "Denormalised from the opportunity so the spreadsheet reads without lookups"
+    },
+    {
+      "name": "renewal_opp_created_date",
+      "type": "date",
+      "note": "When the renewal opportunity was created. Where the org creates one at deal close, a long gap between contract start and this date is itself the finding."
+    },
+    {
+      "name": "first_renewal_touch_date",
+      "type": "date",
+      "note": "First email or meeting with the customer explicitly about this renewal. Detectable from sent mail \u2014 this is what proves the conversation actually started rather than being merely planned."
+    },
+    {
+      "name": "conversation_target_date",
+      "type": "date",
+      "note": "DERIVED: contract_end_date minus the org's renewal_conversation_lead_days (profile). The date by which the customer should have heard from you."
+    },
+    {
+      "name": "days_to_conversation_target",
+      "type": "number",
+      "note": "DERIVED. Negative and first_renewal_touch_date blank means the commitment has already been missed."
+    },
+    {
+      "name": "original_opp_id",
+      "type": "text",
+      "note": "The deal that created the current contract"
+    },
+    {
+      "name": "proposed_value",
+      "type": "money",
+      "note": "From the renewal opportunity, once one exists"
+    },
+    {
+      "name": "outcome",
+      "type": "enum",
+      "values": [
+        "Expansion",
+        "Flat",
+        "Contraction",
+        "Loss",
+        "Pending"
+      ],
+      "note": "Set on close. Compare proposed_value to current_value."
+    },
+    {
+      "name": "closed_since_last_forecast",
+      "type": "bool",
+      "note": "DERIVED: resolved since the previous forecast of this cadence. Drives the 'what moved' callout."
+    },
+    {
+      "name": "health",
+      "type": "enum",
+      "values": [
+        "Green",
+        "Yellow",
+        "Red"
+      ]
+    },
+    {
+      "name": "churn_risk_reason",
+      "type": "text"
+    },
+    {
+      "name": "risk_flags",
+      "type": "text",
+      "note": "DERIVED, semicolon-separated: no-renewal-opp;conversation-overdue;conversation-due-soon;notice-window-closing;champion-left;no-qbr;quiet;contraction-risk"
+    },
+    {
+      "name": "expansion_signal",
+      "type": "text",
+      "note": "Evidence this could grow \u2014 new teams, usage at cap, adjacent need"
+    },
+    {
+      "name": "owner",
+      "type": "text"
+    },
+    {
+      "name": "csm",
+      "type": "text"
+    },
+    {
+      "name": "champion",
+      "type": "text"
+    },
+    {
+      "name": "champion_still_there",
+      "type": "bool"
+    },
+    {
+      "name": "last_qbr_date",
+      "type": "date"
+    },
+    {
+      "name": "last_activity_date",
+      "type": "date"
+    },
+    {
+      "name": "next_action",
+      "type": "text"
+    },
+    {
+      "name": "next_action_date",
+      "type": "date"
+    },
+    {
+      "name": "notes",
+      "type": "text"
+    },
+    {
+      "name": "crm_id",
+      "type": "text"
+    },
+    {
+      "name": "sync_status",
+      "type": "enum",
+      "values": [
+        "local-only",
+        "synced",
+        "pending-push",
+        "conflict"
+      ]
+    },
+    {
+      "name": "last_updated",
+      "type": "date"
+    }
+  ],
+  "browsable": true
+}

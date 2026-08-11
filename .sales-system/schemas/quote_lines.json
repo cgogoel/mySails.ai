@@ -1,0 +1,95 @@
+{
+  "registry": "quote_lines",
+  "path": "12-Quotes/quote-lines.csv",
+  "id_prefix": "QLINE",
+  "id_width": 5,
+  "browsable": true,
+  "description": "Line items. One row per product on a quote. Prices resolved from the price list, never typed.",
+  "picklists_overridable": [
+    "discount_reason"
+  ],
+  "columns": [
+    {
+      "name": "id",
+      "type": "id",
+      "required": true
+    },
+    {
+      "name": "quote_id",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "line_no",
+      "type": "number"
+    },
+    {
+      "name": "sku",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "name",
+      "type": "text"
+    },
+    {
+      "name": "quantity",
+      "type": "number",
+      "required": true
+    },
+    {
+      "name": "unit",
+      "type": "text"
+    },
+    {
+      "name": "list_unit_price",
+      "type": "money",
+      "required": true,
+      "note": "From the price list, at the tier the quantity earns"
+    },
+    {
+      "name": "tier_applied",
+      "type": "number",
+      "note": "Which volume tier the quantity reached"
+    },
+    {
+      "name": "discount_pct",
+      "type": "number"
+    },
+    {
+      "name": "discount_reason",
+      "type": "text",
+      "note": "REQUIRED where a discount is applied. A discount with no reason is a discount nobody can defend at renewal."
+    },
+    {
+      "name": "net_unit_price",
+      "type": "money",
+      "note": "DERIVED"
+    },
+    {
+      "name": "extended",
+      "type": "money",
+      "required": true,
+      "note": "DERIVED: quantity x net unit price"
+    },
+    {
+      "name": "below_floor",
+      "type": "bool",
+      "note": "DERIVED. Should never be yes on a sent quote."
+    },
+    {
+      "name": "notes",
+      "type": "text"
+    },
+    {
+      "name": "last_updated",
+      "type": "date"
+    }
+  ],
+  "archive": {
+    "follow": {
+      "registry": "quotes",
+      "key": "quote_id"
+    }
+  }
+}

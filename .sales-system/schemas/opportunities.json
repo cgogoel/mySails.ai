@@ -1,0 +1,326 @@
+{
+  "registry": "opportunities",
+  "path": "07-Opportunities/opportunities.csv",
+  "id_prefix": "OPP",
+  "id_width": 4,
+  "description": "Active deals. The spine of forecasting. Generic shape; map to your CRM in crm-profile/field-map.json.",
+  "picklists_overridable": [
+    "loss_reason",
+    "on_hold_reason",
+    "forecast_category",
+    "health",
+    "source",
+    "partner_role",
+    "type",
+    "stage",
+    "poc_status",
+    "engagement_trend"
+  ],
+  "columns": [
+    {
+      "name": "id",
+      "type": "id",
+      "required": true
+    },
+    {
+      "name": "name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "account_name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "stage",
+      "type": "enum",
+      "required": true,
+      "values": [
+        "Prospecting",
+        "Discovery",
+        "Qualification",
+        "Evaluation",
+        "Proposal",
+        "Negotiation",
+        "Closed Won",
+        "Closed Lost"
+      ]
+    },
+    {
+      "name": "forecast_category",
+      "type": "enum",
+      "values": [
+        "Omitted",
+        "Pipeline",
+        "Best Case",
+        "Commit",
+        "Closed"
+      ],
+      "note": "Some CRMs store a display name and an API value that differ (e.g. Commit stored as 'Forecast'). The profile records the mapping."
+    },
+    {
+      "name": "amount",
+      "type": "money",
+      "note": "The org's authoritative deal value. Which CRM field that is can be ambiguous \u2014 the profile names it."
+    },
+    {
+      "name": "currency",
+      "type": "text"
+    },
+    {
+      "name": "probability",
+      "type": "number",
+      "note": "0-100"
+    },
+    {
+      "name": "close_date",
+      "type": "date",
+      "required": true
+    },
+    {
+      "name": "created_date",
+      "type": "date"
+    },
+    {
+      "name": "owner",
+      "type": "text"
+    },
+    {
+      "name": "secondary_owner",
+      "type": "text",
+      "note": "Co-owner or SE, where the org tracks one"
+    },
+    {
+      "name": "type",
+      "type": "enum",
+      "values": [
+        "New Business",
+        "Expansion",
+        "Renewal",
+        "Existing Business"
+      ]
+    },
+    {
+      "name": "source",
+      "type": "text"
+    },
+    {
+      "name": "campaign_id",
+      "type": "text"
+    },
+    {
+      "name": "partner_id",
+      "note": "PARTNER- id when a partner is involved"
+    },
+    {
+      "name": "partner_role",
+      "type": "enum",
+      "values": [
+        "Sell-through",
+        "Sell-with",
+        "Referral",
+        "Influenced",
+        "None"
+      ],
+      "note": "Sell-through = partner transacts. Sell-with = joint pursuit, we transact. They forecast differently and must not be summed together."
+    },
+    {
+      "name": "deal_registration_id",
+      "note": "Partner deal registration reference, where the org uses one"
+    },
+    {
+      "name": "champion",
+      "type": "text"
+    },
+    {
+      "name": "economic_buyer",
+      "type": "text"
+    },
+    {
+      "name": "contacts_engaged",
+      "type": "number"
+    },
+    {
+      "name": "pain",
+      "type": "text"
+    },
+    {
+      "name": "decision_process",
+      "type": "text"
+    },
+    {
+      "name": "paper_process",
+      "type": "text"
+    },
+    {
+      "name": "competitor",
+      "type": "text"
+    },
+    {
+      "name": "close_plan_gaps",
+      "type": "text",
+      "note": "DERIVED. Which close-plan elements are blank, semicolon-separated. This is the useful output, not the raw fields."
+    },
+    {
+      "name": "poc_status",
+      "type": "enum",
+      "values": [
+        "Not Required",
+        "Planning",
+        "In Progress",
+        "Delayed",
+        "Complete",
+        "Failed"
+      ]
+    },
+    {
+      "name": "poc_end_date",
+      "type": "date"
+    },
+    {
+      "name": "technical_win",
+      "type": "bool"
+    },
+    {
+      "name": "health",
+      "type": "enum",
+      "values": [
+        "Green",
+        "Yellow",
+        "Red"
+      ]
+    },
+    {
+      "name": "risk_flags",
+      "type": "text",
+      "note": "DERIVED, semicolon-separated: single-threaded;no-close-plan;date-slipped;stalled;no-champion"
+    },
+    {
+      "name": "on_hold",
+      "type": "bool"
+    },
+    {
+      "name": "on_hold_reason",
+      "type": "text"
+    },
+    {
+      "name": "close_date_pushes",
+      "type": "number",
+      "note": "How many times close date has moved out. The single best predictor of a deal that won't close."
+    },
+    {
+      "name": "previous_close_date",
+      "type": "date"
+    },
+    {
+      "name": "days_in_stage",
+      "type": "number"
+    },
+    {
+      "name": "last_activity_date",
+      "type": "date"
+    },
+    {
+      "name": "engagement_score",
+      "type": "number",
+      "note": "DERIVED 0-100 from meetings, emails both ways, and notes in the recent window. Volume alone is weak \u2014 a deal with daily internal emails and no customer reply is not engaged."
+    },
+    {
+      "name": "engagement_trend",
+      "type": "enum",
+      "values": [
+        "Heating",
+        "Warm",
+        "Steady",
+        "Cooling",
+        "Cold"
+      ],
+      "note": "DERIVED by comparing the recent window against the one before it. DIRECTION, not level \u2014 a big deal ticking over steadily is not the same as a small one accelerating."
+    },
+    {
+      "name": "meetings_recent",
+      "type": "number",
+      "note": "DERIVED: meetings held in the current window"
+    },
+    {
+      "name": "emails_out_recent",
+      "type": "number",
+      "note": "DERIVED"
+    },
+    {
+      "name": "emails_in_recent",
+      "type": "number",
+      "note": "DERIVED: replies FROM the customer. The strongest single engagement signal \u2014 outbound volume measures effort, inbound measures interest."
+    },
+    {
+      "name": "last_inbound_date",
+      "type": "date",
+      "note": "DERIVED: last time they contacted us"
+    },
+    {
+      "name": "quote_sent_date",
+      "type": "date"
+    },
+    {
+      "name": "next_step",
+      "type": "text"
+    },
+    {
+      "name": "next_step_date",
+      "type": "date"
+    },
+    {
+      "name": "loss_reason",
+      "type": "text"
+    },
+    {
+      "name": "loss_notes",
+      "type": "text"
+    },
+    {
+      "name": "contract_start",
+      "type": "date"
+    },
+    {
+      "name": "contract_end",
+      "type": "date"
+    },
+    {
+      "name": "term_months",
+      "type": "number"
+    },
+    {
+      "name": "notes",
+      "type": "text"
+    },
+    {
+      "name": "crm_id",
+      "type": "text"
+    },
+    {
+      "name": "sync_status",
+      "type": "enum",
+      "values": [
+        "local-only",
+        "synced",
+        "pending-push",
+        "conflict"
+      ]
+    },
+    {
+      "name": "last_updated",
+      "type": "date"
+    }
+  ],
+  "browsable": true,
+  "archive": {
+    "when_column": "stage",
+    "when_values": [
+      "Closed Won",
+      "Closed Lost"
+    ],
+    "age_column": "close_date",
+    "keep_days": 400
+  }
+}

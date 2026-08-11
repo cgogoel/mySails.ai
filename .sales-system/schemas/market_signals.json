@@ -1,0 +1,197 @@
+{
+  "registry": "market_signals",
+  "path": "03-Market/signals.csv",
+  "id_prefix": "SIG",
+  "id_width": 4,
+  "description": "Dated external events that change what someone should do. Not a news feed \u2014 every row must survive the 'so what' test.",
+  "picklists_overridable": [
+    "signal_type",
+    "relevance",
+    "status",
+    "source_type"
+  ],
+  "columns": [
+    {
+      "name": "id",
+      "type": "id",
+      "required": true
+    },
+    {
+      "name": "date",
+      "type": "date",
+      "required": true,
+      "note": "When the event happened, not when you found it"
+    },
+    {
+      "name": "found_date",
+      "type": "date"
+    },
+    {
+      "name": "headline",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "signal_type",
+      "type": "enum",
+      "values": [
+        "Funding",
+        "M&A",
+        "Leadership Change",
+        "Product Launch",
+        "Regulation",
+        "Breach or Incident",
+        "Hiring",
+        "Layoff",
+        "Earnings",
+        "Partnership",
+        "Analyst Report",
+        "Other"
+      ]
+    },
+    {
+      "name": "company",
+      "type": "text",
+      "note": "Who the event is about"
+    },
+    {
+      "name": "watch_id",
+      "type": "text",
+      "note": "Which watchlist entry surfaced this"
+    },
+    {
+      "name": "theme",
+      "type": "text"
+    },
+    {
+      "name": "so_what",
+      "type": "text",
+      "required": true,
+      "note": "Why a seller should care, in one sentence. REQUIRED. A signal without this is news, and news belongs somewhere else."
+    },
+    {
+      "name": "relevance",
+      "type": "enum",
+      "required": true,
+      "values": [
+        "High",
+        "Medium",
+        "Low"
+      ],
+      "note": "High means it changes what someone does this week. Reserve it."
+    },
+    {
+      "name": "competitor_id",
+      "note": "COMP- id when the signal is about a tracked competitor. Set this on every competitor signal \u2014 it's what makes the news visible from the competitor registry instead of dead-ending in the market log."
+    },
+    {
+      "name": "competitive_impact",
+      "type": "enum",
+      "values": [
+        "Changes positioning",
+        "Changes pricing pressure",
+        "New capability",
+        "Weakness exposed",
+        "Funding/scale",
+        "Leadership change",
+        "No impact"
+      ],
+      "note": "What this actually changes about how you sell against them. 'No impact' is a valid and common answer."
+    },
+    {
+      "name": "related_account",
+      "type": "text",
+      "note": "Account name this affects"
+    },
+    {
+      "name": "related_id",
+      "type": "text",
+      "note": "CUST-/OPP-/LEAD- id. A signal tied to a tracked record is worth an order of magnitude more than a general one."
+    },
+    {
+      "name": "status",
+      "type": "enum",
+      "values": [
+        "New",
+        "Reviewed",
+        "Acted On",
+        "Dismissed",
+        "Watching"
+      ]
+    },
+    {
+      "name": "content_reviewed",
+      "type": "bool",
+      "note": "Whether this signal has been assessed as a content opportunity. Drives the 'new since last sweep' list in demand gen."
+    },
+    {
+      "name": "content_opp_id",
+      "note": "CONTENT- id if this signal produced a piece"
+    },
+    {
+      "name": "action_taken",
+      "type": "text"
+    },
+    {
+      "name": "task_id",
+      "type": "text",
+      "note": "TASK- id if this produced a task"
+    },
+    {
+      "name": "source_type",
+      "type": "enum",
+      "values": [
+        "Newsletter",
+        "Feed",
+        "Web Search",
+        "Email",
+        "CRM",
+        "Colleague",
+        "Manual"
+      ],
+      "note": "Where this came from. Newsletter items are pre-filtered by an editor who knows the space, which is worth knowing when weighing them."
+    },
+    {
+      "name": "newsletter_name",
+      "type": "text",
+      "note": "Which publication, when source_type is Newsletter or Feed"
+    },
+    {
+      "name": "source_url",
+      "type": "url"
+    },
+    {
+      "name": "source_name",
+      "type": "text"
+    },
+    {
+      "name": "confidence",
+      "type": "enum",
+      "values": [
+        "Confirmed",
+        "Reported",
+        "Rumour"
+      ],
+      "note": "Confirmed = primary source or company statement. Rumour = single unverified report. Say which."
+    },
+    {
+      "name": "notes",
+      "type": "text"
+    },
+    {
+      "name": "last_updated",
+      "type": "date"
+    }
+  ],
+  "browsable": true,
+  "archive": {
+    "when_column": "status",
+    "when_values": [
+      "Acted On",
+      "Dismissed",
+      "Expired"
+    ],
+    "age_column": "date",
+    "keep_days": 180
+  }
+}

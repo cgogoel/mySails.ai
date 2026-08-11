@@ -1,0 +1,157 @@
+{
+  "registry": "content_opportunities",
+  "path": "05-Demand-Gen/content-opportunities.csv",
+  "id_prefix": "CONTENT",
+  "id_width": 4,
+  "browsable": true,
+  "description": "Moments where something happening in the market gives the company a legitimate reason to say something. Tracks the idea from signal through draft to published, so the same news isn't written up twice and good angles don't evaporate.",
+  "picklists_overridable": [
+    "content_type",
+    "status",
+    "channel"
+  ],
+  "columns": [
+    {
+      "name": "id",
+      "type": "id",
+      "required": true
+    },
+    {
+      "name": "spotted_date",
+      "type": "date",
+      "required": true
+    },
+    {
+      "name": "signal_id",
+      "type": "text",
+      "note": "Links to 03-Market/signals. Blank if the idea came from elsewhere."
+    },
+    {
+      "name": "headline",
+      "type": "text",
+      "required": true,
+      "note": "What happened, in the world's words not ours"
+    },
+    {
+      "name": "relevance_why",
+      "type": "text",
+      "required": true,
+      "note": "REQUIRED. Why this company specifically has standing to comment. If the honest answer is 'we sell adjacent software', there's no piece here \u2014 commentary without standing reads as hijacking."
+    },
+    {
+      "name": "matched_products",
+      "type": "text",
+      "note": "Which products the angle touches"
+    },
+    {
+      "name": "matched_icp",
+      "type": "text",
+      "note": "Which segment or persona would care"
+    },
+    {
+      "name": "suggested_angles",
+      "type": "text",
+      "note": "Two or three distinct takes, not one idea reworded"
+    },
+    {
+      "name": "chosen_angle",
+      "type": "text"
+    },
+    {
+      "name": "content_type",
+      "type": "enum",
+      "values": [
+        "Social Post",
+        "Blog",
+        "Webinar Brief",
+        "Outreach Email",
+        "Newsletter Item",
+        "Not Pursuing"
+      ]
+    },
+    {
+      "name": "channel",
+      "type": "text",
+      "note": "LinkedIn, X, company blog \u2014 per the user's configured preference"
+    },
+    {
+      "name": "related_account",
+      "type": "text",
+      "note": "Set when the piece is aimed at a specific account rather than the market"
+    },
+    {
+      "name": "related_id",
+      "type": "text",
+      "note": "LEAD-/OPP-/CUST- id, when this is outreach rather than broadcast"
+    },
+    {
+      "name": "status",
+      "type": "enum",
+      "required": true,
+      "values": [
+        "New",
+        "Angle Proposed",
+        "Approved",
+        "Drafted",
+        "In Review",
+        "Published",
+        "Declined",
+        "Expired"
+      ]
+    },
+    {
+      "name": "perishability",
+      "type": "enum",
+      "values": [
+        "Hours",
+        "Days",
+        "Weeks",
+        "Evergreen"
+      ],
+      "note": "How long the news stays fresh. A breach comment written a fortnight late is worse than silence."
+    },
+    {
+      "name": "draft_path",
+      "type": "text"
+    },
+    {
+      "name": "published_url",
+      "type": "url"
+    },
+    {
+      "name": "published_date",
+      "type": "date"
+    },
+    {
+      "name": "owner",
+      "type": "text"
+    },
+    {
+      "name": "task_id",
+      "type": "text"
+    },
+    {
+      "name": "declined_reason",
+      "type": "text",
+      "note": "Why it was passed on. Prevents the same idea resurfacing every sweep."
+    },
+    {
+      "name": "notes",
+      "type": "text"
+    },
+    {
+      "name": "last_updated",
+      "type": "date"
+    }
+  ],
+  "archive": {
+    "when_column": "status",
+    "when_values": [
+      "Published",
+      "Declined",
+      "Expired"
+    ],
+    "age_column": "spotted_date",
+    "keep_days": 180
+  }
+}

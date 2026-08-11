@@ -1,0 +1,189 @@
+{
+  "registry": "content_assets",
+  "path": "10-Content/asset-index.csv",
+  "id_prefix": "ASSET",
+  "id_width": 4,
+  "browsable": true,
+  "description": "Everything the content library holds and everything produced from it. Source material and generated pieces live in one index so reuse is visible \u2014 the second-best outcome of a request is finding something that already answers it.",
+  "picklists_overridable": [
+    "kind",
+    "status",
+    "audience_type"
+  ],
+  "columns": [
+    {
+      "name": "id",
+      "type": "id",
+      "required": true
+    },
+    {
+      "name": "title",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "kind",
+      "type": "enum",
+      "required": true,
+      "values": [
+        "Deck",
+        "One-Pager",
+        "Comparison",
+        "Case Study",
+        "Email",
+        "Email Sequence",
+        "Proposal",
+        "Meeting Brief",
+        "Blog",
+        "Landing Page",
+        "Demo Script",
+        "Other"
+      ]
+    },
+    {
+      "name": "path",
+      "type": "text",
+      "required": true,
+      "note": "Relative path from the project root"
+    },
+    {
+      "name": "is_source",
+      "type": "bool",
+      "required": true,
+      "note": "yes = library material to build FROM. no = something produced for a specific deal."
+    },
+    {
+      "name": "library_section",
+      "type": "text",
+      "note": "For source assets: Corporate or Product, matching 02-Context/Presentations/"
+    },
+    {
+      "name": "audience_type",
+      "type": "enum",
+      "values": [
+        "Executive",
+        "Economic Buyer",
+        "Champion",
+        "Technical Evaluator",
+        "Security/Compliance",
+        "Procurement",
+        "End User",
+        "Mixed"
+      ],
+      "note": "Drives register and depth far more than industry does"
+    },
+    {
+      "name": "audience_names",
+      "type": "text",
+      "note": "Actual people it was written for, when known"
+    },
+    {
+      "name": "stage",
+      "type": "text",
+      "note": "Deal stage it suits"
+    },
+    {
+      "name": "for_account",
+      "type": "text"
+    },
+    {
+      "name": "for_opp_id",
+      "type": "text"
+    },
+    {
+      "name": "for_lead_id",
+      "type": "text"
+    },
+    {
+      "name": "built_from",
+      "type": "text",
+      "note": "ASSET ids of source material used, semicolon-separated"
+    },
+    {
+      "name": "competitor_id",
+      "type": "text",
+      "note": "COMP- id when the piece positions against a named competitor"
+    },
+    {
+      "name": "signals_used",
+      "type": "text",
+      "note": "SIG- ids whose news is referenced. Lets you find what to correct if a signal turns out wrong."
+    },
+    {
+      "name": "request_origin",
+      "type": "enum",
+      "values": [
+        "Meeting request",
+        "Customer ask",
+        "Follow-up",
+        "Proactive",
+        "Brief prep",
+        "RFP/RFI",
+        "Renewal",
+        "Other"
+      ],
+      "note": "What prompted it. 'Customer ask' pieces get used; proactive ones often don't \u2014 worth knowing which is which."
+    },
+    {
+      "name": "request_detail",
+      "type": "text",
+      "note": "What they actually asked for, in their words where possible"
+    },
+    {
+      "name": "unverified_claims",
+      "type": "text",
+      "note": "Anything asserted that could not be confirmed from the context library or a source. MUST be filled where relevant \u2014 this is what gets checked before the piece goes to a customer."
+    },
+    {
+      "name": "gaps_flagged",
+      "type": "text",
+      "note": "What the requester still needs to supply or confirm"
+    },
+    {
+      "name": "status",
+      "type": "enum",
+      "required": true,
+      "values": [
+        "Draft",
+        "Needs Input",
+        "In Review",
+        "Approved",
+        "Sent",
+        "Archived"
+      ]
+    },
+    {
+      "name": "task_id",
+      "type": "text"
+    },
+    {
+      "name": "owner",
+      "type": "text"
+    },
+    {
+      "name": "created_date",
+      "type": "date"
+    },
+    {
+      "name": "last_used_date",
+      "type": "date"
+    },
+    {
+      "name": "times_used",
+      "type": "number"
+    },
+    {
+      "name": "outcome_note",
+      "type": "text",
+      "note": "What happened after it was sent. The only way the library learns."
+    },
+    {
+      "name": "notes",
+      "type": "text"
+    },
+    {
+      "name": "last_updated",
+      "type": "date"
+    }
+  ]
+}

@@ -1,0 +1,204 @@
+{
+  "registry": "quotes",
+  "path": "12-Quotes/quotes.csv",
+  "id_prefix": "QUOTE",
+  "id_width": 4,
+  "browsable": true,
+  "description": "One row per quote issued or drafted. Versioned, because a renegotiated quote is a new version rather than an edit \u2014 you need to be able to say what the customer was actually sent.",
+  "picklists_overridable": [
+    "status",
+    "payment_terms",
+    "outcome"
+  ],
+  "columns": [
+    {
+      "name": "id",
+      "type": "id",
+      "required": true
+    },
+    {
+      "name": "quote_number",
+      "type": "text",
+      "required": true,
+      "note": "What the customer sees, e.g. Q-2026-0042"
+    },
+    {
+      "name": "version",
+      "type": "number",
+      "required": true,
+      "note": "Increments on every reissue. Never edit a sent quote in place."
+    },
+    {
+      "name": "supersedes",
+      "type": "text",
+      "note": "QUOTE- id this replaces"
+    },
+    {
+      "name": "opportunity_id",
+      "type": "text",
+      "note": "OPP- id. A quote should almost always belong to a deal."
+    },
+    {
+      "name": "account_name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "contact_name",
+      "type": "text"
+    },
+    {
+      "name": "contact_email",
+      "type": "email"
+    },
+    {
+      "name": "status",
+      "type": "enum",
+      "required": true,
+      "values": [
+        "Draft",
+        "Awaiting Approval",
+        "Sent",
+        "Under Negotiation",
+        "Accepted",
+        "Declined",
+        "Expired",
+        "Superseded"
+      ]
+    },
+    {
+      "name": "issue_date",
+      "type": "date"
+    },
+    {
+      "name": "valid_until",
+      "type": "date",
+      "required": true,
+      "note": "DERIVED from issue date plus the org's validity period. An open-ended quote is a discount with no expiry."
+    },
+    {
+      "name": "payment_terms",
+      "type": "text"
+    },
+    {
+      "name": "term_months",
+      "type": "number"
+    },
+    {
+      "name": "billing_frequency",
+      "type": "text"
+    },
+    {
+      "name": "currency",
+      "type": "text"
+    },
+    {
+      "name": "subtotal_list",
+      "type": "money",
+      "note": "DERIVED: sum of lines at list"
+    },
+    {
+      "name": "discount_amount",
+      "type": "money",
+      "note": "DERIVED"
+    },
+    {
+      "name": "discount_pct",
+      "type": "number",
+      "note": "DERIVED: blended across the whole quote"
+    },
+    {
+      "name": "subtotal",
+      "type": "money",
+      "note": "DERIVED: after discount"
+    },
+    {
+      "name": "tax",
+      "type": "money"
+    },
+    {
+      "name": "total",
+      "type": "money",
+      "required": true,
+      "note": "DERIVED. What the customer pays."
+    },
+    {
+      "name": "annualised_value",
+      "type": "money",
+      "note": "DERIVED: total over term, for multi-year comparability"
+    },
+    {
+      "name": "needs_approval",
+      "type": "bool",
+      "note": "DERIVED: any line past its max_discount_no_approval, or blended discount past the org threshold"
+    },
+    {
+      "name": "approval_reason",
+      "type": "text"
+    },
+    {
+      "name": "approved_by",
+      "type": "text"
+    },
+    {
+      "name": "approved_date",
+      "type": "date"
+    },
+    {
+      "name": "sent_date",
+      "type": "date"
+    },
+    {
+      "name": "outcome",
+      "type": "enum",
+      "values": [
+        "Pending",
+        "Accepted",
+        "Declined",
+        "Expired",
+        "Withdrawn"
+      ]
+    },
+    {
+      "name": "outcome_reason",
+      "type": "text"
+    },
+    {
+      "name": "accepted_date",
+      "type": "date"
+    },
+    {
+      "name": "updated_opportunity",
+      "type": "bool",
+      "note": "Whether the opportunity amount was updated from this quote"
+    },
+    {
+      "name": "document_path",
+      "type": "text",
+      "note": "The generated quote document"
+    },
+    {
+      "name": "owner",
+      "type": "text"
+    },
+    {
+      "name": "notes",
+      "type": "text"
+    },
+    {
+      "name": "last_updated",
+      "type": "date"
+    }
+  ],
+  "archive": {
+    "when_column": "status",
+    "when_values": [
+      "Accepted",
+      "Declined",
+      "Expired",
+      "Superseded"
+    ],
+    "age_column": "issue_date",
+    "keep_days": 365
+  }
+}

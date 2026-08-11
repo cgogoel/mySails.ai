@@ -1,0 +1,249 @@
+{
+  "registry": "deal_registrations",
+  "path": "11-Partners/deal-registrations.csv",
+  "id_prefix": "DEALREG",
+  "id_width": 4,
+  "browsable": true,
+  "description": "Every partner deal registration, approved or not. Exists as its own registry rather than a field on the opportunity because a registration is a CLAIM on an end customer that starts a protection clock \u2014 it precedes the opportunity, may never become one, and must be checkable against other partners' claims before it's approved.",
+  "picklists_overridable": [
+    "status",
+    "decline_reason",
+    "conflict_type"
+  ],
+  "columns": [
+    {
+      "name": "id",
+      "type": "id",
+      "required": true
+    },
+    {
+      "name": "submitted_date",
+      "type": "date",
+      "required": true
+    },
+    {
+      "name": "partner_id",
+      "type": "text",
+      "required": true,
+      "note": "The partner who SUBMITTED the registration. Which tier they occupy is in distributor_id / reseller_id \u2014 a submission is not itself a claim on a tier."
+    },
+    {
+      "name": "partner_name",
+      "type": "text",
+      "required": true,
+      "note": "Name of the submitting partner"
+    },
+    {
+      "name": "partner_rep",
+      "type": "text"
+    },
+    {
+      "name": "partner_rep_email",
+      "type": "email",
+      "note": "The email domain is often the most reliable way to match a submission back to a partner"
+    },
+    {
+      "name": "distributor_id",
+      "note": "PARTNER- id of the distributor tier, if the deal has one. Blank for single-tier deals."
+    },
+    {
+      "name": "distributor_name"
+    },
+    {
+      "name": "reseller_id",
+      "note": "PARTNER- id of the reselling tier. May be the SAME partner as the distributor \u2014 a partner fulfilling both tiers is a legitimate single-partner deal, not a duplicate."
+    },
+    {
+      "name": "reseller_name"
+    },
+    {
+      "name": "deal_structure",
+      "type": "enum",
+      "values": [
+        "Single-tier",
+        "Two-tier",
+        "Direct with referral",
+        "Unknown"
+      ],
+      "note": "DERIVED. Two-tier = different partners at each tier. Single-tier = one partner at both, or only one tier populated. This is what tells the conflict check whether a second partner on the deal is teaming or collision."
+    },
+    {
+      "name": "teaming_confirmed",
+      "type": "bool",
+      "note": "Whether both partners know they're working this together. Two partners on one deal who each think they're alone is the same problem as channel conflict, arriving later."
+    },
+    {
+      "name": "end_customer",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "end_customer_domain",
+      "type": "text",
+      "note": "Normalised domain. Matches far more reliably than company name \u2014 'Acme Corp', 'ACME Corporation' and 'Acme, Inc.' are one customer."
+    },
+    {
+      "name": "end_customer_country",
+      "type": "text"
+    },
+    {
+      "name": "end_customer_state",
+      "type": "text"
+    },
+    {
+      "name": "customer_contact",
+      "type": "text"
+    },
+    {
+      "name": "customer_contact_email",
+      "type": "email"
+    },
+    {
+      "name": "products",
+      "type": "text"
+    },
+    {
+      "name": "estimated_amount",
+      "type": "money"
+    },
+    {
+      "name": "estimated_close_date",
+      "type": "date"
+    },
+    {
+      "name": "use_case",
+      "type": "text"
+    },
+    {
+      "name": "status",
+      "type": "enum",
+      "required": true,
+      "values": [
+        "Submitted",
+        "Under Review",
+        "Approved",
+        "Declined",
+        "Expired",
+        "Converted",
+        "Withdrawn"
+      ]
+    },
+    {
+      "name": "approved_date",
+      "type": "date"
+    },
+    {
+      "name": "protection_days",
+      "type": "number",
+      "note": "From the partner agreement at time of approval, not looked up later \u2014 terms change"
+    },
+    {
+      "name": "protection_expires",
+      "type": "date",
+      "note": "DERIVED: approved_date plus protection_days. After this the claim lapses and the customer is open again."
+    },
+    {
+      "name": "days_to_expiry",
+      "type": "number",
+      "note": "DERIVED. Negative means lapsed."
+    },
+    {
+      "name": "conflict_checked",
+      "type": "bool",
+      "required": true,
+      "note": "Whether a conflict check has been run. Approving without one is how channel disputes start."
+    },
+    {
+      "name": "conflict_type",
+      "type": "enum",
+      "values": [
+        "None",
+        "Same tier claimed",
+        "Already holds this tier",
+        "Teaming \u2014 no conflict",
+        "Role not permitted",
+        "Direct opportunity",
+        "Existing customer",
+        "Territory mismatch",
+        "Expired claim"
+      ],
+      "note": "DERIVED by the conflict checker. Conflict is by TIER, not by partner."
+    },
+    {
+      "name": "conflict_detail",
+      "type": "text"
+    },
+    {
+      "name": "conflicts_with",
+      "type": "text",
+      "note": "DEALREG- or OPP- id of whatever it collides with"
+    },
+    {
+      "name": "decline_reason",
+      "type": "enum",
+      "values": [
+        "Tier already claimed by another partner",
+        "Already a direct opportunity",
+        "Existing customer",
+        "Outside partner territory",
+        "Partner not permitted in that role",
+        "Insufficient detail",
+        "Duplicate submission",
+        "Customer declined partner",
+        "Other"
+      ]
+    },
+    {
+      "name": "resolution_note",
+      "type": "text",
+      "note": "How a conflict was settled. The record that stops it being re-litigated."
+    },
+    {
+      "name": "opportunity_id",
+      "type": "text",
+      "note": "OPP- id once it converts"
+    },
+    {
+      "name": "converted_date",
+      "type": "date"
+    },
+    {
+      "name": "owner",
+      "type": "text",
+      "note": "Who at our end reviewed it"
+    },
+    {
+      "name": "notes",
+      "type": "text"
+    },
+    {
+      "name": "crm_id",
+      "type": "text"
+    },
+    {
+      "name": "sync_status",
+      "type": "enum",
+      "values": [
+        "local-only",
+        "synced",
+        "pending-push",
+        "conflict"
+      ]
+    },
+    {
+      "name": "last_updated",
+      "type": "date"
+    }
+  ],
+  "archive": {
+    "when_column": "status",
+    "when_values": [
+      "Declined",
+      "Expired",
+      "Converted",
+      "Withdrawn"
+    ],
+    "age_column": "submitted_date",
+    "keep_days": 365
+  }
+}

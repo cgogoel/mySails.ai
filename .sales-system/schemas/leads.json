@@ -1,0 +1,231 @@
+{
+  "registry": "leads",
+  "path": "06-Leads/leads.csv",
+  "id_prefix": "LEAD",
+  "id_width": 4,
+  "description": "People who might become opportunities. Generic shape; map to your CRM in .sales-system/crm-profile/field-map.json and override picklists in picklists.json.",
+  "picklists_overridable": [
+    "status",
+    "lead_source",
+    "disqualified_reason",
+    "product_interest",
+    "rating"
+  ],
+  "columns": [
+    {
+      "name": "id",
+      "type": "id",
+      "required": true
+    },
+    {
+      "name": "first_name",
+      "type": "text"
+    },
+    {
+      "name": "last_name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "title",
+      "type": "text"
+    },
+    {
+      "name": "company",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "website",
+      "type": "url"
+    },
+    {
+      "name": "email",
+      "type": "email"
+    },
+    {
+      "name": "phone",
+      "type": "text"
+    },
+    {
+      "name": "linkedin",
+      "type": "url"
+    },
+    {
+      "name": "status",
+      "type": "enum",
+      "required": true,
+      "values": [
+        "New",
+        "Working",
+        "Engaged",
+        "Nurture",
+        "Qualified",
+        "Disqualified",
+        "Do Not Contact"
+      ],
+      "note": "Working state the seller controls. Override values per CRM in the profile."
+    },
+    {
+      "name": "funnel_stage",
+      "type": "text",
+      "note": "Marketing/lifecycle position if a separate system owns one (HubSpot, Marketo). Often read-only \u2014 the profile says whether it may be pushed."
+    },
+    {
+      "name": "rating",
+      "type": "enum",
+      "values": [
+        "Hot",
+        "Warm",
+        "Cold"
+      ]
+    },
+    {
+      "name": "owner",
+      "type": "text"
+    },
+    {
+      "name": "secondary_owner",
+      "type": "text",
+      "note": "SDR/BDR or partner rep also working this lead, if the org splits ownership"
+    },
+    {
+      "name": "lead_source",
+      "type": "enum",
+      "values": [
+        "Inbound",
+        "Outbound",
+        "Referral",
+        "Event",
+        "Webinar",
+        "Content",
+        "Paid",
+        "Organic",
+        "Partner",
+        "List",
+        "Other"
+      ]
+    },
+    {
+      "name": "source_detail",
+      "type": "text"
+    },
+    {
+      "name": "product_interest",
+      "type": "text"
+    },
+    {
+      "name": "industry",
+      "type": "text"
+    },
+    {
+      "name": "company_size",
+      "type": "number"
+    },
+    {
+      "name": "campaign_id",
+      "type": "text",
+      "note": "Links to 05-Demand-Gen/campaigns.csv. Local only."
+    },
+    {
+      "name": "created_date",
+      "type": "date"
+    },
+    {
+      "name": "last_activity_date",
+      "type": "date"
+    },
+    {
+      "name": "days_since_active",
+      "type": "number",
+      "note": "Days since last logged activity. CRM-calculated where available, else derived."
+    },
+    {
+      "name": "total_activities",
+      "type": "number"
+    },
+    {
+      "name": "in_sequence",
+      "type": "bool",
+      "note": "In an active automated cadence (Outreach, Apollo, SalesLoft, HubSpot sequences). Suppresses manual follow-up tasks."
+    },
+    {
+      "name": "sequence_name",
+      "type": "text"
+    },
+    {
+      "name": "sequence_next_step_date",
+      "type": "date"
+    },
+    {
+      "name": "contactable",
+      "type": "bool",
+      "required": true,
+      "note": "DERIVED GATE. 'no' if any opt-out, do-not-call, bounce, or left-company flag is set. Nothing may be drafted or sent where this is no. Blocking fields are listed per-CRM in crm-profile/contactability.json."
+    },
+    {
+      "name": "contact_restrictions",
+      "type": "text",
+      "note": "Which flags produced contactable=no, semicolon-separated, e.g. 'marketing-opt-out;email-bounced'"
+    },
+    {
+      "name": "next_step",
+      "type": "text",
+      "note": "Short, factual. In some CRMs this is a shared field colleagues read \u2014 the profile flags that."
+    },
+    {
+      "name": "next_step_date",
+      "type": "date"
+    },
+    {
+      "name": "converted_opp_id",
+      "type": "text"
+    },
+    {
+      "name": "disqualified_reason",
+      "type": "enum",
+      "values": [
+        "Bad Data",
+        "Not Interested",
+        "Not a Good Fit",
+        "No Budget",
+        "Wrong Timing",
+        "Competitor",
+        "Duplicate",
+        "Other"
+      ]
+    },
+    {
+      "name": "notes",
+      "type": "text"
+    },
+    {
+      "name": "crm_id",
+      "type": "text"
+    },
+    {
+      "name": "sync_status",
+      "type": "enum",
+      "values": [
+        "local-only",
+        "synced",
+        "pending-push",
+        "conflict"
+      ]
+    },
+    {
+      "name": "last_updated",
+      "type": "date"
+    }
+  ],
+  "browsable": true,
+  "archive": {
+    "when_column": "status",
+    "when_values": [
+      "Disqualified",
+      "Junk"
+    ],
+    "age_column": "last_updated",
+    "keep_days": 180
+  }
+}

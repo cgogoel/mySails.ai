@@ -1,0 +1,197 @@
+{
+  "registry": "campaigns",
+  "path": "05-Demand-Gen/campaigns.csv",
+  "id_prefix": "CMP",
+  "id_width": 3,
+  "browsable": true,
+  "description": "Demand gen programmes and what they actually produced. The funnel columns are computed from leads and opportunities, not reported by the channel \u2014 so the numbers say what happened rather than what was promised.",
+  "picklists_overridable": [
+    "channel",
+    "status"
+  ],
+  "columns": [
+    {
+      "name": "id",
+      "type": "id",
+      "required": true
+    },
+    {
+      "name": "name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "channel",
+      "type": "enum",
+      "required": true,
+      "values": [
+        "Email",
+        "Paid Search",
+        "Paid Social",
+        "Organic Search",
+        "Organic Social",
+        "Events",
+        "Trade Show",
+        "Webinar",
+        "Content",
+        "Partner",
+        "Outbound",
+        "Referral",
+        "Display",
+        "Other"
+      ]
+    },
+    {
+      "name": "source_value",
+      "type": "text",
+      "note": "The value this campaign writes into the lead/opportunity source field. THE JOIN KEY \u2014 attribution silently returns zero without it."
+    },
+    {
+      "name": "crm_campaign_id",
+      "type": "text",
+      "note": "CRM campaign record id, where the org uses campaign objects"
+    },
+    {
+      "name": "status",
+      "type": "enum",
+      "values": [
+        "Planned",
+        "Live",
+        "Paused",
+        "Complete",
+        "Cancelled"
+      ]
+    },
+    {
+      "name": "start_date",
+      "type": "date"
+    },
+    {
+      "name": "end_date",
+      "type": "date"
+    },
+    {
+      "name": "owner",
+      "type": "text"
+    },
+    {
+      "name": "target_segment",
+      "type": "text"
+    },
+    {
+      "name": "target_persona",
+      "type": "text"
+    },
+    {
+      "name": "offer",
+      "type": "text",
+      "note": "What the prospect actually got: report, demo, trial, meeting"
+    },
+    {
+      "name": "budget",
+      "type": "money"
+    },
+    {
+      "name": "spend",
+      "type": "money"
+    },
+    {
+      "name": "leads_created",
+      "type": "number",
+      "note": "DERIVED"
+    },
+    {
+      "name": "leads_contactable",
+      "type": "number",
+      "note": "DERIVED. A purchased list that is 60% unmailable cost more than it looks."
+    },
+    {
+      "name": "leads_worked",
+      "type": "number",
+      "note": "DERIVED: leads that got past New. Untouched leads are a routing problem, not a channel problem \u2014 separating them stops the wrong lever being pulled."
+    },
+    {
+      "name": "leads_qualified",
+      "type": "number",
+      "note": "DERIVED"
+    },
+    {
+      "name": "opps_created",
+      "type": "number",
+      "note": "DERIVED"
+    },
+    {
+      "name": "pipeline_created",
+      "type": "money",
+      "note": "DERIVED: sum of opportunity amount"
+    },
+    {
+      "name": "closed_won",
+      "type": "number",
+      "note": "DERIVED"
+    },
+    {
+      "name": "revenue_won",
+      "type": "money",
+      "note": "DERIVED"
+    },
+    {
+      "name": "closed_lost",
+      "type": "number",
+      "note": "DERIVED"
+    },
+    {
+      "name": "still_open",
+      "type": "number",
+      "note": "DERIVED. Judging a campaign before its deals resolve is the most common attribution error."
+    },
+    {
+      "name": "lead_to_opp_rate",
+      "type": "number",
+      "note": "DERIVED %. Blank when the sample is too small to mean anything."
+    },
+    {
+      "name": "cost_per_lead",
+      "type": "money",
+      "note": "DERIVED"
+    },
+    {
+      "name": "cost_per_opp",
+      "type": "money",
+      "note": "DERIVED"
+    },
+    {
+      "name": "pipeline_roi",
+      "type": "number",
+      "note": "DERIVED: pipeline_created / spend. A ratio, not a percentage."
+    },
+    {
+      "name": "days_to_first_opp",
+      "type": "number",
+      "note": "DERIVED: median. Tells you when a campaign can fairly be judged."
+    },
+    {
+      "name": "maturity",
+      "type": "enum",
+      "values": [
+        "Too early",
+        "Partial",
+        "Mature"
+      ],
+      "note": "DERIVED: whether enough of the cohort has resolved to draw a conclusion. Guards against judging a long-cycle campaign at week three."
+    },
+    {
+      "name": "sample_note",
+      "type": "text",
+      "note": "DERIVED. Plain language on what the numbers can and cannot support."
+    },
+    {
+      "name": "notes",
+      "type": "text"
+    },
+    {
+      "name": "last_updated",
+      "type": "date"
+    }
+  ]
+}

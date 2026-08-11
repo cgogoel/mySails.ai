@@ -1,0 +1,90 @@
+{
+  "registry": "team",
+  "path": "00-Config/team.csv",
+  "id_prefix": "REP",
+  "id_width": 3,
+  "description": "Team roster. Only created when scope is team-wide. Gives every 'owner' field a real person with a quota behind it.",
+  "columns": [
+    {
+      "name": "id",
+      "type": "id",
+      "required": true
+    },
+    {
+      "name": "name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "email",
+      "type": "email"
+    },
+    {
+      "name": "title",
+      "type": "text"
+    },
+    {
+      "name": "role",
+      "type": "enum",
+      "values": [
+        "AE",
+        "SDR/BDR",
+        "AM",
+        "CSM",
+        "SE",
+        "Manager",
+        "Ops",
+        "Other"
+      ]
+    },
+    {
+      "name": "segment",
+      "type": "enum",
+      "values": [
+        "SMB",
+        "Mid-Market",
+        "Enterprise",
+        "Strategic",
+        "All"
+      ]
+    },
+    {
+      "name": "territory",
+      "type": "text"
+    },
+    {
+      "name": "manager",
+      "type": "text"
+    },
+    {
+      "name": "annual_quota",
+      "type": "money"
+    },
+    {
+      "name": "current_quarter_quota",
+      "type": "money"
+    },
+    {
+      "name": "start_date",
+      "type": "date"
+    },
+    {
+      "name": "active",
+      "type": "bool"
+    },
+    {
+      "name": "crm_user_id",
+      "type": "text",
+      "note": "Salesforce User Id, so pulls can be filtered by owner"
+    },
+    {
+      "name": "notes",
+      "type": "text"
+    },
+    {
+      "name": "last_updated",
+      "type": "date"
+    }
+  ],
+  "browsable": true
+}

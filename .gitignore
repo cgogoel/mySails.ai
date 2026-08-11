@@ -1,0 +1,32 @@
+# ── Customer/company data — never commit ──
+*.xlsx
+*.bak
+*.csv
+00-Config/
+01-Tasks/
+02-Context/
+03-Market/
+04-Competitors/
+05-Demand-Gen/
+06-Leads/
+07-Opportunities/
+08-Renewals/
+09-Briefs/
+10-Content/
+11-Partners/
+12-Quotes/
+99-Archive/
+.sales-system/backups/
+.sales-system/cache/
+.sales-system/crm-profile/
+.sales-system/brand.json
+
+# Separate repo: distributable plugin
+sales-system-plugin/
+sales-system-template.zip
+
+# Local artifacts
+style-preview.html
+.writetest
+__pycache__/
+*.pyc
