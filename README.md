@@ -16,19 +16,32 @@ relationships; numbers from small samples are refused rather than reported.
 
 ## Install
 
+**Claude Code (CLI):**
+
 ```
 /plugin marketplace add cgogoel/mySails.ai
 /plugin install folder-sales-os
 ```
 
-Then say "set up my sales project" in a session with a connected folder.
+**Cowork (desktop app):** Cowork has no `/plugin` command — it installs from a
+`.plugin` file. Clone this repo and package it:
+
+```
+git clone https://github.com/cgogoel/mySails.ai.git
+cd mySails.ai && zip -r /tmp/folder-sales-os.plugin . -x "*.git*" "*.DS_Store"
+```
+
+Then open the `.plugin` file in a Cowork chat and press Install on the card.
+
+Either way, connect a folder and say **"set up my sales project"**. Setup installs the
+support layer into that folder on first run, so an empty folder is fine.
 
 ## Layout
 
 - `skills/` — the thirteen skills
 - `.sales-system/` — the generic support layer: schemas, scripts, conventions.
-  Contains no org data. `configure-project` unpacks a copy of this into each new
-  project folder.
+  Contains no org data. `configure-project` copies this into each new project folder
+  on first run and never overwrites an existing copy.
 - `.claude-plugin/` — plugin and marketplace manifests
 
 `.sales-system/scripts/make_template.py` packages `.sales-system/` into

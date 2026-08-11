@@ -13,8 +13,41 @@ Finder, browse without a guide, and edit without fear.
 
 ## Orient first
 
-The **project root** is the connected folder containing `.sales-system/`. Read
-`<project>/.sales-system/CONVENTIONS.md` — the rulebook the rest of this assumes.
+The **project root** is the connected folder. It must contain `.sales-system/` — the generic
+support layer of schemas, scripts and conventions that every other skill depends on.
+
+### Bootstrap the support layer if it is missing
+
+On a fresh install the connected folder is empty and `.sales-system/` does not exist yet. Ship it
+in before doing anything else, or every step below fails on a missing file.
+
+Resolve the plugin root: use `$CLAUDE_PLUGIN_ROOT` when it is set, otherwise take the directory two
+levels above this `SKILL.md` (`skills/configure-project/` → plugin root). Then:
+
+```bash
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:?resolve from this skill's own path if unset}"
+if [ ! -d "<project>/.sales-system" ]; then
+  cp -R "$PLUGIN_ROOT/.sales-system" "<project>/.sales-system"
+fi
+```
+
+If the copy fails with a permission error — some connected folders reject `cp -R` because it tries
+to preserve the source's read-only mode — recreate the tree and stream each file instead:
+
+```bash
+cd "$PLUGIN_ROOT/.sales-system" && find . -type d -exec mkdir -p "<project>/.sales-system/{}" \;
+cd "$PLUGIN_ROOT/.sales-system" && find . -type f -exec sh -c 'cat "$1" > "<project>/.sales-system/$1"' _ {} \;
+```
+
+Verify before continuing: `CONVENTIONS.md`, `VERSION.json`, `schemas/` and `scripts/` must all be
+present. Say plainly that the system layer was installed — do not expose paths unless asked.
+
+**If `.sales-system/` already exists**, leave it alone. Never overwrite it during reconfigure: a
+user may have edited a schema, and clobbering that silently loses their work. Compare
+`VERSION.json` against the plugin's copy and, if the plugin is newer, say so and ask before
+touching anything.
+
+Now read `<project>/.sales-system/CONVENTIONS.md` — the rulebook the rest of this assumes.
 
 Then check `00-Config/config.md`:
 
