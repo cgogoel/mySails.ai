@@ -16,22 +16,38 @@ relationships; numbers from small samples are refused rather than reported.
 
 ## Install
 
-**Claude Code (CLI):**
+Plugins require a paid Claude plan (Pro, Max, Team, or Enterprise).
+
+### Cowork / Claude desktop app
+
+Cowork has no `/plugin` command, and dragging a file into the chat will not install
+anything — it just attaches the file. Add this repo as a marketplace instead:
+
+1. Open the **Cowork** tab, then click **Customize** in the left sidebar.
+2. Go to the **Plugins** tab.
+3. Under **Personal plugins**, click **+** → **Add marketplace** → **Add from a
+   repository**, and enter `cgogoel/mySails.ai`.
+4. Install **folder-sales-os** from the marketplace that appears.
+
+Alternatively, download the packaged plugin and upload it from that same **Plugins**
+tab — not by dragging it into a conversation:
+
+**[⬇ folder-sales-os.plugin](https://github.com/cgogoel/mySails.ai/releases/latest/download/folder-sales-os.plugin)**
+
+### Claude Code (CLI)
 
 ```
 /plugin marketplace add cgogoel/mySails.ai
 /plugin install folder-sales-os
 ```
 
-**Cowork (desktop app):** Cowork has no `/plugin` command — it installs from a
-`.plugin` file. Download the latest one:
+The `owner/repo` shorthand clones over SSH by default. If you don't have SSH keys set
+up for GitHub, set `CLAUDE_CODE_PLUGIN_PREFER_HTTPS=1` first.
 
-**[⬇ folder-sales-os.plugin](https://github.com/cgogoel/mySails.ai/releases/latest/download/folder-sales-os.plugin)**
+### Then
 
-Then drag it into a Cowork chat and press Install on the card.
-
-Either way, connect a folder and say **"set up my sales project"**. Setup installs the
-support layer into that folder on first run, so an empty folder is fine.
+Connect a folder and say **"set up my sales project"**. Setup installs the support
+layer into that folder on first run, so an empty folder is fine.
 
 ## Layout
 
