@@ -1,0 +1,91 @@
+name: Release plugin
+
+# Publishes a ready-to-install .plugin file whenever a version tag is pushed:
+#   git tag v0.1.0 && git push origin v0.1.0
+#
+# The asset is always reachable at a stable URL, so the README never needs updating:
+#   https://github.com/cgogoel/mySails.ai/releases/latest/download/folder-sales-os.plugin
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tag must match plugin.json version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          MANIFEST=$(python3 -c "import json; print(json.load(open('.claude-plugin/plugin.json'))['version'])")
+          if [ "$TAG" != "$MANIFEST" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match plugin.json version ${MANIFEST}. Bump the manifest or retag."
+            exit 1
+          fi
+          echo "version ${MANIFEST} confirmed"
+
+      - name: Validate plugin structure
+        run: |
+          python3 - <<'PY'
+          import json, os, re, sys
+
+          errors = []
+
+          manifest = json.load(open('.claude-plugin/plugin.json'))
+          if not re.fullmatch(r'[a-z0-9]+(-[a-z0-9]+)*', manifest.get('name', '')):
+              errors.append(f"plugin name {manifest.get('name')!r} is not kebab-case")
+
+          json.load(open('.claude-plugin/marketplace.json'))
+
+          skills = sorted(d for d in os.listdir('skills') if os.path.isdir(f'skills/{d}'))
+          if not skills:
+              errors.append('skills/ is empty')
+          for s in skills:
+              if not os.path.exists(f'skills/{s}/SKILL.md'):
+                  errors.append(f'skills/{s} has no SKILL.md')
+
+          # The support layer must ship, or configure-project cannot bootstrap a fresh folder.
+          for path in ('.sales-system/CONVENTIONS.md', '.sales-system/schemas', '.sales-system/scripts'):
+              if not os.path.exists(path):
+                  errors.append(f'missing {path}')
+
+          if errors:
+              for e in errors:
+                  print(f'::error::{e}')
+              sys.exit(1)
+
+          print(f"ok: {manifest['name']} v{manifest['version']}, {len(skills)} skills")
+          PY
+
+      - name: Build .plugin
+        run: |
+          # Package only git-tracked files, so ignored working data can never be included.
+          mkdir -p build/pkg
+          git ls-files -z | while IFS= read -r -d '' f; do
+            mkdir -p "build/pkg/$(dirname "$f")"
+            cp "$f" "build/pkg/$f"
+          done
+          rm -rf build/pkg/.github          # CI config is not part of the plugin
+          (cd build/pkg && zip -rq "${GITHUB_WORKSPACE}/folder-sales-os.plugin" . -x "*.DS_Store")
+          echo "### Package contents" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          unzip -l folder-sales-os.plugin | tail -20 >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" folder-sales-os.plugin \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            --notes-start-tag "$(git describe --tags --abbrev=0 "${GITHUB_REF_NAME}^" 2>/dev/null || echo '')" \
+          || gh release create "$GITHUB_REF_NAME" folder-sales-os.plugin \
+            --title "$GITHUB_REF_NAME" --generate-notes

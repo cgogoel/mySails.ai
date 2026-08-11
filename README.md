@@ -24,14 +24,11 @@ relationships; numbers from small samples are refused rather than reported.
 ```
 
 **Cowork (desktop app):** Cowork has no `/plugin` command — it installs from a
-`.plugin` file. Clone this repo and package it:
+`.plugin` file. Download the latest one:
 
-```
-git clone https://github.com/cgogoel/mySails.ai.git
-cd mySails.ai && zip -r /tmp/folder-sales-os.plugin . -x "*.git*" "*.DS_Store"
-```
+**[⬇ folder-sales-os.plugin](https://github.com/cgogoel/mySails.ai/releases/latest/download/folder-sales-os.plugin)**
 
-Then open the `.plugin` file in a Cowork chat and press Install on the card.
+Then drag it into a Cowork chat and press Install on the card.
 
 Either way, connect a folder and say **"set up my sales project"**. Setup installs the
 support layer into that folder on first run, so an empty folder is fine.
@@ -47,6 +44,19 @@ support layer into that folder on first run, so an empty folder is fine.
 `.sales-system/scripts/make_template.py` packages `.sales-system/` into
 `sales-system-template.zip` on demand. That zip is a build artifact and is not
 committed.
+
+## Cutting a release
+
+Bump `version` in `.claude-plugin/plugin.json`, then:
+
+```
+git tag v0.1.0 && git push origin v0.1.0
+```
+
+`.github/workflows/release.yml` checks the tag against the manifest version,
+validates the plugin structure, builds the `.plugin` from git-tracked files only,
+and publishes it as a release asset. The download link above always points at the
+newest release, so it never needs updating.
 
 ## What is not in this repo
 
