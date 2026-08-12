@@ -26,6 +26,31 @@ because it gets read on a forecast call and referred back to afterwards.
 python3 <project>/.sales-system/scripts/csvguard.py --check-all <project>
 ```
 
+7. **Verify the pipeline still matches the CRM.** This comes before any arithmetic, because
+   the failure it catches is invisible afterwards — a clean registry that quietly disagrees
+   with the system of record produces a confident, wrong forecast.
+
+```bash
+python3 <project>/.sales-system/scripts/csvguard.py --sync-query <project> --registry opportunities
+# run that query through the CRM connector, write the result to snapshot.json
+python3 <project>/.sales-system/scripts/csvguard.py --verify-sync <project> \
+    --registry opportunities --crm-json snapshot.json
+```
+
+Repeat for `renewals` where that module is on. Then **open the forecast with what it found**,
+above the numbers:
+
+- **DRIFT** — someone changed the CRM. "16 opportunities changed owner since your last sync"
+  is the first thing on the page, not a footnote; a by-rep split computed over stale owners
+  is wrong in exactly the way nobody checks.
+- **AHEAD** — changed here, never pushed. The CRM is currently wrong and the forecast call
+  will be run from the CRM.
+- **CONFLICT** — show both values and ask.
+
+If drift is material, offer `crm_sync.py --refresh` and rebuild before continuing. If the
+check couldn't run at all, say so in one line and label the numbers unverified — silence
+reads as confirmation.
+
 Snapshots live in `09-Briefs/Forecast/snapshots`; dashboards in `09-Briefs/Forecast/`.
 
 ---

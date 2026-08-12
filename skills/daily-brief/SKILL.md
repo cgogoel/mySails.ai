@@ -28,6 +28,23 @@ The bar: after reading, they know what to do first, and they walk into every mee
 python3 <project>/.sales-system/scripts/csvguard.py --check-all <project>
 ```
 
+7. **Check whether anything moved in the CRM overnight** — for `opportunities` and `leads`:
+
+```bash
+python3 <project>/.sales-system/scripts/csvguard.py --sync-query <project> --registry opportunities
+# run that query through the CRM connector, write the result to snapshot.json
+python3 <project>/.sales-system/scripts/csvguard.py --verify-sync <project> \
+    --registry opportunities --crm-json snapshot.json
+```
+
+Anything it reports goes at the top of the brief, with the automatic actions. Out-of-band
+CRM changes are news: a deal reassigned, a stage moved by someone else, a close date pulled
+in. They're also the changes least likely to reach the user any other way, which is the whole
+argument for putting them in a brief rather than waiting for them to be noticed.
+
+Keep it proportionate. Two drifted rows is a line; forty is the headline. If the check can't
+run, don't stall the brief — note it in one line and carry on.
+
 Briefs are written to `09-Briefs/Daily/YYYY-MM-DD-daily-brief.md`.
 
 ---

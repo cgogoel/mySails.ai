@@ -12,12 +12,14 @@
     {
       "name": "id",
       "type": "id",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "snapshot_date",
       "type": "date",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "cadence",
@@ -29,147 +31,181 @@
         "Quarterly",
         "Annual"
       ],
-      "note": "Compare like with like \u2014 a weekly is measured against the previous weekly, not the last monthly"
+      "note": "Compare like with like — a weekly is measured against the previous weekly, not the last monthly",
+      "owner": "local"
     },
     {
       "name": "period_start",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     },
     {
       "name": "period_end",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     },
     {
       "name": "scope",
       "type": "text",
-      "note": "individual or team, and whose"
+      "note": "individual or team, and whose",
+      "owner": "local"
     },
     {
       "name": "pipeline_total",
-      "type": "money"
+      "type": "money",
+      "owner": "local"
     },
     {
       "name": "commit",
-      "type": "money"
+      "type": "money",
+      "owner": "local"
     },
     {
       "name": "best_case",
-      "type": "money"
+      "type": "money",
+      "owner": "local"
     },
     {
       "name": "weighted",
-      "type": "money"
+      "type": "money",
+      "owner": "local"
     },
     {
       "name": "closed_won_in_period",
-      "type": "money"
+      "type": "money",
+      "owner": "local"
     },
     {
       "name": "closed_lost_in_period",
-      "type": "money"
+      "type": "money",
+      "owner": "local"
     },
     {
       "name": "renewal_value_due",
       "type": "money",
-      "note": "Total contract value up for renewal in the period"
+      "note": "Total contract value up for renewal in the period",
+      "owner": "local"
     },
     {
       "name": "renewal_value_secured",
       "type": "money",
-      "note": "Of that, renewed"
+      "note": "Of that, renewed",
+      "owner": "local"
     },
     {
       "name": "renewal_pct",
       "type": "number",
-      "note": "Secured over due. The goal is always 100 \u2014 anything less is leakage."
+      "note": "Secured over due. The goal is always 100 — anything less is leakage.",
+      "owner": "local"
     },
     {
       "name": "renewals_at_risk",
-      "type": "number"
+      "type": "number",
+      "owner": "local"
     },
     {
       "name": "renewal_value_at_risk",
-      "type": "money"
+      "type": "money",
+      "owner": "local"
     },
     {
       "name": "renewals_lost",
-      "type": "number"
+      "type": "number",
+      "owner": "local"
     },
     {
       "name": "open_deal_count",
-      "type": "number"
+      "type": "number",
+      "owner": "local"
     },
     {
       "name": "gap_to_quarter_goal",
-      "type": "money"
+      "type": "money",
+      "owner": "local"
     },
     {
       "name": "gap_to_annual_goal",
-      "type": "money"
+      "type": "money",
+      "owner": "local"
     },
     {
       "name": "coverage_ratio",
       "type": "number",
-      "note": "Open pipeline over remaining goal"
+      "note": "Open pipeline over remaining goal",
+      "owner": "local"
     },
     {
       "name": "meetings_held",
-      "type": "number"
+      "type": "number",
+      "owner": "local"
     },
     {
       "name": "quotes_sent",
-      "type": "number"
+      "type": "number",
+      "owner": "local"
     },
     {
       "name": "stages_progressed",
-      "type": "number"
+      "type": "number",
+      "owner": "local"
     },
     {
       "name": "stages_regressed",
-      "type": "number"
+      "type": "number",
+      "owner": "local"
     },
     {
       "name": "new_opps_created",
-      "type": "number"
+      "type": "number",
+      "owner": "local"
     },
     {
       "name": "new_pipeline_created",
-      "type": "money"
+      "type": "money",
+      "owner": "local"
     },
     {
       "name": "inbound_replies",
       "type": "number",
-      "note": "Replies received from leads and customers"
+      "note": "Replies received from leads and customers",
+      "owner": "local"
     },
     {
       "name": "deals_slipped",
-      "type": "number"
+      "type": "number",
+      "owner": "local"
     },
     {
       "name": "heating_count",
-      "type": "number"
+      "type": "number",
+      "owner": "local"
     },
     {
       "name": "cooling_count",
-      "type": "number"
+      "type": "number",
+      "owner": "local"
     },
     {
       "name": "artifact_path",
       "type": "text",
-      "note": "The HTML dashboard produced"
+      "note": "The HTML dashboard produced",
+      "owner": "local"
     },
     {
       "name": "headline",
       "type": "text",
-      "note": "The one-line story of this period"
+      "note": "The one-line story of this period",
+      "owner": "local"
     },
     {
       "name": "notes",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "last_updated",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     }
   ]
 }

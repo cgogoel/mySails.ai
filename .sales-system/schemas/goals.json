@@ -4,7 +4,7 @@
   "id_prefix": "GOAL",
   "id_width": 3,
   "browsable": true,
-  "description": "What success is measured against. Captured at setup and framed into every forecast. Company and personal goals are tracked separately because they often differ \u2014 a rep can hit quota in a quarter the company misses, and a forecast that conflates them tells neither story.",
+  "description": "What success is measured against. Captured at setup and framed into every forecast. Company and personal goals are tracked separately because they often differ — a rep can hit quota in a quarter the company misses, and a forecast that conflates them tells neither story.",
   "picklists_overridable": [
     "level",
     "confirm_cadence",
@@ -17,7 +17,8 @@
     {
       "name": "id",
       "type": "id",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "level",
@@ -27,7 +28,8 @@
         "Company",
         "Team",
         "Personal"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "track",
@@ -39,7 +41,8 @@
         "Expansion",
         "Total"
       ],
-      "note": "Which motion this goal measures. New business and renewals are tracked as separate lines under the same owner because the work is not comparable \u2014 a renewal at 90% and a new deal at 90% require completely different effort. 'Total' exists only for an overall number that genuinely rolls both up, and should never be the only goal."
+      "note": "Which motion this goal measures. New business and renewals are tracked as separate lines under the same owner because the work is not comparable — a renewal at 90% and a new deal at 90% require completely different effort. 'Total' exists only for an overall number that genuinely rolls both up, and should never be the only goal.",
+      "owner": "local"
     },
     {
       "name": "metric",
@@ -56,7 +59,8 @@
         "Renewal Rate",
         "Partner Revenue",
         "Other"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "period",
@@ -66,66 +70,79 @@
         "Annual",
         "Quarterly",
         "Monthly"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "period_label",
       "type": "text",
       "required": true,
-      "note": "FY27, Q3-FY27, Aug-2026. Must match how the org names periods."
+      "note": "FY27, Q3-FY27, Aug-2026. Must match how the org names periods.",
+      "owner": "local"
     },
     {
       "name": "period_start",
       "type": "date",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "period_end",
       "type": "date",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "target",
       "type": "money",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "original_target",
       "type": "money",
-      "note": "What it was when first set. Kept so a moved goal is visible as a moved goal rather than quietly becoming the number that was always there."
+      "note": "What it was when first set. Kept so a moved goal is visible as a moved goal rather than quietly becoming the number that was always there.",
+      "owner": "local"
     },
     {
       "name": "revised_date",
       "type": "date",
-      "note": "When the target last changed"
+      "note": "When the target last changed",
+      "owner": "local"
     },
     {
       "name": "revision_reason",
-      "note": "Why it moved. Territory change, reforecast, headcount, market."
+      "note": "Why it moved. Territory change, reforecast, headcount, market.",
+      "owner": "local"
     },
     {
       "name": "currency",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "owner",
       "type": "text",
-      "note": "Blank for company-level"
+      "note": "Blank for company-level",
+      "owner": "local"
     },
     {
       "name": "attained",
       "type": "money",
-      "note": "DERIVED from closed-won in period"
+      "note": "DERIVED from closed-won in period",
+      "owner": "derived"
     },
     {
       "name": "attainment_pct",
       "type": "number",
-      "note": "DERIVED"
+      "note": "DERIVED",
+      "owner": "derived"
     },
     {
       "name": "pace_required",
       "type": "money",
-      "note": "DERIVED: what still needs to close per remaining week to make it"
+      "note": "DERIVED: what still needs to close per remaining week to make it",
+      "owner": "derived"
     },
     {
       "name": "on_track",
@@ -138,13 +155,15 @@
         "Missed",
         "Achieved"
       ],
-      "note": "DERIVED against elapsed time, not just raw attainment \u2014 40% at the half is on track, 40% at three-quarters is not"
+      "note": "DERIVED against elapsed time, not just raw attainment — 40% at the half is on track, 40% at three-quarters is not",
+      "owner": "derived"
     },
     {
       "name": "last_confirmed",
       "type": "date",
       "required": true,
-      "note": "When the user last confirmed this is still the number. Goals drift; an unconfirmed goal quietly makes every forecast wrong."
+      "note": "When the user last confirmed this is still the number. Goals drift; an unconfirmed goal quietly makes every forecast wrong.",
+      "owner": "local"
     },
     {
       "name": "confirm_cadence",
@@ -155,7 +174,8 @@
         "Annually",
         "Never"
       ],
-      "note": "Default Quarterly. The forecast skill re-asks when last_confirmed is older than this."
+      "note": "Default Quarterly. The forecast skill re-asks when last_confirmed is older than this.",
+      "owner": "local"
     },
     {
       "name": "status",
@@ -165,15 +185,18 @@
         "Superseded",
         "Archived"
       ],
-      "note": "Superseded rather than deleted when a goal is replaced \u2014 mid-year changes are part of the story"
+      "note": "Superseded rather than deleted when a goal is replaced — mid-year changes are part of the story",
+      "owner": "local"
     },
     {
       "name": "notes",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "last_updated",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     }
   ]
 }

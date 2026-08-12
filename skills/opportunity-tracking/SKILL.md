@@ -119,12 +119,39 @@ don't stand out.
 
 ### Import and refresh
 
-Pull per `scope` — the user's deals, or the team's from `00-Config/team.csv` — applying the
-profile's `default_filter`, and skipping anything in `ignore_fields`.
+**Use `crm_sync.py`. Never write your own import.** Every hand-rolled importer is a seeder that
+someone eventually re-runs as a refresh, rebuilding every row from a stale snapshot and reverting
+whatever happened in between — closed-lost decisions, owner changes, close dates. It validates
+clean afterwards, because it is clean.
 
-Match on `crm_id` first, then account plus name. Set `sync_status`. Recompute `risk_flags`,
-`close_plan_gaps`, and `days_in_stage` after every import; they're derived, so stale values are
-worse than absent ones.
+```bash
+S=<project>/.sales-system/scripts
+python3 $S/crm_sync.py --plan    <project> --registry opportunities   # what to select
+python3 $S/crm_sync.py --seed    <project> --registry opportunities --json-file recs.json
+python3 $S/crm_sync.py --refresh <project> --registry opportunities --json-file recs.json
+```
+
+`--seed` is first load only and refuses to run against a registry that already has rows.
+`--refresh` is a field-level merge: it writes only columns the schema marks `owner: crm`, so
+`notes`, `health`, `risk_flags` and every derived column survive it, and it never renumbers an ID.
+
+Pull per `scope` — the user's deals, or the team's from `00-Config/team.csv` — applying the
+profile's `default_filter`, and skipping anything in `ignore_fields`. For a large book, have the
+user export a report to `07-Opportunities/import/` and use `--ingest` rather than pulling several
+hundred records through the connector one at a time.
+
+Recompute `risk_flags`, `close_plan_gaps`, and `days_in_stage` after every refresh; they're
+derived, so stale values are worse than absent ones.
+
+**Check for drift before reporting anything**, especially before a pipeline review or forecast:
+
+```bash
+python3 $S/csvguard.py --verify-sync <project> --registry opportunities --crm-json snapshot.json
+```
+
+DRIFT means someone else changed the CRM — refresh to accept, or push if the local value is
+right. AHEAD means a local change was never pushed and the CRM is currently wrong. CONFLICT
+means both moved; show both and ask, per `CONVENTIONS.md` §7.
 
 Report movement, not just totals. "Pipeline is $2.4M" is nearly useless on its own. "Pipeline is
 $2.4M, up $180K — two new deals in, Globex slipped out of the quarter" is what someone wants.

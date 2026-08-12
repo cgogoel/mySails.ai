@@ -12,78 +12,94 @@
     {
       "name": "id",
       "type": "id",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "quote_id",
       "type": "text",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "line_no",
-      "type": "number"
+      "type": "number",
+      "owner": "local"
     },
     {
       "name": "sku",
       "type": "text",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "name",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "quantity",
       "type": "number",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "unit",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "list_unit_price",
       "type": "money",
       "required": true,
-      "note": "From the price list, at the tier the quantity earns"
+      "note": "From the price list, at the tier the quantity earns",
+      "owner": "local"
     },
     {
       "name": "tier_applied",
       "type": "number",
-      "note": "Which volume tier the quantity reached"
+      "note": "Which volume tier the quantity reached",
+      "owner": "local"
     },
     {
       "name": "discount_pct",
-      "type": "number"
+      "type": "number",
+      "owner": "local"
     },
     {
       "name": "discount_reason",
       "type": "text",
-      "note": "REQUIRED where a discount is applied. A discount with no reason is a discount nobody can defend at renewal."
+      "note": "REQUIRED where a discount is applied. A discount with no reason is a discount nobody can defend at renewal.",
+      "owner": "local"
     },
     {
       "name": "net_unit_price",
       "type": "money",
-      "note": "DERIVED"
+      "note": "DERIVED",
+      "owner": "derived"
     },
     {
       "name": "extended",
       "type": "money",
       "required": true,
-      "note": "DERIVED: quantity x net unit price"
+      "note": "DERIVED: quantity x net unit price",
+      "owner": "derived"
     },
     {
       "name": "below_floor",
       "type": "bool",
-      "note": "DERIVED. Should never be yes on a sent quote."
+      "note": "DERIVED. Should never be yes on a sent quote.",
+      "owner": "derived"
     },
     {
       "name": "notes",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "last_updated",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     }
   ],
   "archive": {

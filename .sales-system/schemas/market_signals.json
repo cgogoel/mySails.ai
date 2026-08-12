@@ -3,7 +3,7 @@
   "path": "03-Market/signals.csv",
   "id_prefix": "SIG",
   "id_width": 4,
-  "description": "Dated external events that change what someone should do. Not a news feed \u2014 every row must survive the 'so what' test.",
+  "description": "Dated external events that change what someone should do. Not a news feed — every row must survive the 'so what' test.",
   "picklists_overridable": [
     "signal_type",
     "relevance",
@@ -14,22 +14,26 @@
     {
       "name": "id",
       "type": "id",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "date",
       "type": "date",
       "required": true,
-      "note": "When the event happened, not when you found it"
+      "note": "When the event happened, not when you found it",
+      "owner": "local"
     },
     {
       "name": "found_date",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     },
     {
       "name": "headline",
       "type": "text",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "signal_type",
@@ -47,27 +51,32 @@
         "Partnership",
         "Analyst Report",
         "Other"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "company",
       "type": "text",
-      "note": "Who the event is about"
+      "note": "Who the event is about",
+      "owner": "local"
     },
     {
       "name": "watch_id",
       "type": "text",
-      "note": "Which watchlist entry surfaced this"
+      "note": "Which watchlist entry surfaced this",
+      "owner": "local"
     },
     {
       "name": "theme",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "so_what",
       "type": "text",
       "required": true,
-      "note": "Why a seller should care, in one sentence. REQUIRED. A signal without this is news, and news belongs somewhere else."
+      "note": "Why a seller should care, in one sentence. REQUIRED. A signal without this is news, and news belongs somewhere else.",
+      "owner": "local"
     },
     {
       "name": "relevance",
@@ -78,11 +87,13 @@
         "Medium",
         "Low"
       ],
-      "note": "High means it changes what someone does this week. Reserve it."
+      "note": "High means it changes what someone does this week. Reserve it.",
+      "owner": "local"
     },
     {
       "name": "competitor_id",
-      "note": "COMP- id when the signal is about a tracked competitor. Set this on every competitor signal \u2014 it's what makes the news visible from the competitor registry instead of dead-ending in the market log."
+      "note": "COMP- id when the signal is about a tracked competitor. Set this on every competitor signal — it's what makes the news visible from the competitor registry instead of dead-ending in the market log.",
+      "owner": "local"
     },
     {
       "name": "competitive_impact",
@@ -96,17 +107,20 @@
         "Leadership change",
         "No impact"
       ],
-      "note": "What this actually changes about how you sell against them. 'No impact' is a valid and common answer."
+      "note": "What this actually changes about how you sell against them. 'No impact' is a valid and common answer.",
+      "owner": "local"
     },
     {
       "name": "related_account",
       "type": "text",
-      "note": "Account name this affects"
+      "note": "Account name this affects",
+      "owner": "local"
     },
     {
       "name": "related_id",
       "type": "text",
-      "note": "CUST-/OPP-/LEAD- id. A signal tied to a tracked record is worth an order of magnitude more than a general one."
+      "note": "CUST-/OPP-/LEAD- id. A signal tied to a tracked record is worth an order of magnitude more than a general one.",
+      "owner": "local"
     },
     {
       "name": "status",
@@ -117,25 +131,30 @@
         "Acted On",
         "Dismissed",
         "Watching"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "content_reviewed",
       "type": "bool",
-      "note": "Whether this signal has been assessed as a content opportunity. Drives the 'new since last sweep' list in demand gen."
+      "note": "Whether this signal has been assessed as a content opportunity. Drives the 'new since last sweep' list in demand gen.",
+      "owner": "local"
     },
     {
       "name": "content_opp_id",
-      "note": "CONTENT- id if this signal produced a piece"
+      "note": "CONTENT- id if this signal produced a piece",
+      "owner": "local"
     },
     {
       "name": "action_taken",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "task_id",
       "type": "text",
-      "note": "TASK- id if this produced a task"
+      "note": "TASK- id if this produced a task",
+      "owner": "local"
     },
     {
       "name": "source_type",
@@ -149,20 +168,24 @@
         "Colleague",
         "Manual"
       ],
-      "note": "Where this came from. Newsletter items are pre-filtered by an editor who knows the space, which is worth knowing when weighing them."
+      "note": "Where this came from. Newsletter items are pre-filtered by an editor who knows the space, which is worth knowing when weighing them.",
+      "owner": "local"
     },
     {
       "name": "newsletter_name",
       "type": "text",
-      "note": "Which publication, when source_type is Newsletter or Feed"
+      "note": "Which publication, when source_type is Newsletter or Feed",
+      "owner": "local"
     },
     {
       "name": "source_url",
-      "type": "url"
+      "type": "url",
+      "owner": "local"
     },
     {
       "name": "source_name",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "confidence",
@@ -172,15 +195,18 @@
         "Reported",
         "Rumour"
       ],
-      "note": "Confirmed = primary source or company statement. Rumour = single unverified report. Say which."
+      "note": "Confirmed = primary source or company statement. Rumour = single unverified report. Say which.",
+      "owner": "local"
     },
     {
       "name": "notes",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "last_updated",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     }
   ],
   "browsable": true,

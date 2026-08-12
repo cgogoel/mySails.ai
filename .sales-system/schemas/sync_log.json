@@ -8,12 +8,14 @@
     {
       "name": "id",
       "type": "id",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "timestamp",
       "type": "text",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "direction",
@@ -21,23 +23,28 @@
       "values": [
         "pull",
         "push"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "object",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "record_id",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "crm_id",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "fields_changed",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "outcome",
@@ -47,15 +54,18 @@
         "skipped",
         "conflict",
         "error"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "confirmed_by",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "detail",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     }
   ],
   "browsable": false,

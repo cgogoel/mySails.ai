@@ -4,7 +4,7 @@
   "id_prefix": "DEALREG",
   "id_width": 4,
   "browsable": true,
-  "description": "Every partner deal registration, approved or not. Exists as its own registry rather than a field on the opportunity because a registration is a CLAIM on an end customer that starts a protection clock \u2014 it precedes the opportunity, may never become one, and must be checkable against other partners' claims before it's approved.",
+  "description": "Every partner deal registration, approved or not. Exists as its own registry rather than a field on the opportunity because a registration is a CLAIM on an end customer that starts a protection clock — it precedes the opportunity, may never become one, and must be checkable against other partners' claims before it's approved.",
   "picklists_overridable": [
     "status",
     "decline_reason",
@@ -14,47 +14,57 @@
     {
       "name": "id",
       "type": "id",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "submitted_date",
       "type": "date",
-      "required": true
+      "required": true,
+      "owner": "crm"
     },
     {
       "name": "partner_id",
       "type": "text",
       "required": true,
-      "note": "The partner who SUBMITTED the registration. Which tier they occupy is in distributor_id / reseller_id \u2014 a submission is not itself a claim on a tier."
+      "note": "The partner who SUBMITTED the registration. Which tier they occupy is in distributor_id / reseller_id — a submission is not itself a claim on a tier.",
+      "owner": "local"
     },
     {
       "name": "partner_name",
       "type": "text",
       "required": true,
-      "note": "Name of the submitting partner"
+      "note": "Name of the submitting partner",
+      "owner": "crm"
     },
     {
       "name": "partner_rep",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "partner_rep_email",
       "type": "email",
-      "note": "The email domain is often the most reliable way to match a submission back to a partner"
+      "note": "The email domain is often the most reliable way to match a submission back to a partner",
+      "owner": "local"
     },
     {
       "name": "distributor_id",
-      "note": "PARTNER- id of the distributor tier, if the deal has one. Blank for single-tier deals."
+      "note": "PARTNER- id of the distributor tier, if the deal has one. Blank for single-tier deals.",
+      "owner": "local"
     },
     {
-      "name": "distributor_name"
+      "name": "distributor_name",
+      "owner": "local"
     },
     {
       "name": "reseller_id",
-      "note": "PARTNER- id of the reselling tier. May be the SAME partner as the distributor \u2014 a partner fulfilling both tiers is a legitimate single-partner deal, not a duplicate."
+      "note": "PARTNER- id of the reselling tier. May be the SAME partner as the distributor — a partner fulfilling both tiers is a legitimate single-partner deal, not a duplicate.",
+      "owner": "local"
     },
     {
-      "name": "reseller_name"
+      "name": "reseller_name",
+      "owner": "local"
     },
     {
       "name": "deal_structure",
@@ -65,54 +75,69 @@
         "Direct with referral",
         "Unknown"
       ],
-      "note": "DERIVED. Two-tier = different partners at each tier. Single-tier = one partner at both, or only one tier populated. This is what tells the conflict check whether a second partner on the deal is teaming or collision."
+      "note": "DERIVED. Two-tier = different partners at each tier. Single-tier = one partner at both, or only one tier populated. This is what tells the conflict check whether a second partner on the deal is teaming or collision.",
+      "owner": "derived"
     },
     {
       "name": "teaming_confirmed",
       "type": "bool",
-      "note": "Whether both partners know they're working this together. Two partners on one deal who each think they're alone is the same problem as channel conflict, arriving later."
+      "note": "Whether both partners know they're working this together. Two partners on one deal who each think they're alone is the same problem as channel conflict, arriving later.",
+      "owner": "local"
     },
     {
       "name": "end_customer",
       "type": "text",
-      "required": true
+      "required": true,
+      "owner": "crm",
+      "verify": true
     },
     {
       "name": "end_customer_domain",
       "type": "text",
-      "note": "Normalised domain. Matches far more reliably than company name \u2014 'Acme Corp', 'ACME Corporation' and 'Acme, Inc.' are one customer."
+      "note": "Normalised domain. Matches far more reliably than company name — 'Acme Corp', 'ACME Corporation' and 'Acme, Inc.' are one customer.",
+      "owner": "local"
     },
     {
       "name": "end_customer_country",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "end_customer_state",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "customer_contact",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "customer_contact_email",
-      "type": "email"
+      "type": "email",
+      "owner": "local"
     },
     {
       "name": "products",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "estimated_amount",
-      "type": "money"
+      "type": "money",
+      "owner": "crm",
+      "verify": true
     },
     {
       "name": "estimated_close_date",
-      "type": "date"
+      "type": "date",
+      "owner": "crm",
+      "verify": true
     },
     {
       "name": "use_case",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "status",
@@ -126,32 +151,39 @@
         "Expired",
         "Converted",
         "Withdrawn"
-      ]
+      ],
+      "owner": "crm",
+      "verify": true
     },
     {
       "name": "approved_date",
-      "type": "date"
+      "type": "date",
+      "owner": "crm"
     },
     {
       "name": "protection_days",
       "type": "number",
-      "note": "From the partner agreement at time of approval, not looked up later \u2014 terms change"
+      "note": "From the partner agreement at time of approval, not looked up later — terms change",
+      "owner": "local"
     },
     {
       "name": "protection_expires",
       "type": "date",
-      "note": "DERIVED: approved_date plus protection_days. After this the claim lapses and the customer is open again."
+      "note": "DERIVED: approved_date plus protection_days. After this the claim lapses and the customer is open again.",
+      "owner": "derived"
     },
     {
       "name": "days_to_expiry",
       "type": "number",
-      "note": "DERIVED. Negative means lapsed."
+      "note": "DERIVED. Negative means lapsed.",
+      "owner": "derived"
     },
     {
       "name": "conflict_checked",
       "type": "bool",
       "required": true,
-      "note": "Whether a conflict check has been run. Approving without one is how channel disputes start."
+      "note": "Whether a conflict check has been run. Approving without one is how channel disputes start.",
+      "owner": "derived"
     },
     {
       "name": "conflict_type",
@@ -160,23 +192,26 @@
         "None",
         "Same tier claimed",
         "Already holds this tier",
-        "Teaming \u2014 no conflict",
+        "Teaming — no conflict",
         "Role not permitted",
         "Direct opportunity",
         "Existing customer",
         "Territory mismatch",
         "Expired claim"
       ],
-      "note": "DERIVED by the conflict checker. Conflict is by TIER, not by partner."
+      "note": "DERIVED by the conflict checker. Conflict is by TIER, not by partner.",
+      "owner": "derived"
     },
     {
       "name": "conflict_detail",
-      "type": "text"
+      "type": "text",
+      "owner": "derived"
     },
     {
       "name": "conflicts_with",
       "type": "text",
-      "note": "DEALREG- or OPP- id of whatever it collides with"
+      "note": "DEALREG- or OPP- id of whatever it collides with",
+      "owner": "derived"
     },
     {
       "name": "decline_reason",
@@ -191,34 +226,41 @@
         "Duplicate submission",
         "Customer declined partner",
         "Other"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "resolution_note",
       "type": "text",
-      "note": "How a conflict was settled. The record that stops it being re-litigated."
+      "note": "How a conflict was settled. The record that stops it being re-litigated.",
+      "owner": "local"
     },
     {
       "name": "opportunity_id",
       "type": "text",
-      "note": "OPP- id once it converts"
+      "note": "OPP- id once it converts",
+      "owner": "local"
     },
     {
       "name": "converted_date",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     },
     {
       "name": "owner",
       "type": "text",
-      "note": "Who at our end reviewed it"
+      "note": "Who at our end reviewed it",
+      "owner": "crm"
     },
     {
       "name": "notes",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "crm_id",
-      "type": "text"
+      "type": "text",
+      "owner": "crm"
     },
     {
       "name": "sync_status",
@@ -228,11 +270,25 @@
         "synced",
         "pending-push",
         "conflict"
-      ]
+      ],
+      "owner": "local"
+    },
+    {
+      "name": "crm_last_modified",
+      "type": "text",
+      "owner": "crm",
+      "note": "The CRM's own last-modified stamp as at the last sync. Drift detection compares it against the CRM's current value; without it, which side changed a field is a guess."
+    },
+    {
+      "name": "last_synced",
+      "type": "date",
+      "owner": "crm",
+      "note": "When this row was last reconciled against the CRM. A last_updated later than this means the row is ahead of the CRM and owes a push."
     },
     {
       "name": "last_updated",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     }
   ],
   "archive": {

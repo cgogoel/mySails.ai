@@ -14,48 +14,57 @@
     {
       "name": "id",
       "type": "id",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "spotted_date",
       "type": "date",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "signal_id",
       "type": "text",
-      "note": "Links to 03-Market/signals. Blank if the idea came from elsewhere."
+      "note": "Links to 03-Market/signals. Blank if the idea came from elsewhere.",
+      "owner": "local"
     },
     {
       "name": "headline",
       "type": "text",
       "required": true,
-      "note": "What happened, in the world's words not ours"
+      "note": "What happened, in the world's words not ours",
+      "owner": "local"
     },
     {
       "name": "relevance_why",
       "type": "text",
       "required": true,
-      "note": "REQUIRED. Why this company specifically has standing to comment. If the honest answer is 'we sell adjacent software', there's no piece here \u2014 commentary without standing reads as hijacking."
+      "note": "REQUIRED. Why this company specifically has standing to comment. If the honest answer is 'we sell adjacent software', there's no piece here — commentary without standing reads as hijacking.",
+      "owner": "local"
     },
     {
       "name": "matched_products",
       "type": "text",
-      "note": "Which products the angle touches"
+      "note": "Which products the angle touches",
+      "owner": "local"
     },
     {
       "name": "matched_icp",
       "type": "text",
-      "note": "Which segment or persona would care"
+      "note": "Which segment or persona would care",
+      "owner": "local"
     },
     {
       "name": "suggested_angles",
       "type": "text",
-      "note": "Two or three distinct takes, not one idea reworded"
+      "note": "Two or three distinct takes, not one idea reworded",
+      "owner": "local"
     },
     {
       "name": "chosen_angle",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "content_type",
@@ -67,22 +76,26 @@
         "Outreach Email",
         "Newsletter Item",
         "Not Pursuing"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "channel",
       "type": "text",
-      "note": "LinkedIn, X, company blog \u2014 per the user's configured preference"
+      "note": "LinkedIn, X, company blog — per the user's configured preference",
+      "owner": "local"
     },
     {
       "name": "related_account",
       "type": "text",
-      "note": "Set when the piece is aimed at a specific account rather than the market"
+      "note": "Set when the piece is aimed at a specific account rather than the market",
+      "owner": "local"
     },
     {
       "name": "related_id",
       "type": "text",
-      "note": "LEAD-/OPP-/CUST- id, when this is outreach rather than broadcast"
+      "note": "LEAD-/OPP-/CUST- id, when this is outreach rather than broadcast",
+      "owner": "local"
     },
     {
       "name": "status",
@@ -97,7 +110,8 @@
         "Published",
         "Declined",
         "Expired"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "perishability",
@@ -108,40 +122,49 @@
         "Weeks",
         "Evergreen"
       ],
-      "note": "How long the news stays fresh. A breach comment written a fortnight late is worse than silence."
+      "note": "How long the news stays fresh. A breach comment written a fortnight late is worse than silence.",
+      "owner": "local"
     },
     {
       "name": "draft_path",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "published_url",
-      "type": "url"
+      "type": "url",
+      "owner": "local"
     },
     {
       "name": "published_date",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     },
     {
       "name": "owner",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "task_id",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "declined_reason",
       "type": "text",
-      "note": "Why it was passed on. Prevents the same idea resurfacing every sweep."
+      "note": "Why it was passed on. Prevents the same idea resurfacing every sweep.",
+      "owner": "local"
     },
     {
       "name": "notes",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "last_updated",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     }
   ],
   "archive": {

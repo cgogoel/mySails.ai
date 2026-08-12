@@ -3,7 +3,7 @@
   "path": "08-Renewals/renewals.csv",
   "id_prefix": "REN",
   "id_width": 4,
-  "description": "Contract calendar. One row per active contract, tracking the window between 'this expires' and 'someone is working it'. NOT a second pipeline \u2014 once a renewal opportunity exists, this row points at it and the opportunity carries the commercial detail.",
+  "description": "Contract calendar. One row per active contract, tracking the window between 'this expires' and 'someone is working it'. NOT a second pipeline — once a renewal opportunity exists, this row points at it and the opportunity carries the commercial detail.",
   "picklists_overridable": [
     "status",
     "outcome",
@@ -14,61 +14,76 @@
     {
       "name": "id",
       "type": "id",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "account_name",
       "type": "text",
-      "required": true
+      "required": true,
+      "owner": "crm",
+      "verify": true
     },
     {
       "name": "customer_id",
       "type": "text",
-      "note": "Links to customers.csv"
+      "note": "Links to customers.csv",
+      "owner": "local"
     },
     {
       "name": "contract_end_date",
       "type": "date",
       "required": true,
-      "note": "When the current contract expires"
+      "note": "When the current contract expires",
+      "owner": "crm",
+      "verify": true
     },
     {
       "name": "contract_start_date",
-      "type": "date"
+      "type": "date",
+      "owner": "crm"
     },
     {
       "name": "auto_renew",
       "type": "bool",
-      "note": "Whether the contract renews without action. INVERTS the risk, so read it rather than assuming: 'no' means doing nothing loses the contract; 'yes' means doing nothing renews it. The profile records the org's default where contracts are consistent."
+      "note": "Whether the contract renews without action. INVERTS the risk, so read it rather than assuming: 'no' means doing nothing loses the contract; 'yes' means doing nothing renews it. The profile records the org's default where contracts are consistent.",
+      "owner": "crm"
     },
     {
       "name": "notice_period_days",
       "type": "number",
-      "note": "Days before expiry that formal notice must be given. Many orgs have no formal notice period \u2014 the profile says. Blank means unknown or not applicable, never zero."
+      "note": "Days before expiry that formal notice must be given. Many orgs have no formal notice period — the profile says. Blank means unknown or not applicable, never zero.",
+      "owner": "local"
     },
     {
       "name": "notice_deadline",
       "type": "date",
-      "note": "DERIVED where a notice period exists: contract_end_date minus notice_period_days. Where there is no formal notice period, conversation_target_date is the operative deadline instead."
+      "note": "DERIVED where a notice period exists: contract_end_date minus notice_period_days. Where there is no formal notice period, conversation_target_date is the operative deadline instead.",
+      "owner": "derived"
     },
     {
       "name": "days_to_notice",
       "type": "number",
-      "note": "DERIVED. Negative means the window has closed."
+      "note": "DERIVED. Negative means the window has closed.",
+      "owner": "derived"
     },
     {
       "name": "days_to_expiry",
       "type": "number",
-      "note": "DERIVED"
+      "note": "DERIVED",
+      "owner": "derived"
     },
     {
       "name": "current_value",
       "type": "money",
-      "note": "Value of the contract now up for renewal"
+      "note": "Value of the contract now up for renewal",
+      "owner": "crm",
+      "verify": true
     },
     {
       "name": "term_months",
-      "type": "number"
+      "type": "number",
+      "owner": "crm"
     },
     {
       "name": "status",
@@ -84,47 +99,56 @@
         "Downgraded",
         "Auto-Renewed",
         "On Hold"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "renewal_opp_id",
       "type": "text",
-      "note": "Local OPP id once a renewal opportunity exists. Blank = nobody is working this yet, which is the whole reason this registry exists."
+      "note": "Local OPP id once a renewal opportunity exists. Blank = nobody is working this yet, which is the whole reason this registry exists.",
+      "owner": "local"
     },
     {
       "name": "renewal_opp_stage",
       "type": "text",
-      "note": "Denormalised from the opportunity so the spreadsheet reads without lookups"
+      "note": "Denormalised from the opportunity so the spreadsheet reads without lookups",
+      "owner": "derived"
     },
     {
       "name": "renewal_opp_created_date",
       "type": "date",
-      "note": "When the renewal opportunity was created. Where the org creates one at deal close, a long gap between contract start and this date is itself the finding."
+      "note": "When the renewal opportunity was created. Where the org creates one at deal close, a long gap between contract start and this date is itself the finding.",
+      "owner": "derived"
     },
     {
       "name": "first_renewal_touch_date",
       "type": "date",
-      "note": "First email or meeting with the customer explicitly about this renewal. Detectable from sent mail \u2014 this is what proves the conversation actually started rather than being merely planned."
+      "note": "First email or meeting with the customer explicitly about this renewal. Detectable from sent mail — this is what proves the conversation actually started rather than being merely planned.",
+      "owner": "local"
     },
     {
       "name": "conversation_target_date",
       "type": "date",
-      "note": "DERIVED: contract_end_date minus the org's renewal_conversation_lead_days (profile). The date by which the customer should have heard from you."
+      "note": "DERIVED: contract_end_date minus the org's renewal_conversation_lead_days (profile). The date by which the customer should have heard from you.",
+      "owner": "derived"
     },
     {
       "name": "days_to_conversation_target",
       "type": "number",
-      "note": "DERIVED. Negative and first_renewal_touch_date blank means the commitment has already been missed."
+      "note": "DERIVED. Negative and first_renewal_touch_date blank means the commitment has already been missed.",
+      "owner": "derived"
     },
     {
       "name": "original_opp_id",
       "type": "text",
-      "note": "The deal that created the current contract"
+      "note": "The deal that created the current contract",
+      "owner": "local"
     },
     {
       "name": "proposed_value",
       "type": "money",
-      "note": "From the renewal opportunity, once one exists"
+      "note": "From the renewal opportunity, once one exists",
+      "owner": "local"
     },
     {
       "name": "outcome",
@@ -136,12 +160,14 @@
         "Loss",
         "Pending"
       ],
-      "note": "Set on close. Compare proposed_value to current_value."
+      "note": "Set on close. Compare proposed_value to current_value.",
+      "owner": "local"
     },
     {
       "name": "closed_since_last_forecast",
       "type": "bool",
-      "note": "DERIVED: resolved since the previous forecast of this cadence. Drives the 'what moved' callout."
+      "note": "DERIVED: resolved since the previous forecast of this cadence. Drives the 'what moved' callout.",
+      "owner": "derived"
     },
     {
       "name": "health",
@@ -150,61 +176,76 @@
         "Green",
         "Yellow",
         "Red"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "churn_risk_reason",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "risk_flags",
       "type": "text",
-      "note": "DERIVED, semicolon-separated: no-renewal-opp;conversation-overdue;conversation-due-soon;notice-window-closing;champion-left;no-qbr;quiet;contraction-risk"
+      "note": "DERIVED, semicolon-separated: no-renewal-opp;conversation-overdue;conversation-due-soon;notice-window-closing;champion-left;no-qbr;quiet;contraction-risk",
+      "owner": "derived"
     },
     {
       "name": "expansion_signal",
       "type": "text",
-      "note": "Evidence this could grow \u2014 new teams, usage at cap, adjacent need"
+      "note": "Evidence this could grow — new teams, usage at cap, adjacent need",
+      "owner": "local"
     },
     {
       "name": "owner",
-      "type": "text"
+      "type": "text",
+      "owner": "crm",
+      "verify": true
     },
     {
       "name": "csm",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "champion",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "champion_still_there",
-      "type": "bool"
+      "type": "bool",
+      "owner": "local"
     },
     {
       "name": "last_qbr_date",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     },
     {
       "name": "last_activity_date",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     },
     {
       "name": "next_action",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "next_action_date",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     },
     {
       "name": "notes",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "crm_id",
-      "type": "text"
+      "type": "text",
+      "owner": "crm"
     },
     {
       "name": "sync_status",
@@ -214,11 +255,25 @@
         "synced",
         "pending-push",
         "conflict"
-      ]
+      ],
+      "owner": "local"
+    },
+    {
+      "name": "crm_last_modified",
+      "type": "text",
+      "owner": "crm",
+      "note": "The CRM's own last-modified stamp as at the last sync. Drift detection compares it against the CRM's current value; without it, which side changed a field is a guess."
+    },
+    {
+      "name": "last_synced",
+      "type": "date",
+      "owner": "crm",
+      "note": "When this row was last reconciled against the CRM. A last_updated later than this means the row is ahead of the CRM and owes a push."
     },
     {
       "name": "last_updated",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     }
   ],
   "browsable": true

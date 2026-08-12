@@ -173,6 +173,32 @@ flat renewals become churn.
 
 ## What to actually do
 
+### Import and refresh
+
+**Use `crm_sync.py`, never a hand-rolled import** (`CONVENTIONS.md` §3c):
+
+```bash
+S=<project>/.sales-system/scripts
+python3 $S/crm_sync.py --plan    <project> --registry renewals
+python3 $S/crm_sync.py --refresh <project> --registry renewals --json-file recs.json
+```
+
+Renewals are the registry a rebuild damages most quietly. Much of what's here is authored
+locally — `churn_risk_reason`, `expansion_signal`, `conversation_target_date`, `next_action` —
+so a refresh writes only the CRM-owned columns and leaves that work intact. A rebuild would
+also renumber every `REN` id and orphan every task pointing at one, which is why bulk loading
+goes through `--upsert` and never a rewrite.
+
+Verify before reporting coverage:
+
+```bash
+python3 $S/csvguard.py --verify-sync <project> --registry renewals --crm-json snapshot.json
+```
+
+Renewal books get reassigned in bulk — a territory change, someone leaving — and sixteen
+contracts silently changing owner is the kind of thing a coverage number absorbs without
+complaint. Lead with it when it happens.
+
 ### Renewal review
 
 Structure by urgency of *decision*, not by date:

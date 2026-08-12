@@ -8,20 +8,24 @@
     {
       "name": "id",
       "type": "id",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "name",
       "type": "text",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "email",
-      "type": "email"
+      "type": "email",
+      "owner": "local"
     },
     {
       "name": "title",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "role",
@@ -35,7 +39,8 @@
         "Manager",
         "Ops",
         "Other"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "segment",
@@ -46,44 +51,54 @@
         "Enterprise",
         "Strategic",
         "All"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "territory",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "manager",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "annual_quota",
-      "type": "money"
+      "type": "money",
+      "owner": "local"
     },
     {
       "name": "current_quarter_quota",
-      "type": "money"
+      "type": "money",
+      "owner": "local"
     },
     {
       "name": "start_date",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     },
     {
       "name": "active",
-      "type": "bool"
+      "type": "bool",
+      "owner": "local"
     },
     {
       "name": "crm_user_id",
       "type": "text",
-      "note": "Salesforce User Id, so pulls can be filtered by owner"
+      "note": "Salesforce User Id, so pulls can be filtered by owner",
+      "owner": "local"
     },
     {
       "name": "notes",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "last_updated",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     }
   ],
   "browsable": true

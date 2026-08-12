@@ -12,13 +12,15 @@
     {
       "name": "id",
       "type": "id",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "term",
       "type": "text",
       "required": true,
-      "note": "Company, keyword, regulation, technology, event, or \u2014 for Newsletter and Feed kinds \u2014 the publication's name."
+      "note": "Company, keyword, regulation, technology, event, or — for Newsletter and Feed kinds — the publication's name.",
+      "owner": "local"
     },
     {
       "name": "kind",
@@ -36,23 +38,27 @@
         "Newsletter",
         "Feed"
       ],
-      "note": "Newsletter and Feed are SOURCES rather than subjects \u2014 they get swept for anything touching the other watch terms, instead of being searched for by name."
+      "note": "Newsletter and Feed are SOURCES rather than subjects — they get swept for anything touching the other watch terms, instead of being searched for by name.",
+      "owner": "local"
     },
     {
       "name": "why",
       "type": "text",
       "required": true,
-      "note": "What you'd do differently if this moved. A watch item with no answer here is a news habit, not a sales tool."
+      "note": "What you'd do differently if this moved. A watch item with no answer here is a news habit, not a sales tool.",
+      "owner": "local"
     },
     {
       "name": "linked_account",
       "type": "text",
-      "note": "Account name if this watch exists because of a specific customer or deal"
+      "note": "Account name if this watch exists because of a specific customer or deal",
+      "owner": "local"
     },
     {
       "name": "linked_id",
       "type": "text",
-      "note": "CUST-/OPP-/LEAD- id if tied to a tracked record"
+      "note": "CUST-/OPP-/LEAD- id if tied to a tracked record",
+      "owner": "local"
     },
     {
       "name": "cadence",
@@ -63,12 +69,14 @@
         "Monthly",
         "Quarterly",
         "Ad hoc"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "sources",
       "type": "text",
-      "note": "Where to look. For Newsletter entries put the sender address (e.g. news@example.com); for Feed entries the site or RSS URL; for everything else specific sites worth checking. Semicolon-separated. Blank = general search."
+      "note": "Where to look. For Newsletter entries put the sender address (e.g. news@example.com); for Feed entries the site or RSS URL; for everything else specific sites worth checking. Semicolon-separated. Blank = general search.",
+      "owner": "local"
     },
     {
       "name": "discovered_how",
@@ -79,28 +87,34 @@
         "derived-from-folder",
         "suggested"
       ],
-      "note": "How this entry got here. Inbox-scan entries are guesses and deserve a confirmation pass."
+      "note": "How this entry got here. Inbox-scan entries are guesses and deserve a confirmation pass.",
+      "owner": "local"
     },
     {
       "name": "enabled",
       "type": "bool",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "last_checked",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     },
     {
       "name": "signals_found",
-      "type": "number"
+      "type": "number",
+      "owner": "local"
     },
     {
       "name": "notes",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "last_updated",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     }
   ],
   "browsable": true

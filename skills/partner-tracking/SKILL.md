@@ -201,6 +201,18 @@ that's the number that says whether the alliance is real.
 
 ## What to actually do
 
+**Import** — through `crm_sync.py` only, never a hand-rolled script (`CONVENTIONS.md` §3c):
+
+```bash
+S=<project>/.sales-system/scripts
+python3 $S/crm_sync.py --refresh <project> --registry partners --json-file recs.json
+python3 $S/crm_sync.py --refresh <project> --registry deal_registrations --json-file recs.json
+```
+
+Almost everything that makes this registry useful is authored here — territories, named and
+excluded accounts, margin, protection days, enablement status. Those are `local` columns and a
+refresh never touches them. The performance columns are `derived` and get recomputed below.
+
 **Refresh** — recompute, report what changed. New partner names in deal records that aren't in the
 registry are the most useful output.
 

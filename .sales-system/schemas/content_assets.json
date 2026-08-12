@@ -4,7 +4,7 @@
   "id_prefix": "ASSET",
   "id_width": 4,
   "browsable": true,
-  "description": "Everything the content library holds and everything produced from it. Source material and generated pieces live in one index so reuse is visible \u2014 the second-best outcome of a request is finding something that already answers it.",
+  "description": "Everything the content library holds and everything produced from it. Source material and generated pieces live in one index so reuse is visible — the second-best outcome of a request is finding something that already answers it.",
   "picklists_overridable": [
     "kind",
     "status",
@@ -14,12 +14,14 @@
     {
       "name": "id",
       "type": "id",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "title",
       "type": "text",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "kind",
@@ -38,24 +40,28 @@
         "Landing Page",
         "Demo Script",
         "Other"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "path",
       "type": "text",
       "required": true,
-      "note": "Relative path from the project root"
+      "note": "Relative path from the project root",
+      "owner": "local"
     },
     {
       "name": "is_source",
       "type": "bool",
       "required": true,
-      "note": "yes = library material to build FROM. no = something produced for a specific deal."
+      "note": "yes = library material to build FROM. no = something produced for a specific deal.",
+      "owner": "local"
     },
     {
       "name": "library_section",
       "type": "text",
-      "note": "For source assets: Corporate or Product, matching 02-Context/Presentations/"
+      "note": "For source assets: Corporate or Product, matching 02-Context/Presentations/",
+      "owner": "local"
     },
     {
       "name": "audience_type",
@@ -70,44 +76,53 @@
         "End User",
         "Mixed"
       ],
-      "note": "Drives register and depth far more than industry does"
+      "note": "Drives register and depth far more than industry does",
+      "owner": "local"
     },
     {
       "name": "audience_names",
       "type": "text",
-      "note": "Actual people it was written for, when known"
+      "note": "Actual people it was written for, when known",
+      "owner": "local"
     },
     {
       "name": "stage",
       "type": "text",
-      "note": "Deal stage it suits"
+      "note": "Deal stage it suits",
+      "owner": "local"
     },
     {
       "name": "for_account",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "for_opp_id",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "for_lead_id",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "built_from",
       "type": "text",
-      "note": "ASSET ids of source material used, semicolon-separated"
+      "note": "ASSET ids of source material used, semicolon-separated",
+      "owner": "local"
     },
     {
       "name": "competitor_id",
       "type": "text",
-      "note": "COMP- id when the piece positions against a named competitor"
+      "note": "COMP- id when the piece positions against a named competitor",
+      "owner": "local"
     },
     {
       "name": "signals_used",
       "type": "text",
-      "note": "SIG- ids whose news is referenced. Lets you find what to correct if a signal turns out wrong."
+      "note": "SIG- ids whose news is referenced. Lets you find what to correct if a signal turns out wrong.",
+      "owner": "local"
     },
     {
       "name": "request_origin",
@@ -122,22 +137,26 @@
         "Renewal",
         "Other"
       ],
-      "note": "What prompted it. 'Customer ask' pieces get used; proactive ones often don't \u2014 worth knowing which is which."
+      "note": "What prompted it. 'Customer ask' pieces get used; proactive ones often don't — worth knowing which is which.",
+      "owner": "local"
     },
     {
       "name": "request_detail",
       "type": "text",
-      "note": "What they actually asked for, in their words where possible"
+      "note": "What they actually asked for, in their words where possible",
+      "owner": "local"
     },
     {
       "name": "unverified_claims",
       "type": "text",
-      "note": "Anything asserted that could not be confirmed from the context library or a source. MUST be filled where relevant \u2014 this is what gets checked before the piece goes to a customer."
+      "note": "Anything asserted that could not be confirmed from the context library or a source. MUST be filled where relevant — this is what gets checked before the piece goes to a customer.",
+      "owner": "local"
     },
     {
       "name": "gaps_flagged",
       "type": "text",
-      "note": "What the requester still needs to supply or confirm"
+      "note": "What the requester still needs to supply or confirm",
+      "owner": "local"
     },
     {
       "name": "status",
@@ -150,40 +169,49 @@
         "Approved",
         "Sent",
         "Archived"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "task_id",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "owner",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "created_date",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     },
     {
       "name": "last_used_date",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     },
     {
       "name": "times_used",
-      "type": "number"
+      "type": "number",
+      "owner": "local"
     },
     {
       "name": "outcome_note",
       "type": "text",
-      "note": "What happened after it was sent. The only way the library learns."
+      "note": "What happened after it was sent. The only way the library learns.",
+      "owner": "local"
     },
     {
       "name": "notes",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "last_updated",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     }
   ]
 }

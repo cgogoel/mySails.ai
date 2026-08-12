@@ -4,7 +4,7 @@
   "id_prefix": "QUOTE",
   "id_width": 4,
   "browsable": true,
-  "description": "One row per quote issued or drafted. Versioned, because a renegotiated quote is a new version rather than an edit \u2014 you need to be able to say what the customer was actually sent.",
+  "description": "One row per quote issued or drafted. Versioned, because a renegotiated quote is a new version rather than an edit — you need to be able to say what the customer was actually sent.",
   "picklists_overridable": [
     "status",
     "payment_terms",
@@ -14,42 +14,50 @@
     {
       "name": "id",
       "type": "id",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "quote_number",
       "type": "text",
       "required": true,
-      "note": "What the customer sees, e.g. Q-2026-0042"
+      "note": "What the customer sees, e.g. Q-2026-0042",
+      "owner": "local"
     },
     {
       "name": "version",
       "type": "number",
       "required": true,
-      "note": "Increments on every reissue. Never edit a sent quote in place."
+      "note": "Increments on every reissue. Never edit a sent quote in place.",
+      "owner": "local"
     },
     {
       "name": "supersedes",
       "type": "text",
-      "note": "QUOTE- id this replaces"
+      "note": "QUOTE- id this replaces",
+      "owner": "local"
     },
     {
       "name": "opportunity_id",
       "type": "text",
-      "note": "OPP- id. A quote should almost always belong to a deal."
+      "note": "OPP- id. A quote should almost always belong to a deal.",
+      "owner": "local"
     },
     {
       "name": "account_name",
       "type": "text",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "contact_name",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "contact_email",
-      "type": "email"
+      "type": "email",
+      "owner": "local"
     },
     {
       "name": "status",
@@ -64,89 +72,108 @@
         "Declined",
         "Expired",
         "Superseded"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "issue_date",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     },
     {
       "name": "valid_until",
       "type": "date",
       "required": true,
-      "note": "DERIVED from issue date plus the org's validity period. An open-ended quote is a discount with no expiry."
+      "note": "DERIVED from issue date plus the org's validity period. An open-ended quote is a discount with no expiry.",
+      "owner": "derived"
     },
     {
       "name": "payment_terms",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "term_months",
-      "type": "number"
+      "type": "number",
+      "owner": "local"
     },
     {
       "name": "billing_frequency",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "currency",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "subtotal_list",
       "type": "money",
-      "note": "DERIVED: sum of lines at list"
+      "note": "DERIVED: sum of lines at list",
+      "owner": "derived"
     },
     {
       "name": "discount_amount",
       "type": "money",
-      "note": "DERIVED"
+      "note": "DERIVED",
+      "owner": "derived"
     },
     {
       "name": "discount_pct",
       "type": "number",
-      "note": "DERIVED: blended across the whole quote"
+      "note": "DERIVED: blended across the whole quote",
+      "owner": "derived"
     },
     {
       "name": "subtotal",
       "type": "money",
-      "note": "DERIVED: after discount"
+      "note": "DERIVED: after discount",
+      "owner": "derived"
     },
     {
       "name": "tax",
-      "type": "money"
+      "type": "money",
+      "owner": "local"
     },
     {
       "name": "total",
       "type": "money",
       "required": true,
-      "note": "DERIVED. What the customer pays."
+      "note": "DERIVED. What the customer pays.",
+      "owner": "derived"
     },
     {
       "name": "annualised_value",
       "type": "money",
-      "note": "DERIVED: total over term, for multi-year comparability"
+      "note": "DERIVED: total over term, for multi-year comparability",
+      "owner": "derived"
     },
     {
       "name": "needs_approval",
       "type": "bool",
-      "note": "DERIVED: any line past its max_discount_no_approval, or blended discount past the org threshold"
+      "note": "DERIVED: any line past its max_discount_no_approval, or blended discount past the org threshold",
+      "owner": "derived"
     },
     {
       "name": "approval_reason",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "approved_by",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "approved_date",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     },
     {
       "name": "sent_date",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     },
     {
       "name": "outcome",
@@ -157,37 +184,45 @@
         "Declined",
         "Expired",
         "Withdrawn"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "outcome_reason",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "accepted_date",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     },
     {
       "name": "updated_opportunity",
       "type": "bool",
-      "note": "Whether the opportunity amount was updated from this quote"
+      "note": "Whether the opportunity amount was updated from this quote",
+      "owner": "local"
     },
     {
       "name": "document_path",
       "type": "text",
-      "note": "The generated quote document"
+      "note": "The generated quote document",
+      "owner": "local"
     },
     {
       "name": "owner",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "notes",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "last_updated",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     }
   ],
   "archive": {

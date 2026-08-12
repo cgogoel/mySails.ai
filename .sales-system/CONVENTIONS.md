@@ -136,9 +136,59 @@ To add a row, use `--append <path> --json '{...}'` rather than writing CSV by ha
 allocates the next ID, validates fields against the schema, and backs up before writing.
 To get an ID without writing: `--next-id <path>`.
 
+To add or update *many* rows, use `--upsert`, never a loop of appends and never a rewrite:
+
+```bash
+csvguard.py --upsert <project>/06-Leads/leads --key crm_id --json-file records.json
+```
+
+It matches on the key, updates matched rows in place, mints IDs only for genuinely new
+ones, and never renumbers. This matters more than it sounds: **an ID is a promise**. Tasks,
+notes and cross-references all point at it, so a bulk load that reassigns IDs by position
+orphans every one of them silently.
+
 Report repairs to the user in one line — "tidied up three dates Excel had reformatted" — and
 move on. Don't lecture them about CSV hygiene. The whole point is that they don't have to
 think about it.
+
+### The destructive-write guard
+
+Validation proves a registry is well-formed. It cannot prove it is *right*, and the way
+data actually gets lost here is a script that rebuilds the file from a snapshot taken
+earlier — every row valid, every row stale. The result validates perfectly clean
+afterwards, because it is clean. It's just wrong.
+
+So every full-file write is diffed against the file it replaces, matched on `id`, and
+refused if the change has the shape of an accident:
+
+| Trips on | Because |
+|---|---|
+| More than 10% (min 2) of rows disappearing | Rows don't vanish during an edit |
+| More than 20% (min 10) of rows changing value | A fifth of the book moving at once is a rebuild |
+| More than 20 non-empty cells being blanked | A feed missing a column looks exactly like this |
+| **Any** closed record returning to an open state | A stale snapshot overwriting a decision |
+
+The refusal prints the diff. Read it before doing anything else — if it's a rebuild from an
+old snapshot, forcing past it reverts live edits and leaves no trace. To proceed anyway:
+`--force`, or `SALESOS_FORCE_WRITE=1` for a script.
+
+Two paths are deliberately exempt, and nothing else should be: normalisation repairs (they
+touch cells but never identity — no row dropped, no value blanked) and archiving (removing
+rows is the point, and they've just been written to `99-Archive`).
+
+### Column ownership
+
+Every column in every schema declares an `owner`:
+
+| `owner` | Meaning | On a refresh |
+|---|---|---|
+| `crm` | The CRM is the source of truth | Overwritten |
+| `local` | Authored here — `notes`, `health`, judgement calls | Never touched |
+| `derived` | Computed here from activity, dates or pipeline | Never touched, and its churn is not evidence of data loss |
+
+`local` is the default, because a field nobody has classified is safer left alone than
+overwritten by an import. This is the knowledge that used to live only inside whatever
+import script a session happened to write.
 
 ## 3a. Scope: whose pipeline is this?
 
@@ -311,6 +361,80 @@ what it says, including when it says don't.
 If the user asks for behaviour that isn't in the rules, add a rule rather than hard-coding the
 behaviour into a one-off — that's what makes it inspectable and reversible later.
 
+## 3c. Seeding is not refreshing
+
+These are different operations and confusing them is the single most expensive mistake
+available in this system. Both fill a registry with CRM data; only one of them is safe to
+run twice.
+
+| | Seed | Refresh |
+|---|---|---|
+| When | First load, once | Every time after |
+| Against an existing registry | **Refuses** | Expected |
+| Writes | Every column | Only `owner: crm` columns |
+| Local edits since last sync | Destroyed | Preserved |
+| IDs | Minted | Never renumbered |
+
+```bash
+crm_sync.py --plan    <project> --registry opportunities        # what to pull
+crm_sync.py --seed    <project> --registry opportunities --json-file recs.json
+crm_sync.py --refresh <project> --registry opportunities --json-file recs.json
+crm_sync.py --verify  <project> --registry opportunities --json-file recs.json
+crm_sync.py --ingest  <project> --registry leads --file <export.csv> --mode refresh
+```
+
+**Never write your own import.** If `crm_sync.py` can't do what's needed, extend it — a
+one-off script in a session is exactly how a seeder gets re-run as a refresh months later
+by someone who assumed it was idempotent. Any script that rebuilds a registry from a
+snapshot is a seeder, must refuse to run against a registry that already has rows, and
+must say so rather than helpfully proceeding.
+
+**The CRM read belongs to the skill, the comparison belongs to the script.** The CRM is
+reachable only through a connector the agent holds, so the flow is always: run `--plan` to
+learn what to select, query through the connector, write the result to JSON, hand it to
+`--refresh` or `--verify`. The scripts never talk to a CRM, which is what keeps them
+CRM-agnostic and testable. `--plan` prints a ready-made query only where the CRM has a
+query language the profile names; otherwise it names the fields and leaves the asking to
+whatever the connector offers, because a query invented for an unknown API looks
+authoritative and doesn't run.
+
+### Bulk loading through a report export
+
+Pulling records through a connector costs roughly a thousand tokens each — fine for 200
+deals, absurd for 27,000 leads. For anything large, have the user export a report to
+`<module>/import/` and run `--ingest`, which handles what exports generally get wrong:
+cp1252 encoding rather than UTF-8, `M/D/YYYY` dates, booleans that arrive as `0`/`1` in one
+column and `true`/`false` in the next, field labels instead of API names, title rows above
+the header, and "Grand Totals" or confidentiality lines below the data. None of that is
+particular to one vendor; it comes from the export machinery.
+
+**The export must include the record ID column.** Without it nothing can be matched, and
+rows will be skipped rather than guessed at. Ingest reports every column it could not map —
+read that list, because an unmapped column is data silently not imported.
+
+### Vendor quirks are named, not assumed
+
+Nothing in this system is built for a particular CRM. But individual CRMs do have quirks
+that silently corrupt an import, and pretending otherwise doesn't help anyone — so each is
+declared against the CRM it belongs to in `csvguard.CRM_DIALECTS`, keyed on `crm` in
+`field-map.json`, and applied to that CRM alone. An unrecognised CRM, or none at all, gets
+generic behaviour throughout.
+
+What a dialect declares: the record's identifier and last-modified field names, the query
+language if it has one, whether custom fields carry a suffix or namespace that report
+labels drop, and whether record IDs have more than one form.
+
+That last one is currently Salesforce only. It has two forms of every ID — reports export
+15 characters, the API returns 18 — which compared raw never match, so an import that
+assumes one form loads every record twice. **Matching is on `crm_key()`, never on `crm_id`
+directly.** `crm_key` changes nothing by default: an ID is an opaque string, and guessing
+at its structure is how unrelated records get merged. Even for Salesforce it only collapses
+18 to 15 when the last three characters verify as that CRM's checksum of the first fifteen.
+
+Any of it can be overridden per org by putting the same keys at the top level of
+`field-map.json` — which is how a CRM with no dialect entry, or one whose API has been
+customised, gets handled without a code change.
+
 ## 4. IDs by type
 
 | Prefix | Registry | Lives in |
@@ -367,17 +491,66 @@ This project is configured for two-way sync. The asymmetry is deliberate and loa
   don't pick a winner. Show both and ask.
 - **Log everything** to `00-Config/sync-log.csv`, pulls included.
 
-Each synced row carries `crm_id` and `sync_status`:
+### Both sides, same action
+
+> Any change to a synced record is applied to **both** the local registry and the CRM in the
+> same action. Never one alone, never "push it later". Where a push is refused or blocked — a
+> duplicate rule, a validation error, a departed contact — record the failure on the local row
+> so the folder is never silently ahead of the CRM.
+
+"Push it later" is how a folder ends up confidently reporting numbers the CRM disagrees with.
+If the push can't happen now, set `sync_status` to `pending-push` and say so in the same
+breath as reporting the local change — an unpushed edit is a half-finished action, not a
+completed one.
+
+### The four states, and keeping them true
+
+Each synced row carries `crm_id`, `sync_status`, `crm_last_modified` and `last_synced`:
 
 | `sync_status` | Meaning |
 |---|---|
 | `local-only` | Exists here, not in the CRM. Never pushed. |
-| `synced` | Matches the CRM as of `last_updated`. |
-| `pending-push` | Changed here since the last sync; awaiting confirmation. |
+| `synced` | Matched the CRM as at `last_synced`. |
+| `pending-push` | Changed here since then; the CRM is currently wrong. |
 | `conflict` | Both sides changed. Needs a human. |
+
+These are only worth anything if they're maintained. **Set `pending-push` on every local
+edit to a CRM-owned field, and clear it only on a confirmed push.** A column where every row
+says `synced` forever answers no question at all.
+
+`crm_last_modified` holds the CRM's own timestamp as at the last sync, and `last_synced`
+when the row was last reconciled. Together they make drift computable rather than guessable:
+if the CRM's current timestamp has moved past `crm_last_modified`, the change came from over
+there; if `last_updated` is later than `last_synced`, it came from here.
 
 A row with an empty `crm_id` has never been pushed. Don't create CRM records as a side effect
 of some other task — creating records in a system of record is its own decision.
+
+### Verify before you report
+
+**Run a drift check at the top of every brief and every forecast**, before computing anything
+from a synced registry:
+
+```bash
+csvguard.py --sync-query <project> --registry opportunities     # what to select
+# ... query the CRM through the connector, write the result to snapshot.json ...
+csvguard.py --verify-sync <project> --registry opportunities --crm-json snapshot.json
+```
+
+Three outcomes, and the distinction decides what to do:
+
+| | What happened | Response |
+|---|---|---|
+| **DRIFT** | The CRM changed since the last sync — someone else edited it | `--refresh` to accept, or push if the local value is the right one |
+| **AHEAD** | Changed here and never pushed | A push failed or was skipped; the CRM is currently wrong |
+| **CONFLICT** | Both sides changed | Show both and ask. Never pick a winner |
+
+Lead with what it found. A forecast that opens with "16 opportunities changed owner in the
+CRM since your last sync" is doing its job; the same forecast reporting a quietly wrong
+by-rep split is worse than no forecast, because it will be believed.
+
+If a check can't run — no connector, no profile, the user in a hurry — say so in one line
+and label the numbers as unverified. Silence reads as confirmation.
 
 ### Fields the profile says to ignore
 

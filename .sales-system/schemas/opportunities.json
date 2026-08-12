@@ -20,17 +20,20 @@
     {
       "name": "id",
       "type": "id",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "name",
       "type": "text",
-      "required": true
+      "required": true,
+      "owner": "crm"
     },
     {
       "name": "account_name",
       "type": "text",
-      "required": true
+      "required": true,
+      "owner": "crm"
     },
     {
       "name": "stage",
@@ -45,7 +48,9 @@
         "Negotiation",
         "Closed Won",
         "Closed Lost"
-      ]
+      ],
+      "owner": "crm",
+      "verify": true
     },
     {
       "name": "forecast_category",
@@ -57,39 +62,51 @@
         "Commit",
         "Closed"
       ],
-      "note": "Some CRMs store a display name and an API value that differ (e.g. Commit stored as 'Forecast'). The profile records the mapping."
+      "note": "Some CRMs store a display name and an API value that differ (e.g. Commit stored as 'Forecast'). The profile records the mapping.",
+      "owner": "crm",
+      "verify": true
     },
     {
       "name": "amount",
       "type": "money",
-      "note": "The org's authoritative deal value. Which CRM field that is can be ambiguous \u2014 the profile names it."
+      "note": "The org's authoritative deal value. Which CRM field that is can be ambiguous — the profile names it.",
+      "owner": "crm",
+      "verify": true
     },
     {
       "name": "currency",
-      "type": "text"
+      "type": "text",
+      "owner": "crm"
     },
     {
       "name": "probability",
       "type": "number",
-      "note": "0-100"
+      "note": "0-100",
+      "owner": "crm"
     },
     {
       "name": "close_date",
       "type": "date",
-      "required": true
+      "required": true,
+      "owner": "crm",
+      "verify": true
     },
     {
       "name": "created_date",
-      "type": "date"
+      "type": "date",
+      "owner": "crm"
     },
     {
       "name": "owner",
-      "type": "text"
+      "type": "text",
+      "owner": "crm",
+      "verify": true
     },
     {
       "name": "secondary_owner",
       "type": "text",
-      "note": "Co-owner or SE, where the org tracks one"
+      "note": "Co-owner or SE, where the org tracks one",
+      "owner": "crm"
     },
     {
       "name": "type",
@@ -99,19 +116,23 @@
         "Expansion",
         "Renewal",
         "Existing Business"
-      ]
+      ],
+      "owner": "crm"
     },
     {
       "name": "source",
-      "type": "text"
+      "type": "text",
+      "owner": "crm"
     },
     {
       "name": "campaign_id",
-      "type": "text"
+      "type": "text",
+      "owner": "crm"
     },
     {
       "name": "partner_id",
-      "note": "PARTNER- id when a partner is involved"
+      "note": "PARTNER- id when a partner is involved",
+      "owner": "local"
     },
     {
       "name": "partner_role",
@@ -123,44 +144,54 @@
         "Influenced",
         "None"
       ],
-      "note": "Sell-through = partner transacts. Sell-with = joint pursuit, we transact. They forecast differently and must not be summed together."
+      "note": "Sell-through = partner transacts. Sell-with = joint pursuit, we transact. They forecast differently and must not be summed together.",
+      "owner": "local"
     },
     {
       "name": "deal_registration_id",
-      "note": "Partner deal registration reference, where the org uses one"
+      "note": "Partner deal registration reference, where the org uses one",
+      "owner": "local"
     },
     {
       "name": "champion",
-      "type": "text"
+      "type": "text",
+      "owner": "crm"
     },
     {
       "name": "economic_buyer",
-      "type": "text"
+      "type": "text",
+      "owner": "crm"
     },
     {
       "name": "contacts_engaged",
-      "type": "number"
+      "type": "number",
+      "owner": "local"
     },
     {
       "name": "pain",
-      "type": "text"
+      "type": "text",
+      "owner": "crm"
     },
     {
       "name": "decision_process",
-      "type": "text"
+      "type": "text",
+      "owner": "crm"
     },
     {
       "name": "paper_process",
-      "type": "text"
+      "type": "text",
+      "owner": "crm"
     },
     {
       "name": "competitor",
-      "type": "text"
+      "type": "text",
+      "owner": "crm"
     },
     {
       "name": "close_plan_gaps",
       "type": "text",
-      "note": "DERIVED. Which close-plan elements are blank, semicolon-separated. This is the useful output, not the raw fields."
+      "note": "DERIVED. Which close-plan elements are blank, semicolon-separated. This is the useful output, not the raw fields.",
+      "owner": "derived"
     },
     {
       "name": "poc_status",
@@ -172,15 +203,18 @@
         "Delayed",
         "Complete",
         "Failed"
-      ]
+      ],
+      "owner": "crm"
     },
     {
       "name": "poc_end_date",
-      "type": "date"
+      "type": "date",
+      "owner": "crm"
     },
     {
       "name": "technical_win",
-      "type": "bool"
+      "type": "bool",
+      "owner": "crm"
     },
     {
       "name": "health",
@@ -189,42 +223,51 @@
         "Green",
         "Yellow",
         "Red"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "risk_flags",
       "type": "text",
-      "note": "DERIVED, semicolon-separated: single-threaded;no-close-plan;date-slipped;stalled;no-champion"
+      "note": "DERIVED, semicolon-separated: single-threaded;no-close-plan;date-slipped;stalled;no-champion",
+      "owner": "derived"
     },
     {
       "name": "on_hold",
-      "type": "bool"
+      "type": "bool",
+      "owner": "local"
     },
     {
       "name": "on_hold_reason",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "close_date_pushes",
       "type": "number",
-      "note": "How many times close date has moved out. The single best predictor of a deal that won't close."
+      "note": "How many times close date has moved out. The single best predictor of a deal that won't close.",
+      "owner": "derived"
     },
     {
       "name": "previous_close_date",
-      "type": "date"
+      "type": "date",
+      "owner": "derived"
     },
     {
       "name": "days_in_stage",
-      "type": "number"
+      "type": "number",
+      "owner": "derived"
     },
     {
       "name": "last_activity_date",
-      "type": "date"
+      "type": "date",
+      "owner": "crm"
     },
     {
       "name": "engagement_score",
       "type": "number",
-      "note": "DERIVED 0-100 from meetings, emails both ways, and notes in the recent window. Volume alone is weak \u2014 a deal with daily internal emails and no customer reply is not engaged."
+      "note": "DERIVED 0-100 from meetings, emails both ways, and notes in the recent window. Volume alone is weak — a deal with daily internal emails and no customer reply is not engaged.",
+      "owner": "derived"
     },
     {
       "name": "engagement_trend",
@@ -236,67 +279,82 @@
         "Cooling",
         "Cold"
       ],
-      "note": "DERIVED by comparing the recent window against the one before it. DIRECTION, not level \u2014 a big deal ticking over steadily is not the same as a small one accelerating."
+      "note": "DERIVED by comparing the recent window against the one before it. DIRECTION, not level — a big deal ticking over steadily is not the same as a small one accelerating.",
+      "owner": "derived"
     },
     {
       "name": "meetings_recent",
       "type": "number",
-      "note": "DERIVED: meetings held in the current window"
+      "note": "DERIVED: meetings held in the current window",
+      "owner": "derived"
     },
     {
       "name": "emails_out_recent",
       "type": "number",
-      "note": "DERIVED"
+      "note": "DERIVED",
+      "owner": "derived"
     },
     {
       "name": "emails_in_recent",
       "type": "number",
-      "note": "DERIVED: replies FROM the customer. The strongest single engagement signal \u2014 outbound volume measures effort, inbound measures interest."
+      "note": "DERIVED: replies FROM the customer. The strongest single engagement signal — outbound volume measures effort, inbound measures interest.",
+      "owner": "derived"
     },
     {
       "name": "last_inbound_date",
       "type": "date",
-      "note": "DERIVED: last time they contacted us"
+      "note": "DERIVED: last time they contacted us",
+      "owner": "derived"
     },
     {
       "name": "quote_sent_date",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     },
     {
       "name": "next_step",
-      "type": "text"
+      "type": "text",
+      "owner": "crm"
     },
     {
       "name": "next_step_date",
-      "type": "date"
+      "type": "date",
+      "owner": "crm"
     },
     {
       "name": "loss_reason",
-      "type": "text"
+      "type": "text",
+      "owner": "crm"
     },
     {
       "name": "loss_notes",
-      "type": "text"
+      "type": "text",
+      "owner": "crm"
     },
     {
       "name": "contract_start",
-      "type": "date"
+      "type": "date",
+      "owner": "crm"
     },
     {
       "name": "contract_end",
-      "type": "date"
+      "type": "date",
+      "owner": "crm"
     },
     {
       "name": "term_months",
-      "type": "number"
+      "type": "number",
+      "owner": "crm"
     },
     {
       "name": "notes",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "crm_id",
-      "type": "text"
+      "type": "text",
+      "owner": "crm"
     },
     {
       "name": "sync_status",
@@ -306,11 +364,25 @@
         "synced",
         "pending-push",
         "conflict"
-      ]
+      ],
+      "owner": "local"
+    },
+    {
+      "name": "crm_last_modified",
+      "type": "text",
+      "owner": "crm",
+      "note": "The CRM's own last-modified stamp as at the last sync. Drift detection compares it against the CRM's current value; without it, which side changed a field is a guess."
+    },
+    {
+      "name": "last_synced",
+      "type": "date",
+      "owner": "crm",
+      "note": "When this row was last reconciled against the CRM. A last_updated later than this means the row is ahead of the CRM and owes a push."
     },
     {
       "name": "last_updated",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     }
   ],
   "browsable": true,

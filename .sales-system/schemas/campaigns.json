@@ -4,7 +4,7 @@
   "id_prefix": "CMP",
   "id_width": 3,
   "browsable": true,
-  "description": "Demand gen programmes and what they actually produced. The funnel columns are computed from leads and opportunities, not reported by the channel \u2014 so the numbers say what happened rather than what was promised.",
+  "description": "Demand gen programmes and what they actually produced. The funnel columns are computed from leads and opportunities, not reported by the channel — so the numbers say what happened rather than what was promised.",
   "picklists_overridable": [
     "channel",
     "status"
@@ -13,12 +13,14 @@
     {
       "name": "id",
       "type": "id",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "name",
       "type": "text",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "channel",
@@ -39,17 +41,20 @@
         "Referral",
         "Display",
         "Other"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "source_value",
       "type": "text",
-      "note": "The value this campaign writes into the lead/opportunity source field. THE JOIN KEY \u2014 attribution silently returns zero without it."
+      "note": "The value this campaign writes into the lead/opportunity source field. THE JOIN KEY — attribution silently returns zero without it.",
+      "owner": "local"
     },
     {
       "name": "crm_campaign_id",
       "type": "text",
-      "note": "CRM campaign record id, where the org uses campaign objects"
+      "note": "CRM campaign record id, where the org uses campaign objects",
+      "owner": "local"
     },
     {
       "name": "status",
@@ -60,115 +65,139 @@
         "Paused",
         "Complete",
         "Cancelled"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "start_date",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     },
     {
       "name": "end_date",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     },
     {
       "name": "owner",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "target_segment",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "target_persona",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "offer",
       "type": "text",
-      "note": "What the prospect actually got: report, demo, trial, meeting"
+      "note": "What the prospect actually got: report, demo, trial, meeting",
+      "owner": "local"
     },
     {
       "name": "budget",
-      "type": "money"
+      "type": "money",
+      "owner": "local"
     },
     {
       "name": "spend",
-      "type": "money"
+      "type": "money",
+      "owner": "local"
     },
     {
       "name": "leads_created",
       "type": "number",
-      "note": "DERIVED"
+      "note": "DERIVED",
+      "owner": "derived"
     },
     {
       "name": "leads_contactable",
       "type": "number",
-      "note": "DERIVED. A purchased list that is 60% unmailable cost more than it looks."
+      "note": "DERIVED. A purchased list that is 60% unmailable cost more than it looks.",
+      "owner": "derived"
     },
     {
       "name": "leads_worked",
       "type": "number",
-      "note": "DERIVED: leads that got past New. Untouched leads are a routing problem, not a channel problem \u2014 separating them stops the wrong lever being pulled."
+      "note": "DERIVED: leads that got past New. Untouched leads are a routing problem, not a channel problem — separating them stops the wrong lever being pulled.",
+      "owner": "derived"
     },
     {
       "name": "leads_qualified",
       "type": "number",
-      "note": "DERIVED"
+      "note": "DERIVED",
+      "owner": "derived"
     },
     {
       "name": "opps_created",
       "type": "number",
-      "note": "DERIVED"
+      "note": "DERIVED",
+      "owner": "derived"
     },
     {
       "name": "pipeline_created",
       "type": "money",
-      "note": "DERIVED: sum of opportunity amount"
+      "note": "DERIVED: sum of opportunity amount",
+      "owner": "derived"
     },
     {
       "name": "closed_won",
       "type": "number",
-      "note": "DERIVED"
+      "note": "DERIVED",
+      "owner": "derived"
     },
     {
       "name": "revenue_won",
       "type": "money",
-      "note": "DERIVED"
+      "note": "DERIVED",
+      "owner": "derived"
     },
     {
       "name": "closed_lost",
       "type": "number",
-      "note": "DERIVED"
+      "note": "DERIVED",
+      "owner": "derived"
     },
     {
       "name": "still_open",
       "type": "number",
-      "note": "DERIVED. Judging a campaign before its deals resolve is the most common attribution error."
+      "note": "DERIVED. Judging a campaign before its deals resolve is the most common attribution error.",
+      "owner": "derived"
     },
     {
       "name": "lead_to_opp_rate",
       "type": "number",
-      "note": "DERIVED %. Blank when the sample is too small to mean anything."
+      "note": "DERIVED %. Blank when the sample is too small to mean anything.",
+      "owner": "derived"
     },
     {
       "name": "cost_per_lead",
       "type": "money",
-      "note": "DERIVED"
+      "note": "DERIVED",
+      "owner": "derived"
     },
     {
       "name": "cost_per_opp",
       "type": "money",
-      "note": "DERIVED"
+      "note": "DERIVED",
+      "owner": "derived"
     },
     {
       "name": "pipeline_roi",
       "type": "number",
-      "note": "DERIVED: pipeline_created / spend. A ratio, not a percentage."
+      "note": "DERIVED: pipeline_created / spend. A ratio, not a percentage.",
+      "owner": "derived"
     },
     {
       "name": "days_to_first_opp",
       "type": "number",
-      "note": "DERIVED: median. Tells you when a campaign can fairly be judged."
+      "note": "DERIVED: median. Tells you when a campaign can fairly be judged.",
+      "owner": "derived"
     },
     {
       "name": "maturity",
@@ -178,20 +207,24 @@
         "Partial",
         "Mature"
       ],
-      "note": "DERIVED: whether enough of the cohort has resolved to draw a conclusion. Guards against judging a long-cycle campaign at week three."
+      "note": "DERIVED: whether enough of the cohort has resolved to draw a conclusion. Guards against judging a long-cycle campaign at week three.",
+      "owner": "derived"
     },
     {
       "name": "sample_note",
       "type": "text",
-      "note": "DERIVED. Plain language on what the numbers can and cannot support."
+      "note": "DERIVED. Plain language on what the numbers can and cannot support.",
+      "owner": "derived"
     },
     {
       "name": "notes",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "last_updated",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     }
   ]
 }

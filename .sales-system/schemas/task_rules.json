@@ -8,22 +8,26 @@
     {
       "name": "id",
       "type": "id",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "rule_name",
       "type": "text",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "enabled",
       "type": "bool",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "trigger",
       "type": "text",
-      "note": "Plain-language condition, e.g. 'lead in Engaged with no touch for 5 days'"
+      "note": "Plain-language condition, e.g. 'lead in Engaged with no touch for 5 days'",
+      "owner": "local"
     },
     {
       "name": "task_type",
@@ -41,7 +45,8 @@
         "Internal",
         "Admin",
         "Other"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "automation",
@@ -51,7 +56,8 @@
         "auto",
         "review",
         "manual"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "applies_to",
@@ -66,12 +72,14 @@
         "account",
         "brief",
         "none"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "due_offset_days",
       "type": "number",
-      "note": "Days from creation to due date"
+      "note": "Days from creation to due date",
+      "owner": "local"
     },
     {
       "name": "priority",
@@ -80,7 +88,8 @@
         "High",
         "Medium",
         "Low"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "verify_by",
@@ -93,25 +102,30 @@
         "crm-field",
         "file-created",
         "manual-only"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "daily_cap",
       "type": "number",
-      "note": "Max tasks this rule may raise per day. Blank = no cap."
+      "note": "Max tasks this rule may raise per day. Blank = no cap.",
+      "owner": "local"
     },
     {
       "name": "raised_by",
       "type": "text",
-      "note": "Which skill evaluates this rule"
+      "note": "Which skill evaluates this rule",
+      "owner": "local"
     },
     {
       "name": "notes",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "last_updated",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     }
   ],
   "browsable": true

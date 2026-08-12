@@ -4,7 +4,7 @@
   "id_prefix": "COMP",
   "id_width": 3,
   "browsable": true,
-  "description": "Named competitors, how you beat them, and what your own pipeline says about whether that's working. The win/loss columns are computed from opportunities \u2014 not opinion.",
+  "description": "Named competitors, how you beat them, and what your own pipeline says about whether that's working. The win/loss columns are computed from opportunities — not opinion.",
   "picklists_overridable": [
     "tier",
     "trend",
@@ -14,21 +14,25 @@
     {
       "name": "id",
       "type": "id",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "name",
       "type": "text",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "website",
-      "type": "url"
+      "type": "url",
+      "owner": "local"
     },
     {
       "name": "aliases",
       "type": "text",
-      "note": "Other names they appear under in deal records, semicolon-separated. Matching fails without these."
+      "note": "Other names they appear under in deal records, semicolon-separated. Matching fails without these.",
+      "owner": "local"
     },
     {
       "name": "tier",
@@ -41,41 +45,49 @@
         "Watch",
         "Retired"
       ],
-      "note": "Primary = shows up in deals regularly and you lose to them. Reserve it; a long Primary list means none of them get real attention."
+      "note": "Primary = shows up in deals regularly and you lose to them. Reserve it; a long Primary list means none of them get real attention.",
+      "owner": "local"
     },
     {
       "name": "category",
       "type": "text",
-      "note": "What kind of alternative: direct rival, adjacent tool, in-house build, do-nothing"
+      "note": "What kind of alternative: direct rival, adjacent tool, in-house build, do-nothing",
+      "owner": "local"
     },
     {
       "name": "their_pitch",
       "type": "text",
-      "note": "How they describe themselves, in their words not yours"
+      "note": "How they describe themselves, in their words not yours",
+      "owner": "local"
     },
     {
       "name": "their_strengths",
       "type": "text",
-      "note": "Where they genuinely win. A battlecard that claims a competitor has no strengths gets a rep ambushed."
+      "note": "Where they genuinely win. A battlecard that claims a competitor has no strengths gets a rep ambushed.",
+      "owner": "local"
     },
     {
       "name": "their_weaknesses",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "our_win_themes",
       "type": "text",
-      "note": "What actually wins against them, ideally traced to won deals"
+      "note": "What actually wins against them, ideally traced to won deals",
+      "owner": "local"
     },
     {
       "name": "landmines",
       "type": "text",
-      "note": "Questions that surface their weaknesses without you naming them"
+      "note": "Questions that surface their weaknesses without you naming them",
+      "owner": "local"
     },
     {
       "name": "do_not_say",
       "type": "text",
-      "note": "Claims that are wrong, stale, or legally risky. As valuable as the win themes."
+      "note": "Claims that are wrong, stale, or legally risky. As valuable as the win themes.",
+      "owner": "local"
     },
     {
       "name": "pricing_posture",
@@ -86,51 +98,61 @@
         "Premium",
         "Freemium",
         "Unknown"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "typical_discounting",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "deals_met",
       "type": "number",
-      "note": "DERIVED from opportunities where this competitor is named"
+      "note": "DERIVED from opportunities where this competitor is named",
+      "owner": "derived"
     },
     {
       "name": "deals_won",
       "type": "number",
-      "note": "DERIVED"
+      "note": "DERIVED",
+      "owner": "derived"
     },
     {
       "name": "deals_lost",
       "type": "number",
-      "note": "DERIVED"
+      "note": "DERIVED",
+      "owner": "derived"
     },
     {
       "name": "deals_open",
       "type": "number",
-      "note": "DERIVED"
+      "note": "DERIVED",
+      "owner": "derived"
     },
     {
       "name": "win_rate",
       "type": "number",
-      "note": "DERIVED: won / (won + lost), as a percentage. Blank when the sample is too small to mean anything."
+      "note": "DERIVED: won / (won + lost), as a percentage. Blank when the sample is too small to mean anything.",
+      "owner": "derived"
     },
     {
       "name": "sample_note",
       "type": "text",
-      "note": "DERIVED. Says so plainly when the sample is too small \u2014 2 wins from 3 deals is not a 67% win rate."
+      "note": "DERIVED. Says so plainly when the sample is too small — 2 wins from 3 deals is not a 67% win rate.",
+      "owner": "derived"
     },
     {
       "name": "avg_deal_size",
       "type": "money",
-      "note": "DERIVED: average amount when they're in the deal"
+      "note": "DERIVED: average amount when they're in the deal",
+      "owner": "derived"
     },
     {
       "name": "last_seen_date",
       "type": "date",
-      "note": "DERIVED: most recent deal they appeared in"
+      "note": "DERIVED: most recent deal they appeared in",
+      "owner": "derived"
     },
     {
       "name": "trend",
@@ -141,69 +163,83 @@
         "Losing more",
         "Too few deals"
       ],
-      "note": "DERIVED: last two quarters against the two before"
+      "note": "DERIVED: last two quarters against the two before",
+      "owner": "derived"
     },
     {
       "name": "where_we_win",
       "type": "text",
-      "note": "DERIVED where possible: segments and use cases with the best record against them"
+      "note": "DERIVED where possible: segments and use cases with the best record against them",
+      "owner": "derived"
     },
     {
       "name": "where_they_win",
       "type": "text",
-      "note": "DERIVED where possible"
+      "note": "DERIVED where possible",
+      "owner": "derived"
     },
     {
       "name": "common_loss_reason",
       "type": "text",
-      "note": "DERIVED from loss reasons on deals they were in"
+      "note": "DERIVED from loss reasons on deals they were in",
+      "owner": "derived"
     },
     {
       "name": "last_signal_date",
       "type": "date",
-      "note": "DERIVED: most recent market signal about this competitor"
+      "note": "DERIVED: most recent market signal about this competitor",
+      "owner": "derived"
     },
     {
       "name": "signals_90d",
       "type": "number",
-      "note": "DERIVED: signal count in the last 90 days. A quiet competitor and a busy one need different attention."
+      "note": "DERIVED: signal count in the last 90 days. A quiet competitor and a busy one need different attention.",
+      "owner": "derived"
     },
     {
       "name": "signals_since_battlecard",
       "type": "number",
-      "note": "DERIVED: signals logged since last_researched. THE staleness measure \u2014 a battlecard is out of date because specific things happened, not because time passed. Non-zero on a Primary competitor means refresh before the next call."
+      "note": "DERIVED: signals logged since last_researched. THE staleness measure — a battlecard is out of date because specific things happened, not because time passed. Non-zero on a Primary competitor means refresh before the next call.",
+      "owner": "derived"
     },
     {
       "name": "latest_signal",
       "type": "text",
-      "note": "DERIVED: headline and date of the most recent signal, so the registry is readable without opening the market log"
+      "note": "DERIVED: headline and date of the most recent signal, so the registry is readable without opening the market log",
+      "owner": "derived"
     },
     {
       "name": "open_impacts",
       "type": "text",
-      "note": "DERIVED: distinct competitive_impact values from signals since the battlecard was written, semicolon-separated"
+      "note": "DERIVED: distinct competitive_impact values from signals since the battlecard was written, semicolon-separated",
+      "owner": "derived"
     },
     {
       "name": "battlecard_path",
       "type": "text",
-      "note": "Relative path to the battlecard markdown"
+      "note": "Relative path to the battlecard markdown",
+      "owner": "local"
     },
     {
       "name": "last_researched",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     },
     {
       "name": "watch_id",
       "type": "text",
-      "note": "Links to the market watchlist entry that monitors them"
+      "note": "Links to the market watchlist entry that monitors them",
+      "owner": "local"
     },
     {
       "name": "notes",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "last_updated",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     }
   ]
 }

@@ -27,6 +27,24 @@ that are invisible at one-day range and irrelevant at quarterly range.
 python3 <project>/.sales-system/scripts/csvguard.py --check-all <project>
 ```
 
+6. **Verify the synced registries against the CRM** — `opportunities`, plus `leads`, `renewals`
+   and `partners` where those modules are on:
+
+```bash
+python3 <project>/.sales-system/scripts/csvguard.py --sync-query <project>
+# run each query through the CRM connector, then for each registry:
+python3 <project>/.sales-system/scripts/csvguard.py --verify-sync <project> \
+    --registry <name> --crm-json snapshot.json
+```
+
+The weekly is the right place for the slower version of this. A daily check catches what moved
+overnight; a weekly one catches the pattern — a batch of records reassigned in an admin change,
+a run of local edits that never pushed. **Report drift as a trend, not a list**: "16 renewals
+moved to a different owner on Tuesday, all previously Dean's" is the finding. Sixteen individual
+lines is the raw material for it.
+
+Anything still AHEAD after a week means a push has been failing silently. Say so.
+
 Briefs go to `09-Briefs/Weekly/YYYY-MM-DD-weekly-brief.md`.
 
 ---

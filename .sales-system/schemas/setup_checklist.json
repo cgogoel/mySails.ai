@@ -1,0 +1,108 @@
+{
+  "registry": "setup_checklist",
+  "path": "00-Config/setup-checklist.csv",
+  "id_prefix": "SETUP",
+  "id_width": 4,
+  "description": "What setting this folder up involves, and how far through it you are. Setup is deliberately resumable — it takes longer than one sitting and a half-finished folder that looks finished is worse than an empty one. This file is the state: pause whenever, come back, pick up here.",
+  "picklists_overridable": [],
+  "columns": [
+    {
+      "name": "id",
+      "type": "id",
+      "required": true,
+      "owner": "local"
+    },
+    {
+      "name": "key",
+      "type": "text",
+      "required": true,
+      "owner": "local",
+      "note": "Stable machine name. setup_status.py matches evidence checks on this, so don't rename one."
+    },
+    {
+      "name": "phase",
+      "type": "enum",
+      "required": true,
+      "owner": "local",
+      "values": [
+        "Foundation",
+        "Connections",
+        "CRM Profile",
+        "Goals",
+        "Modules",
+        "Content",
+        "Automation",
+        "Verification"
+      ],
+      "note": "Groups the dashboard. Foundation must finish before anything downstream is meaningful."
+    },
+    {
+      "name": "step",
+      "type": "text",
+      "required": true,
+      "owner": "local",
+      "note": "What this is, in the user's words. Shown as the row label."
+    },
+    {
+      "name": "why",
+      "type": "text",
+      "owner": "local",
+      "note": "One line on what breaks without it. A checklist item with no stated reason gets skipped, and one skipped item teaches people to skim the rest."
+    },
+    {
+      "name": "module",
+      "type": "text",
+      "owner": "local",
+      "note": "Which module this belongs to; blank for core steps. Rows for modules that aren't enabled are never created."
+    },
+    {
+      "name": "required",
+      "type": "bool",
+      "owner": "local",
+      "note": "Needed for a working minimum. The percentage on the dashboard is computed over these; optional steps show separately so an ambitious checklist doesn't make a usable folder look unfinished."
+    },
+    {
+      "name": "status",
+      "type": "enum",
+      "required": true,
+      "owner": "local",
+      "values": [
+        "Not started",
+        "In progress",
+        "Done",
+        "Skipped",
+        "Blocked"
+      ]
+    },
+    {
+      "name": "evidence",
+      "type": "text",
+      "owner": "derived",
+      "note": "DERIVED: what proves this is done — the file that exists, the row count, the config key found. Setup marks steps complete from evidence rather than from memory of having done them, because a session that crashed mid-phase remembers nothing."
+    },
+    {
+      "name": "verified_date",
+      "type": "date",
+      "owner": "derived",
+      "note": "DERIVED: when the evidence was last confirmed against the folder."
+    },
+    {
+      "name": "completed_date",
+      "type": "date",
+      "owner": "local"
+    },
+    {
+      "name": "blocked_reason",
+      "type": "text",
+      "owner": "local",
+      "note": "Why it can't proceed — a connector not authorised, a document the user has to find. Blocked is an honest state and should be used rather than leaving something Not started forever."
+    },
+    {
+      "name": "notes",
+      "type": "text",
+      "owner": "local",
+      "note": "Decisions taken and things deliberately deferred. This is what a later session reads to avoid re-asking a question already answered."
+    }
+  ],
+  "browsable": true
+}

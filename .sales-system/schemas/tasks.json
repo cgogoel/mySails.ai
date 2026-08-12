@@ -8,13 +8,15 @@
     {
       "name": "id",
       "type": "id",
-      "required": true
+      "required": true,
+      "owner": "local"
     },
     {
       "name": "title",
       "type": "text",
       "required": true,
-      "note": "Imperative and specific: 'Send pricing follow-up to Jane Doe (Acme)'"
+      "note": "Imperative and specific: 'Send pricing follow-up to Jane Doe (Acme)'",
+      "owner": "local"
     },
     {
       "name": "status",
@@ -29,7 +31,8 @@
         "Cancelled",
         "Blocked",
         "Snoozed"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "automation",
@@ -40,7 +43,8 @@
         "review",
         "manual"
       ],
-      "note": "auto = system acts; review = system drafts, you approve; manual = you do it"
+      "note": "auto = system acts; review = system drafts, you approve; manual = you do it",
+      "owner": "local"
     },
     {
       "name": "task_type",
@@ -58,7 +62,8 @@
         "Internal",
         "Admin",
         "Other"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "priority",
@@ -67,15 +72,18 @@
         "High",
         "Medium",
         "Low"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "due_date",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     },
     {
       "name": "owner",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "related_type",
@@ -90,44 +98,53 @@
         "account",
         "brief",
         "none"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "related_id",
       "type": "text",
-      "note": "e.g. LEAD-0042, OPP-0031. The link back to the record."
+      "note": "e.g. LEAD-0042, OPP-0031. The link back to the record.",
+      "owner": "local"
     },
     {
       "name": "account_name",
       "type": "text",
-      "note": "Denormalised on purpose so the spreadsheet reads without lookups"
+      "note": "Denormalised on purpose so the spreadsheet reads without lookups",
+      "owner": "local"
     },
     {
       "name": "contact_name",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "contact_email",
-      "type": "email"
+      "type": "email",
+      "owner": "local"
     },
     {
       "name": "created_date",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     },
     {
       "name": "created_by",
       "type": "text",
-      "note": "'user' or the skill that raised it, e.g. 'daily-brief'"
+      "note": "'user' or the skill that raised it, e.g. 'daily-brief'",
+      "owner": "local"
     },
     {
       "name": "why",
       "type": "text",
-      "note": "One line of justification. Tasks with no reason get ignored and erode trust."
+      "note": "One line of justification. Tasks with no reason get ignored and erode trust.",
+      "owner": "local"
     },
     {
       "name": "draft_path",
       "type": "text",
-      "note": "Relative path to the drafted email or asset awaiting approval"
+      "note": "Relative path to the drafted email or asset awaiting approval",
+      "owner": "local"
     },
     {
       "name": "verify_by",
@@ -141,16 +158,19 @@
         "file-created",
         "manual-only"
       ],
-      "note": "How the system can tell this got done, including manually"
+      "note": "How the system can tell this got done, including manually",
+      "owner": "local"
     },
     {
       "name": "verify_target",
       "type": "text",
-      "note": "What to look for: an email address, a meeting title, a CRM field"
+      "note": "What to look for: an email address, a meeting title, a CRM field",
+      "owner": "local"
     },
     {
       "name": "completed_date",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     },
     {
       "name": "completed_how",
@@ -161,12 +181,14 @@
         "system-auto",
         "detected",
         "not-completed"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "completion_evidence",
       "type": "text",
-      "note": "Human-readable proof, e.g. 'email to jane@acme.com sent 2026-08-04 09:12'"
+      "note": "Human-readable proof, e.g. 'email to jane@acme.com sent 2026-08-04 09:12'",
+      "owner": "local"
     },
     {
       "name": "recurrence",
@@ -179,33 +201,40 @@
         "biweekly",
         "monthly",
         "quarterly"
-      ]
+      ],
+      "owner": "local"
     },
     {
       "name": "snooze_until",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     },
     {
       "name": "blocked_reason",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "notes",
-      "type": "text"
+      "type": "text",
+      "owner": "local"
     },
     {
       "name": "external_system",
       "type": "text",
-      "note": "Where else this task lives: todoist, reminders, asana, etc. Blank = this folder only."
+      "note": "Where else this task lives: todoist, reminders, asana, etc. Blank = this folder only.",
+      "owner": "local"
     },
     {
       "name": "external_id",
       "type": "text",
-      "note": "That system's id for this task, so a two-way bridge can match without guessing."
+      "note": "That system's id for this task, so a two-way bridge can match without guessing.",
+      "owner": "local"
     },
     {
       "name": "last_updated",
-      "type": "date"
+      "type": "date",
+      "owner": "local"
     }
   ],
   "browsable": true,

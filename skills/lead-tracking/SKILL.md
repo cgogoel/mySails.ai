@@ -130,12 +130,36 @@ and paraphrasing makes it useless to whoever has to fix the record.
 
 ### Import
 
-Pull from the CRM, or take a CSV or pasted list. Map fields via the profile, derive `contactable`
-and `in_sequence`, allocate an ID, set `sync_status`.
+**Use `crm_sync.py`. Never write your own import** — see `CONVENTIONS.md` §3c for why.
 
-Match before inserting — by `crm_id` first, then email, then name plus company. Duplicates are the
-most common way these registries rot. When a match is probable but not certain, show both rows and
-ask rather than merging.
+```bash
+S=<project>/.sales-system/scripts
+python3 $S/crm_sync.py --plan    <project> --registry leads          # what to select
+python3 $S/crm_sync.py --seed    <project> --registry leads --json-file recs.json
+python3 $S/crm_sync.py --refresh <project> --registry leads --json-file recs.json
+```
+
+Lead lists are where volume bites. Pulling 8,000 leads through a connector costs roughly a
+thousand tokens each; have the user export a report instead, drop it in `06-Leads/import/`, and:
+
+```bash
+python3 $S/crm_sync.py --ingest <project> --registry leads --mode refresh
+```
+
+Ingest deals with what exports generally get wrong — cp1252 encoding, `M/D/YYYY` dates, booleans
+that are `0`/`1` in one column and `true`/`false` in the next, field labels instead of API names,
+and "Grand Totals" footers — plus whatever their specific CRM does to record IDs, which is
+declared per CRM rather than assumed. **Read the list of unmapped columns it prints** — an
+unmapped column is data silently not imported. Tell the user the export must include the record
+ID column; without it rows are skipped rather than guessed at.
+
+Derive `contactable` and `in_sequence` after every load — they're derived columns, so a refresh
+deliberately leaves them alone.
+
+Matching is on `crm_id` and is handled for you. Where a lead has no `crm_id` at all — a pasted
+list, a conference scan — match by email, then name plus company, and when a match is probable but
+not certain show both rows and ask rather than merging. Duplicates are the most common way these
+registries rot.
 
 Report the *shape* of what arrived, not just the count: how many are contactable, how many are in
 sequence, how many have no email, how many are untouched in 30 days. That's the sentence that tells
