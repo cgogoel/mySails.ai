@@ -30,3 +30,4 @@ style-preview.html
 .writetest
 __pycache__/
 *.pyc
+.DS_Store

@@ -46,9 +46,43 @@ cd "$PLUGIN_ROOT/.sales-system" && find . -type f -exec sh -c 'cat "$1" > "<proj
 Verify `CONVENTIONS.md`, `VERSION.json`, `schemas/` and `scripts/` are all present. Say plainly
 that the system layer was installed; don't expose paths unless asked.
 
-**If `.sales-system/` already exists, leave it alone.** Never overwrite during a reconfigure — a
-user may have edited a schema, and clobbering that silently loses their work. Compare
-`VERSION.json` against the plugin's copy and, if the plugin is newer, say so and ask.
+**If `.sales-system/` already exists, never overwrite it.** A user may have edited a schema, and
+clobbering that silently loses their work. Upgrading is its own operation with its own script.
+
+### 1a. Check whether the folder has fallen behind
+
+The plugin and the folder's support layer version independently. Updating the plugin does **not**
+update any folder — each got its own copy at setup. So check every time, at the start:
+
+```bash
+python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/upgrade.py" --check <project>
+```
+
+Run the **plugin's** copy, not the project's — the project's is the old version.
+
+It classifies every file the template owns: `ADD`, `SAME`, `UPDATE` (provably untouched since
+install, so replacing it loses nothing), `MERGE` (a schema the user edited — new columns come in,
+their columns and edits stay), `KEEP` (an edited script, left alone with the new version written
+alongside as `.new`). `crm-profile/`, `brand.json`, `backups/` and the registries are never
+touched.
+
+If it reports changes, say what's waiting in plain terms and offer to apply:
+
+> Your folder is on the July build and the plugin now ships August. That's the drift check
+> against your CRM and the write guard, neither of which this folder has. Nothing of yours gets
+> overwritten — one schema you edited gets merged, and I'll back the whole layer up first. Do it
+> now?
+
+```bash
+python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/upgrade.py" --apply <project>
+```
+
+It backs up, applies, then runs `csvguard --check-all` to add any new columns to the existing
+registries. Report the merges and anything left as `.new` — a file left alone means the folder is
+still running the user's version of it, which they need to know.
+
+**A folder that's behind is not broken**, so don't block on it. If they'd rather not, note it and
+carry on; just don't promise behaviour the installed layer doesn't have.
 
 Then read `<project>/.sales-system/CONVENTIONS.md` — the rulebook the rest of this assumes.
 
@@ -471,6 +505,7 @@ Common asks and where they land:
 | They say | Do |
 |---|---|
 | "How far through am I?" | `setup_status.py --check` then `--html` |
+| "Update my sales system" | `upgrade.py --check` then `--apply`; the plugin manager updates the skills, this updates the folder |
 | "Turn on renewals too" | Add to `enabled-modules.md`, `--init`, run Track 4 for that module only |
 | "My quota changed" | Track 6; supersede the old goal row, don't overwrite it |
 | "Move to Excel" | `csvguard.py --convert-all <project> --to xlsx` |

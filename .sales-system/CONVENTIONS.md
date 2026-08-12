@@ -627,6 +627,44 @@ unpacking that zip into `<project>/.sales-system/` and running configure-project
 regenerating the scripts from memory, which produces something subtly different every time. The
 zip is safe to share outside the company.
 
+### Upgrading a folder that already exists
+
+**The plugin and each project folder version independently.** The plugin manager updates the
+skills; it does not touch any folder, because each got its own copy of this layer at setup and may
+have edited it since. Moving a folder forward is a separate, deliberate operation:
+
+```bash
+python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/upgrade.py" --check <project>
+python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/upgrade.py" --apply <project>
+```
+
+Run the *plugin's* copy of the script, not the project's — the project's is the old version.
+
+Every file the template owns is classified before anything is written:
+
+| | Meaning |
+|---|---|
+| `ADD` | Not installed yet |
+| `SAME` | Already identical, or reconciled by an earlier upgrade with neither side moving since |
+| `UPDATE` | Byte-identical to what was published at install, so replacing it loses nothing |
+| `MERGE` | An edited schema. New columns arrive; the user's columns, extra enum values and ownership choices stay |
+| `KEEP` | An edited script or document. Left alone, with the new version written alongside as `<name>.new` |
+
+That distinction rests on `MANIFEST.json`, a hash per shipped file written at package time, plus
+`manifests/<version>.json` for every past release — so a folder installed before manifests existed
+still has a baseline and doesn't have to assume the worst about every file. The manifest records
+both what the template published and what the folder actually holds, which is what makes a second
+run a clean no-op rather than re-reporting the same merge forever.
+
+Never touched: `crm-profile/`, `brand.json`, `backups/`, `cache/`, `locks/`, and every registry,
+note and brief — those live outside this folder. The whole layer is copied to
+`backups/upgrade-<from>-to-<to>-<stamp>/` before anything is written, and `csvguard --check-all`
+runs afterwards so new schema columns reach the existing registries.
+
+**A file reported as `KEEP` means the folder is still running the user's version of it.** Say so.
+Silently leaving someone on an old script while reporting a successful upgrade is the same class
+of mistake as a silent revert.
+
 ## 9. When configuration is missing
 
 If `00-Config/config.md` doesn't exist, the project hasn't been set up. Don't improvise a
