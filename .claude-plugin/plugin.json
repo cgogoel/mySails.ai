@@ -1,6 +1,9 @@
 {
   "name": "folder-sales-os",
-  "description": "An all-in-one sales management system that runs on files you can open — CSV or styled Excel registries, Markdown notes, and 13 skills covering leads, opportunities, renewals, partners, competitors, market signals, demand gen, content, quotes, briefs and forecasts. Guided, resumable setup with a completion tracker. Detects when your folder and your CRM have drifted apart, and refuses writes that would revert live edits. CRM-agnostic: setup introspects whatever CRM you connect and builds a per-org profile.",
-  "version": "0.2.0",
-  "author": {"name": "Chris Gogoel", "url": "https://github.com/cgogoel"}
+  "description": "An all-in-one sales management system that runs on files you can open \u2014 CSV or styled Excel registries, Markdown notes, and 13 skills covering leads, opportunities, renewals, partners, competitors, market signals, demand gen, content, quotes, briefs and forecasts. Guided, resumable setup with a completion tracker. Detects when your folder and your CRM have drifted apart, and refuses writes that would revert live edits. CRM-agnostic: setup introspects whatever CRM you connect and builds a per-org profile.",
+  "version": "0.2.1",
+  "author": {
+    "name": "Chris Gogoel",
+    "url": "https://github.com/cgogoel"
+  }
 }
