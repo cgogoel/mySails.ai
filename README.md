@@ -43,9 +43,6 @@ Plugins require a paid Claude plan (Pro, Max, Team, or Enterprise).
 
 ### Cowork / Claude desktop app
 
-Cowork has no `/plugin` command, and dragging a file into the chat will not install
-anything — it just attaches the file. Add this repo as a marketplace instead:
-
 1. Open the **Cowork** tab, then click **Customize** in the left sidebar.
 2. Go to the **Plugins** tab.
 3. Under **Personal plugins**, click **+** → **Add marketplace** → **Add from a
