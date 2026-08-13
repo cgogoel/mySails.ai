@@ -18,7 +18,7 @@ contract, and whether the customer has heard about it yet.
 ## Before anything else
 
 1. Find the project root — the connected folder containing `.sales-system/`.
-2. Read `.sales-system/CONVENTIONS.md`.
+2. Read `$CLAUDE_PLUGIN_ROOT/.sales-system/CONVENTIONS.md`.
 3. Read `00-Config/config.md` for `scope` and `default_automation`.
 4. Read `.sales-system/crm-profile/field-map.json`, especially the `renewals` block and any
    `org_renewal_policy` it carries. **The org's renewal policy determines what counts as late here**,
@@ -26,7 +26,7 @@ contract, and whether the customer has heard about it yet.
 5. Repair the registry:
 
 ```bash
-python3 <project>/.sales-system/scripts/csvguard.py --repair <project>/08-Renewals/renewals.csv --project <project>
+python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/csvguard.py" --repair <project>/08-Renewals/renewals.csv --project <project>
 ```
 
 Contracts live in `08-Renewals/renewals.csv`. Account narrative belongs with the account, in
@@ -178,7 +178,7 @@ flat renewals become churn.
 **Use `crm_sync.py`, never a hand-rolled import** (`CONVENTIONS.md` §3c):
 
 ```bash
-S=<project>/.sales-system/scripts
+S="$CLAUDE_PLUGIN_ROOT/.sales-system/scripts"
 python3 $S/crm_sync.py --plan    <project> --registry renewals
 python3 $S/crm_sync.py --refresh <project> --registry renewals --json-file recs.json
 ```

@@ -11,14 +11,14 @@ gives you something to run campaigns with.
 ## Before anything else
 
 1. Find the project root — the connected folder containing `.sales-system/`.
-2. Read `.sales-system/CONVENTIONS.md`.
+2. Read `$CLAUDE_PLUGIN_ROOT/.sales-system/CONVENTIONS.md`.
 3. Read `00-Config/config.md` for `scope`, fiscal calendar, `default_automation`, and any social
    channel preference, plus `.sales-system/crm-profile/field-map.json` (the `campaigns` block holds
    the join keys and attribution models).
 4. Repair the registries:
 
 ```bash
-python3 <project>/.sales-system/scripts/csvguard.py --check-all <project>
+python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/csvguard.py" --check-all <project>
 ```
 
 Campaigns in `05-Demand-Gen/campaigns`, content ideas in `05-Demand-Gen/content-opportunities`,

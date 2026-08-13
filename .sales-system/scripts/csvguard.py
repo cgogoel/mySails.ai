@@ -1600,6 +1600,26 @@ def main():
                 print(f"  · {f}")
             print("  Merge each into the real registry, then delete the copy.\n")
 
+        # Support-layer staleness. Every skill runs --check-all before touching data, so
+        # this is the one place a version warning reaches all of them without thirteen
+        # preambles having to remember to ask. It is a warning, never a block: a folder
+        # that's behind still works, it just can't do the newest things, and stopping
+        # someone's morning brief over a version number would be its own kind of wrong.
+        try:
+            here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            mine = json.load(open(os.path.join(here, "VERSION.json"),
+                                  encoding="utf-8")).get("template_version", "")
+            theirs = json.load(open(os.path.join(root, SYSTEM_DIR, "VERSION.json"),
+                                    encoding="utf-8")).get("template_version", "")
+            if mine and theirs and theirs < mine:
+                print(f"note: this folder's support layer is {theirs}; the installed "
+                      f"plugin ships {mine}.\n"
+                      f"      Say \"update my sales system\" to bring it forward — "
+                      f"schemas you've edited are merged,\n"
+                      f"      not overwritten. Everything below still works meanwhile.\n")
+        except (OSError, ValueError, json.JSONDecodeError):
+            pass
+
         # CRM profile staleness: picklists drift as admins change the org, and a stale
         # profile silently rejects real records.
         fp = os.path.join(root, PROFILE_DIR, "field-map.json")

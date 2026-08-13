@@ -12,7 +12,7 @@ people are worth attention today, and what to do about each one.
 ## Before anything else
 
 1. Find the project root — the connected folder containing `.sales-system/`.
-2. Read `.sales-system/CONVENTIONS.md`. It governs CSV handling, task raising, and CRM sync.
+2. Read `$CLAUDE_PLUGIN_ROOT/.sales-system/CONVENTIONS.md`. It governs CSV handling, task raising, and CRM sync.
 3. Read `00-Config/config.md` for `scope` (individual vs team) and `default_automation`.
 4. If `00-Config/config.md` is missing, stop and run `configure-project` instead.
 5. **Read `.sales-system/crm-profile/` if it exists** — see below. This is what makes the skill fit
@@ -20,7 +20,7 @@ people are worth attention today, and what to do about each one.
 6. Repair the registry before reading it:
 
 ```bash
-python3 <project>/.sales-system/scripts/csvguard.py --repair <project>/06-Leads/leads.csv --project <project>
+python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/csvguard.py" --repair <project>/06-Leads/leads.csv --project <project>
 ```
 
 Leads live in `06-Leads/leads.csv`. Narrative goes in `06-Leads/Notes/LEAD-0042-jane-doe.md`.
@@ -133,7 +133,7 @@ and paraphrasing makes it useless to whoever has to fix the record.
 **Use `crm_sync.py`. Never write your own import** — see `CONVENTIONS.md` §3c for why.
 
 ```bash
-S=<project>/.sales-system/scripts
+S="$CLAUDE_PLUGIN_ROOT/.sales-system/scripts"
 python3 $S/crm_sync.py --plan    <project> --registry leads          # what to select
 python3 $S/crm_sync.py --seed    <project> --registry leads --json-file recs.json
 python3 $S/crm_sync.py --refresh <project> --registry leads --json-file recs.json

@@ -3,16 +3,16 @@
 upgrade.py — bring a project folder's support layer up to the version the plugin ships.
 
 Two things carry a version and they update by different means. The **plugin** — the
-skills — is the plugin manager's job. The **support layer** inside each project folder
-is not: `configure-project` copies it in once at setup and then deliberately never
-overwrites it, because a user may have edited a schema and clobbering that silently
-loses their work. Which is correct, and left no way to move a live folder forward.
+skills and the scripts they run — is the plugin manager's job. The **schemas** inside each
+project folder are not: `configure-project` writes them once at setup and then never
+overwrites them, because a user may have edited one and clobbering that silently loses
+their work. Which is correct, and left no way to move a live folder forward.
 
 This is that way. It is careful about exactly one thing: telling a file the user changed
 from a file that has not been touched since it was installed.
 
   --check   say what would change, touch nothing
-  --apply   do it, after backing the whole layer up
+  --apply   do it, after backing up what it's about to replace
 
 How a file is classified:
 
@@ -20,24 +20,29 @@ How a file is classified:
   SAME     already identical to the shipped copy
   UPDATE   unchanged since install, so replacing it loses nothing
   MERGE    an edited schema — new columns come in, your edits and columns stay
-  KEEP     an edited script or document — left alone, new copy written alongside as
+  KEEP     an edited file we won't overwrite — left alone, new copy written alongside as
            <name>.new for you to diff
 
-Provenance comes from MANIFEST.json, a hash per shipped file written at package time.
-Folders installed before manifests existed have no baseline, so nothing can be proven
-untouched; those are handled conservatively and the report says so plainly.
+Provenance comes from MANIFEST.json, a hash per shipped file written at package time,
+plus the published manifest of every past release. Only when neither exists is a file's
+history genuinely unknown, and the report says so plainly.
 
-Never touched, whatever happens: crm-profile/, brand.json, backups/, cache/, locks/, and
-anything else the template doesn't own. Your data lives outside this folder entirely.
+**This script lives in the plugin, not in the project folder.** That is deliberate: when
+the upgrader shipped inside the thing being upgraded, every folder held a stale copy of
+it and the whole affordance depended on remembering to run the right one. Here there is
+only ever one copy and it is always current.
+
+Since 2026-08-13 the folder holds **schemas only** — scripts run from the plugin. Folders
+set up before that still contain a `scripts/` directory which nothing reads any more;
+`--prune-scripts` removes it, and says so rather than doing it quietly.
+
+Never touched: crm-profile/, brand.json, backups/, cache/, locks/, and your registries,
+notes and briefs, which live outside this folder entirely.
 
 Usage:
-  upgrade.py --check <project> [--from <plugin>/.sales-system]
-  upgrade.py --apply <project> [--from ...] [--no-migrate]
-
-Run the **plugin's** copy of this script, not the project's — the project's copy is the
-old version, and the source defaults to whichever .sales-system the running script sits in:
-
-  python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/upgrade.py" --check <project>
+  upgrade.py --check <project>
+  upgrade.py --apply <project> [--prune-scripts] [--no-migrate]
+  upgrade.py --check <project> --from <some>/.sales-system     # override the source
 
 Exit codes: 0 nothing to do / applied cleanly, 1 changes pending or needing a human,
 2 usage error.
@@ -55,11 +60,16 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 MANIFEST = "MANIFEST.json"
-# Directories and files the template owns. Everything else in .sales-system/ belongs to
-# the org and is never considered.
-OWNED_DIRS = ("scripts", "schemas")
-OWNED_FILES = ("CONVENTIONS.md", "VERSION.json")
+# What a *project folder* holds and this script therefore reconciles. Scripts and
+# CONVENTIONS.md are deliberately absent: they run from the plugin, so there is nothing
+# in the folder to bring forward. Schemas stay because they are meant to be edited.
+OWNED_DIRS = ("schemas",)
+OWNED_FILES = ("VERSION.json",)
 PRESERVE = ("crm-profile", "brand.json", "backups", "cache", "locks")
+# Left behind by folders set up before the split. Nothing reads any of it: the skills run
+# the plugin's scripts and read the plugin's CONVENTIONS.md.
+LEGACY_DIRS = ("scripts",)
+LEGACY_FILES = ("CONVENTIONS.md",)
 
 
 def sha(path):
@@ -231,6 +241,74 @@ def _edited(rel, why):
     return "KEEP", why, f"{rel}.new"
 
 
+# --------------------------------------------------------------- the old scripts dir
+# Until 2026-08-13 the support layer was copied whole into every project folder, scripts
+# included. Nothing reads those any more — the skills run the plugin's copies. Left in
+# place they're inert, but a stale csvguard.py sitting next to live registries is an
+# invitation to run it, and running last month's guard against this month's data is
+# exactly the accident the guard exists to prevent. So: report them, offer to remove
+# them, never remove them silently.
+
+
+def legacy_scripts(dst):
+    out = []
+    for sub in LEGACY_DIRS:
+        d = os.path.join(dst, sub)
+        if os.path.isdir(d):
+            out += [os.path.join(sub, f) for f in sorted(os.listdir(d))
+                    if f.endswith(".py")]
+    out += [f for f in LEGACY_FILES if os.path.exists(os.path.join(dst, f))]
+    return out
+
+
+def explain_legacy(legacy, dst, project):
+    n_scripts = sum(1 for f in legacy if f.endswith(".py"))
+    what = []
+    if n_scripts:
+        what.append(f"{n_scripts} script(s) in scripts/")
+    if any(f in LEGACY_FILES for f in legacy):
+        what.append("CONVENTIONS.md")
+    print(f"\n  Left over from before scripts moved into the plugin: {', '.join(what)}.")
+    print(f"  Nothing reads any of it — the skills use the plugin's copies. A stale "
+          f"csvguard.py\n  next to live registries is an invitation to run last month's "
+          f"guard on this month's\n  data, and a stale CONVENTIONS.md is a rulebook that "
+          f"no longer describes the rules.")
+    print(f"  Retire them with:\n    --apply {project} --prune-scripts")
+
+
+def prune_scripts(dst, project):
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    bdir = os.path.join(dst, "backups", f"retired-{stamp}")
+    os.makedirs(bdir, exist_ok=True)
+    moved = 0
+    for sub in LEGACY_DIRS:
+        d = os.path.join(dst, sub)
+        if not os.path.isdir(d):
+            continue
+        for fn in sorted(os.listdir(d)):
+            s = os.path.join(d, fn)
+            if os.path.isfile(s):
+                shutil.copy2(s, os.path.join(bdir, fn))
+                os.remove(s)
+                moved += 1
+            elif fn == "__pycache__":
+                shutil.rmtree(s, ignore_errors=True)
+        try:
+            os.rmdir(d)
+        except OSError:
+            pass
+    for fn in LEGACY_FILES:
+        s = os.path.join(dst, fn)
+        if os.path.exists(s):
+            shutil.copy2(s, os.path.join(bdir, fn))
+            os.remove(s)
+            moved += 1
+    print(f"\n  retired {moved} leftover file(s) to "
+          f"{os.path.relpath(bdir, project)}/ and removed them from the folder.")
+    print(f"  Scripts and conventions now come from the plugin, so they update when it "
+          f"does.")
+
+
 # ------------------------------------------------------------------------- applying
 
 
@@ -326,7 +404,7 @@ def apply(src, dst, actions, migrate=True, project=None):
 # --------------------------------------------------------------------------- report
 
 
-def report(src, dst, actions, has_baseline, project):
+def report(src, dst, actions, has_baseline, project, legacy=()):
     old_v, new_v = version_of(dst), version_of(src)
     by = {}
     for rel, action, why, alt in actions:
@@ -335,6 +413,11 @@ def report(src, dst, actions, has_baseline, project):
     print(f"\nSupport layer in {os.path.basename(os.path.abspath(project))}: "
           f"{old_v}  ->  {new_v}")
     if old_v == new_v and not any(a in by for a in ("ADD", "UPDATE", "MERGE", "KEEP")):
+        if legacy:
+            print("Schemas are current.")
+            explain_legacy(legacy, dst, project)
+            print()
+            return 1
         print("Already current — nothing to do.\n")
         return 0
 
@@ -358,14 +441,19 @@ def report(src, dst, actions, has_baseline, project):
             print(f"      ... and {len(items) - 25} more")
 
     if not has_baseline:
-        print("\n  This folder was installed before file hashes were recorded, so "
-              "nothing here\n  can be proven untouched. Schemas are merged rather than "
-              "replaced, and every\n  current file is copied to backups/ first. After "
-              "this upgrade a baseline exists\n  and the next one will be exact.")
+        print("\n  This folder predates file hashes and no published manifest matches "
+              "its version,\n  so nothing here can be proven untouched. Schemas are "
+              "merged rather than replaced,\n  and everything is copied to backups/ "
+              "first. After this upgrade a baseline exists\n  and the next one will be "
+              "exact.")
+
+    if legacy:
+        explain_legacy(legacy, dst, project)
 
     print(f"\n  Never touched: {', '.join(PRESERVE)} — and your registries, notes and "
           f"briefs\n  live outside this folder entirely.")
-    print(f"\n  To apply:  python3 {os.path.abspath(__file__)} --apply {project}\n")
+    print(f"\n  To apply:  python3 {os.path.abspath(__file__)} --apply {project}"
+          + ("  --prune-scripts" if legacy else "") + "\n")
     return 1
 
 
@@ -378,6 +466,9 @@ def main():
                          "script lives in.")
     ap.add_argument("--no-migrate", action="store_true",
                     help="Skip the registry migration afterwards")
+    ap.add_argument("--prune-scripts", dest="prune_scripts", action="store_true",
+                    help="Retire the folder's leftover scripts/ directory, which nothing "
+                         "reads since scripts moved into the plugin")
     a = ap.parse_args()
 
     project = os.path.abspath(a.check or a.apply or "")
@@ -390,25 +481,34 @@ def main():
               f"configure-project instead.", file=sys.stderr)
         return 2
 
-    src = os.path.abspath(a.src) if a.src else os.path.dirname(
-        os.path.dirname(os.path.abspath(__file__)))
+    # This file lives at <plugin>/skills/update-system/scripts/upgrade.py, so the
+    # canonical layer is three levels up. Resolving it from the script's own location
+    # rather than an environment variable means there is no way to run the wrong copy:
+    # there is only one, and it ships with the skills it has to agree with.
+    src = os.path.abspath(a.src) if a.src else os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(
+            os.path.dirname(os.path.abspath(__file__))))), ".sales-system")
     if os.path.abspath(src) == os.path.abspath(dst):
-        print("error: the source and the target are the same folder.\n"
-              "  Run the plugin's copy of this script, not the project's — the "
-              "project's is the old\n  version. Try:\n"
-              '    python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/upgrade.py" '
-              f"--check {project}", file=sys.stderr)
+        print(f"error: the source and the target are the same folder ({src}).",
+              file=sys.stderr)
         return 2
-    if not os.path.exists(os.path.join(src, "CONVENTIONS.md")):
-        print(f"error: {src} doesn't look like a .sales-system", file=sys.stderr)
+    if not os.path.isdir(os.path.join(src, "schemas")):
+        print(f"error: {src} doesn't look like a .sales-system — no schemas/ in it.\n"
+              f"  Pass --from <plugin>/.sales-system if this script has been moved.",
+              file=sys.stderr)
         return 2
 
     actions, has_baseline = plan(src, dst)
+    legacy = legacy_scripts(dst)
     if a.check:
-        return report(src, dst, actions, has_baseline, project)
+        return report(src, dst, actions, has_baseline, project, legacy)
 
-    report(src, dst, actions, has_baseline, project)
-    return apply(src, dst, actions, migrate=not a.no_migrate, project=project)
+    report(src, dst, actions, has_baseline, project, legacy)
+    rc = apply(src, dst, actions, migrate=not a.no_migrate, project=project)
+    if legacy:
+        prune_scripts(dst, project) if a.prune_scripts else explain_legacy(legacy, dst,
+                                                                          project)
+    return rc
 
 
 if __name__ == "__main__":

@@ -16,12 +16,12 @@ because a deal looks ready — offer, and wait.
 ## Before anything else
 
 1. Find the project root — the connected folder containing `.sales-system/`.
-2. Read `.sales-system/CONVENTIONS.md`.
+2. Read `$CLAUDE_PLUGIN_ROOT/.sales-system/CONVENTIONS.md`.
 3. Read `00-Config/config.md` for `scope`, currency, and any recorded quote defaults.
 4. Repair the registries:
 
 ```bash
-python3 <project>/.sales-system/scripts/csvguard.py --check-all <project>
+python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/csvguard.py" --check-all <project>
 ```
 
 Quotes live in `12-Quotes/` — `price-list`, `quotes`, `quote-lines`, plus `Documents/` for
@@ -90,7 +90,7 @@ a different deal and needs saying.
 ### Step 2: Price it
 
 ```bash
-python3 <project>/.sales-system/scripts/quote.py --build <project> \
+python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/quote.py" --build <project> \
   --lines lines.json --threshold <org blended-discount threshold>
 ```
 

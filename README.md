@@ -2,7 +2,7 @@
 
 A complete sales management system that runs on files you can open. Registries are
 CSV or styled Excel workbooks (dropdowns from your CRM's real picklists, risk
-colouring, frozen headers); narrative lives in Markdown; thirteen skills do the work.
+colouring, frozen headers); narrative lives in Markdown; fourteen skills do the work.
 
 **Modules:** project setup with CRM introspection · leads · opportunities · renewals ·
 channel partners (two-tier, deal-reg conflict checking) · competitors (battlecards from
@@ -78,9 +78,10 @@ layer into that folder on first run, so an empty folder is fine.
 
 ## Updating
 
-**Two things carry a version and they update separately.** The plugin — the skills — comes
-from the marketplace. Each project folder has its own copy of the support layer, installed
-at setup, and updating the plugin does not touch it. Do both.
+**Two things carry a version.** The plugin — the skills and every script they run — comes
+from the marketplace, and updating it changes behaviour in every folder at once. What each
+folder holds is its own `schemas/`, which you're allowed to edit, so those get reconciled
+rather than replaced. Step 1 is the one people miss.
 
 ### 1. Turn on auto-sync for the marketplace
 
@@ -110,23 +111,26 @@ reinstall afterwards — no data is at risk, since nothing lives in the plugin.
 A plugin installed by uploading the `.plugin` file has no marketplace behind it and can
 never offer an update. That one needs uninstall and re-upload.
 
-### 2. Bring each project folder up to date
+Updating the plugin brings every skill **and every script** forward at once, because scripts
+run from the plugin rather than from your folders. That's most of the update.
 
-The folder is where the schemas, scripts and conventions actually live, so this is the half
-that changes behaviour. In a session on that folder, say **"update my sales system"**, or
-run it directly:
+### 2. Reconcile each project folder's schemas
+
+The one thing a plugin update can't do is reconcile a folder's schemas, because you're
+allowed to edit those. In a session on that folder, say **"update my sales system"**, or run
+it directly:
 
 ```bash
-python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/upgrade.py" --check <project>
-python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/upgrade.py" --apply <project>
+python3 "$CLAUDE_PLUGIN_ROOT/skills/update-system/scripts/upgrade.py" --check <project>
+python3 "$CLAUDE_PLUGIN_ROOT/skills/update-system/scripts/upgrade.py" --apply <project>
 ```
 
-Run the **plugin's** copy of the script, not the project's — the project's is the old
-version, and it refuses if you get that backwards. Working from a clone of this repo,
-`~/mySails.ai/.sales-system/scripts/upgrade.py` does the same job, which is a way to update
-a folder without waiting on the plugin manager at all.
+The upgrader ships inside the `update-system` skill, so there's only ever one copy and it
+always matches the skills beside it. Working from a clone of this repo,
+`~/mySails.ai/skills/update-system/scripts/upgrade.py` does the same job — a way to update a
+folder without waiting on the plugin manager at all.
 
-`--check` writes nothing. It classifies every file the template owns:
+`--check` writes nothing. It classifies every schema:
 
 | | Meaning |
 |---|---|
@@ -134,26 +138,34 @@ a folder without waiting on the plugin manager at all.
 | `SAME` | Already current |
 | `UPDATE` | Byte-identical to what was published at install, so replacing it loses nothing |
 | `MERGE` | A schema you edited. New columns arrive; your columns, extra enum values and ownership choices stay |
-| `KEEP` | A script you edited. Left alone, new version written alongside as `<name>.new` |
+| `KEEP` | Edited and not safely mergeable. Left alone, new version written alongside as `<name>.new` |
 
 That distinction comes from a hash per shipped file, plus the published manifest of every
 past release — so a folder installed before manifests existed still gets an exact answer
 rather than having to assume the worst about every file.
 
-`--apply` copies the whole layer to `backups/upgrade-<from>-to-<to>-<stamp>/` first, then
-runs `csvguard --check-all` so new schema columns reach registries that already exist.
-Never touched: `crm-profile/`, `brand.json`, `backups/`, and every registry, note and brief.
+`--apply` backs up what it's about to replace, then runs `csvguard --check-all` so new schema
+columns reach registries that already exist. Never touched: `crm-profile/`, `brand.json`,
+`backups/`, and every registry, note and brief.
 
 **Anything reported as `KEEP` means that folder is still running your version of the file.**
 Diff it against the `.new` copy when you get a moment.
 
+Folders set up before v0.3.0 also hold a `.sales-system/scripts/` directory that nothing
+reads any more. `--check` reports it; `--prune-scripts` retires it to `backups/`. It's opt-in
+because it's a deletion inside your folder, and worth doing — a stale `csvguard.py` sitting
+next to live registries is an invitation to run last month's guard against this month's data.
+
+You don't have to go looking for any of this: `csvguard --check-all` prints a one-line note
+when a folder is behind, and every skill runs that before touching data. It never blocks.
+
 ## Layout
 
-- `skills/` — the thirteen skills
-- `.sales-system/` — the generic support layer: schemas, scripts, conventions.
-  Contains no org data. `configure-project` copies this into each new project folder
-  on first run and never overwrites an existing copy; `upgrade.py` is how a folder
-  moves forward afterwards.
+- `skills/` — the fourteen skills, including `update-system` which carries the upgrader
+- `.sales-system/` — the generic support layer: schemas, scripts, conventions. Contains
+  no org data. Scripts and `CONVENTIONS.md` run from here and are never copied into a
+  project folder, so updating the plugin updates every folder's behaviour at once. Only
+  `schemas/` is copied out, because those are yours to edit.
 - `.sales-system/MANIFEST.json` and `manifests/` — a hash per shipped file for this
   release and every past one. This is what lets an upgrade tell a file you edited from
   one that hasn't been touched since install. Both are generated by `make_template.py`

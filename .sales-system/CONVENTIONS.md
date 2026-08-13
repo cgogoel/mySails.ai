@@ -8,6 +8,41 @@ instead. This file is the rulebook the skills follow.
 
 ---
 
+## 0. What lives where
+
+Two things carry a version and they move independently. Knowing which is which prevents most
+of the confusion around updating.
+
+| | Holds | Lives in | Updated by |
+|---|---|---|---|
+| **The plugin** | The skills, every script, this file | `$CLAUDE_PLUGIN_ROOT` | The marketplace |
+| **The folder** | Registries, notes, briefs, `schemas/`, `crm-profile/`, `brand.json` | The connected project folder | `update-system` |
+
+**Scripts run from the plugin, never from the project folder.** Every invocation in every
+skill is:
+
+```bash
+python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/csvguard.py" --check-all <project>
+```
+
+If `$CLAUDE_PLUGIN_ROOT` is unset, resolve it from the running skill's own path: a
+`SKILL.md` sits at `<plugin>/skills/<name>/`, so the plugin root is two levels above it.
+
+This is a deliberate reversal of the original design, which copied the whole layer into
+every folder. That left each folder holding its own ageing copy of the scripts — including
+a copy of the upgrader, so the thing meant to fix staleness was itself stale. Now there is
+one copy of each script, it ships with the skills that call it, and updating the plugin
+updates every folder's behaviour at once.
+
+**Schemas are the exception and stay in the folder**, because they're meant to be edited —
+add a column, extend an enum to match your CRM. That's the one thing an upgrade has to
+reconcile rather than replace, and it's why `update-system` exists at all.
+
+`plugin.json` carries `requires_template`, the minimum support-layer version the skills
+need. The check is one-directional: skills newer than a folder call things that aren't
+there and break; a folder newer than the skills is merely not fully used. A floor, not a
+match.
+
 ## 1. The folder is the database
 
 There is no hidden state. Everything the system knows lives in files the user can open,
@@ -629,18 +664,19 @@ zip is safe to share outside the company.
 
 ### Upgrading a folder that already exists
 
-**The plugin and each project folder version independently.** The plugin manager updates the
-skills; it does not touch any folder, because each got its own copy of this layer at setup and may
-have edited it since. Moving a folder forward is a separate, deliberate operation:
+Updating the plugin brings every script and skill forward everywhere at once. What it can't do
+is reconcile a folder's **schemas**, because the user is allowed to edit those. That's the
+`update-system` skill's job:
 
 ```bash
-python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/upgrade.py" --check <project>
-python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/upgrade.py" --apply <project>
+python3 "$CLAUDE_PLUGIN_ROOT/skills/update-system/scripts/upgrade.py" --check <project>
+python3 "$CLAUDE_PLUGIN_ROOT/skills/update-system/scripts/upgrade.py" --apply <project>
 ```
 
-Run the *plugin's* copy of the script, not the project's — the project's is the old version.
+The upgrader lives in the skill rather than in this layer, so there is only ever one copy of
+it and it always agrees with the skills it ships beside.
 
-Every file the template owns is classified before anything is written:
+Each schema is classified before anything is written:
 
 | | Meaning |
 |---|---|
@@ -657,13 +693,23 @@ both what the template published and what the folder actually holds, which is wh
 run a clean no-op rather than re-reporting the same merge forever.
 
 Never touched: `crm-profile/`, `brand.json`, `backups/`, `cache/`, `locks/`, and every registry,
-note and brief — those live outside this folder. The whole layer is copied to
-`backups/upgrade-<from>-to-<to>-<stamp>/` before anything is written, and `csvguard --check-all`
-runs afterwards so new schema columns reach the existing registries.
+note and brief. What's about to be replaced is copied to
+`backups/upgrade-<from>-to-<to>-<stamp>/` first, and `csvguard --check-all` runs afterwards so
+new schema columns reach the existing registries.
 
 **A file reported as `KEEP` means the folder is still running the user's version of it.** Say so.
-Silently leaving someone on an old script while reporting a successful upgrade is the same class
+Silently leaving someone on an old file while reporting a successful upgrade is the same class
 of mistake as a silent revert.
+
+Folders set up before scripts moved into the plugin still contain `.sales-system/scripts/`.
+Nothing reads them. `--check` reports them and `--prune-scripts` retires them to `backups/` —
+opt-in, because it's a deletion inside someone's folder. Leaving a stale `csvguard.py` next to
+live registries is an invitation to run last month's guard against this month's data.
+
+`csvguard --check-all` prints a one-line note whenever a folder's layer is older than the
+plugin's. Every skill runs that before touching data, which is how the warning reaches all of
+them without thirteen preambles having to remember to ask. It never blocks: a folder that's
+behind still works.
 
 ## 9. When configuration is missing
 

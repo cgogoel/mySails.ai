@@ -15,7 +15,7 @@ because it gets read on a forecast call and referred back to afterwards.
 ## Before anything else
 
 1. Find the project root — the connected folder containing `.sales-system/`.
-2. Read `.sales-system/CONVENTIONS.md`.
+2. Read `$CLAUDE_PLUGIN_ROOT/.sales-system/CONVENTIONS.md`.
 3. Read `00-Config/config.md` for `scope`, fiscal calendar, and forecast cadence.
 4. **Read `00-Config/enabled-modules.md`.** This decides which tracks the forecast has — see below.
 5. Read `.sales-system/crm-profile/field-map.json` — `amount_field` and any caveat on it, the
@@ -23,7 +23,7 @@ because it gets read on a forecast call and referred back to afterwards.
 6. Repair the registries:
 
 ```bash
-python3 <project>/.sales-system/scripts/csvguard.py --check-all <project>
+python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/csvguard.py" --check-all <project>
 ```
 
 7. **Verify the pipeline still matches the CRM.** This comes before any arithmetic, because
@@ -31,9 +31,9 @@ python3 <project>/.sales-system/scripts/csvguard.py --check-all <project>
    with the system of record produces a confident, wrong forecast.
 
 ```bash
-python3 <project>/.sales-system/scripts/csvguard.py --sync-query <project> --registry opportunities
+python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/csvguard.py" --sync-query <project> --registry opportunities
 # run that query through the CRM connector, write the result to snapshot.json
-python3 <project>/.sales-system/scripts/csvguard.py --verify-sync <project> \
+python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/csvguard.py" --verify-sync <project> \
     --registry opportunities --crm-json snapshot.json
 ```
 
@@ -143,7 +143,7 @@ drops a category.
 Run the engagement scorer:
 
 ```bash
-python3 <project>/.sales-system/scripts/engagement.py --score <project> --window 14 --apply
+python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/engagement.py" --score <project> --window 14 --apply
 ```
 
 It weights **inbound above outbound**: outbound volume measures effort, replies and meetings measure
@@ -173,7 +173,7 @@ sell-through discounted more heavily than direct. Say plainly that you're discou
 ## Step 6: Assemble and render
 
 ```bash
-python3 <project>/.sales-system/scripts/forecast_dashboard.py \
+python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/forecast_dashboard.py" \
   --render <payload.json> --out 09-Briefs/Forecast/YYYY-MM-DD-<cadence>-forecast.html
 ```
 

@@ -22,74 +22,70 @@ authorise. Treat every session as a slice of it.
 
 ### 1. Bootstrap the support layer if it's missing
 
-The **project root** is the connected folder. It must contain `.sales-system/` — the schemas,
-scripts and conventions every other skill depends on. On a fresh install the folder is empty.
+The **project root** is the connected folder. On a fresh install it's empty.
+
+**Only the schemas go into the folder.** Scripts and `CONVENTIONS.md` run from the plugin, so
+they update when the plugin does and there is never a stale copy sitting next to live data.
+What the folder holds is the part the user is allowed to edit — their schemas — plus their CRM
+profile and brand.
 
 Resolve the plugin root: use `$CLAUDE_PLUGIN_ROOT` when set, otherwise the directory two levels
 above this `SKILL.md`. Then:
 
 ```bash
 PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:?resolve from this skill's own path if unset}"
-if [ ! -d "<project>/.sales-system" ]; then
-  cp -R "$PLUGIN_ROOT/.sales-system" "<project>/.sales-system"
-fi
+mkdir -p "<project>/.sales-system"/{schemas,crm-profile,backups,cache}
+cp "$PLUGIN_ROOT/.sales-system/schemas/"*.json "<project>/.sales-system/schemas/"
+cp "$PLUGIN_ROOT/.sales-system/VERSION.json" "$PLUGIN_ROOT/.sales-system/MANIFEST.json" \
+   "<project>/.sales-system/"
 ```
 
-If the copy fails with a permission error — some connected folders reject `cp -R` because it
-preserves the source's read-only mode — recreate the tree and stream each file instead:
+If a copy fails with a permission error — some connected folders reject `cp` because it
+preserves the source's read-only mode — stream the files instead:
 
 ```bash
-cd "$PLUGIN_ROOT/.sales-system" && find . -type d -exec mkdir -p "<project>/.sales-system/{}" \;
-cd "$PLUGIN_ROOT/.sales-system" && find . -type f -exec sh -c 'cat "$1" > "<project>/.sales-system/$1"' _ {} \;
+for f in "$PLUGIN_ROOT/.sales-system/schemas/"*.json; do
+  cat "$f" > "<project>/.sales-system/schemas/$(basename "$f")"
+done
 ```
 
-Verify `CONVENTIONS.md`, `VERSION.json`, `schemas/` and `scripts/` are all present. Say plainly
+Verify `schemas/` and `VERSION.json` are present. `MANIFEST.json` is what lets a later upgrade
+tell a schema the user edited from one that hasn't been touched, so don't skip it. Say plainly
 that the system layer was installed; don't expose paths unless asked.
 
-**If `.sales-system/` already exists, never overwrite it.** A user may have edited a schema, and
-clobbering that silently loses their work. Upgrading is its own operation with its own script.
+**If `.sales-system/` already exists**, don't re-copy anything — go to 1a.
+
+**Never overwrite an existing `.sales-system/`.** A user may have edited a schema, and clobbering
+that silently loses their work. Upgrading is its own operation, in its own skill.
 
 ### 1a. Check whether the folder has fallen behind
 
-The plugin and the folder's support layer version independently. Updating the plugin does **not**
-update any folder — each got its own copy at setup. So check every time, at the start:
+The plugin and the folder's schemas version independently, so check at the start of every
+session:
 
 ```bash
-python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/upgrade.py" --check <project>
+python3 "$CLAUDE_PLUGIN_ROOT/skills/update-system/scripts/upgrade.py" --check <project>
 ```
 
-Run the **plugin's** copy, not the project's — the project's is the old version.
+If it reports changes, hand off to the **`update-system`** skill rather than reimplementing the
+flow here — that skill owns it, including the plugin-level check and the marketplace auto-sync
+explanation. Say what's waiting in plain terms first:
 
-It classifies every file the template owns: `ADD`, `SAME`, `UPDATE` (provably untouched since
-install, so replacing it loses nothing), `MERGE` (a schema the user edited — new columns come in,
-their columns and edits stay), `KEEP` (an edited script, left alone with the new version written
-alongside as `.new`). `crm-profile/`, `brand.json`, `backups/` and the registries are never
-touched.
+> Your folder is on the July build and the plugin ships August. That's the drift check against
+> your CRM and the write guard, neither of which this folder has. Nothing of yours is
+> overwritten — one schema you edited gets merged. Do it now, or carry on with setup?
 
-If it reports changes, say what's waiting in plain terms and offer to apply:
+**A folder that's behind is not broken**, so don't block on it. If they'd rather press on, note
+it and carry on; just don't promise behaviour the installed layer doesn't have.
 
-> Your folder is on the July build and the plugin now ships August. That's the drift check
-> against your CRM and the write guard, neither of which this folder has. Nothing of yours gets
-> overwritten — one schema you edited gets merged, and I'll back the whole layer up first. Do it
-> now?
-
-```bash
-python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/upgrade.py" --apply <project>
-```
-
-It backs up, applies, then runs `csvguard --check-all` to add any new columns to the existing
-registries. Report the merges and anything left as `.new` — a file left alone means the folder is
-still running the user's version of it, which they need to know.
-
-**A folder that's behind is not broken**, so don't block on it. If they'd rather not, note it and
-carry on; just don't promise behaviour the installed layer doesn't have.
-
-Then read `<project>/.sales-system/CONVENTIONS.md` — the rulebook the rest of this assumes.
+Then read `$CLAUDE_PLUGIN_ROOT/.sales-system/CONVENTIONS.md` — the rulebook the rest of this
+assumes. It lives in the plugin, not the folder, because it has to agree with the skills that
+follow it.
 
 ### 2. Find out where they already are
 
 ```bash
-S=<project>/.sales-system/scripts
+S="$CLAUDE_PLUGIN_ROOT/.sales-system/scripts"
 python3 $S/setup_status.py --check <project>     # or --init on a first run
 ```
 

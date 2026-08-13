@@ -16,13 +16,13 @@ capability last week that blunts our main win theme" is something a rep can act 
 ## Before anything else
 
 1. Find the project root — the connected folder containing `.sales-system/`.
-2. Read `.sales-system/CONVENTIONS.md`.
+2. Read `$CLAUDE_PLUGIN_ROOT/.sales-system/CONVENTIONS.md`.
 3. Read `00-Config/config.md` for `scope`, and `.sales-system/crm-profile/field-map.json` —
    especially the `competitors` block.
 4. Repair the registries:
 
 ```bash
-python3 <project>/.sales-system/scripts/csvguard.py --check-all <project>
+python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/csvguard.py" --check-all <project>
 ```
 
 Competitors live in `04-Competitors/competitors`. Battlecards in

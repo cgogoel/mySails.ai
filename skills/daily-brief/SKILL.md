@@ -16,7 +16,7 @@ The bar: after reading, they know what to do first, and they walk into every mee
 ## Before anything else
 
 1. Find the project root — the connected folder containing `.sales-system/`.
-2. Read `.sales-system/CONVENTIONS.md`.
+2. Read `$CLAUDE_PLUGIN_ROOT/.sales-system/CONVENTIONS.md`.
 3. Read `00-Config/config.md` — `scope`, `default_automation`, and **`brief_content`**, which
    records what this user wants in daily versus weekly. Honour it; the split below is the default,
    not a rule.
@@ -25,15 +25,15 @@ The bar: after reading, they know what to do first, and they walk into every mee
 6. Repair the registries:
 
 ```bash
-python3 <project>/.sales-system/scripts/csvguard.py --check-all <project>
+python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/csvguard.py" --check-all <project>
 ```
 
 7. **Check whether anything moved in the CRM overnight** — for `opportunities` and `leads`:
 
 ```bash
-python3 <project>/.sales-system/scripts/csvguard.py --sync-query <project> --registry opportunities
+python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/csvguard.py" --sync-query <project> --registry opportunities
 # run that query through the CRM connector, write the result to snapshot.json
-python3 <project>/.sales-system/scripts/csvguard.py --verify-sync <project> \
+python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/csvguard.py" --verify-sync <project> \
     --registry opportunities --crm-json snapshot.json
 ```
 

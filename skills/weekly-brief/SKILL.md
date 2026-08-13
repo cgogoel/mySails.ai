@@ -16,7 +16,7 @@ that are invisible at one-day range and irrelevant at quarterly range.
 ## Before anything else
 
 1. Find the project root — the connected folder containing `.sales-system/`.
-2. Read `.sales-system/CONVENTIONS.md`.
+2. Read `$CLAUDE_PLUGIN_ROOT/.sales-system/CONVENTIONS.md`.
 3. Read `00-Config/config.md` — `scope` and **`brief_content`**, which records what this user wants
    in weekly versus daily versus forecast. Honour it; the emphasis below is the default, not a rule.
    Some orgs want pipeline movement here and some want it only in the forecast.
@@ -24,16 +24,16 @@ that are invisible at one-day range and irrelevant at quarterly range.
 5. Repair the registries:
 
 ```bash
-python3 <project>/.sales-system/scripts/csvguard.py --check-all <project>
+python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/csvguard.py" --check-all <project>
 ```
 
 6. **Verify the synced registries against the CRM** — `opportunities`, plus `leads`, `renewals`
    and `partners` where those modules are on:
 
 ```bash
-python3 <project>/.sales-system/scripts/csvguard.py --sync-query <project>
+python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/csvguard.py" --sync-query <project>
 # run each query through the CRM connector, then for each registry:
-python3 <project>/.sales-system/scripts/csvguard.py --verify-sync <project> \
+python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/csvguard.py" --verify-sync <project> \
     --registry <name> --crm-json snapshot.json
 ```
 

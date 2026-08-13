@@ -12,7 +12,7 @@ in saying so — clearly, with evidence, without being tiresome about it.
 ## Before anything else
 
 1. Find the project root — the connected folder containing `.sales-system/`.
-2. Read `.sales-system/CONVENTIONS.md`.
+2. Read `$CLAUDE_PLUGIN_ROOT/.sales-system/CONVENTIONS.md`.
 3. Read `00-Config/config.md` for `scope`, `default_automation`, quota, and fiscal calendar.
 4. If `00-Config/config.md` is missing, stop and run `configure-project` instead.
 5. Read `.sales-system/crm-profile/` — `field-map.json`, `picklists.json`, `profile.md`. This skill
@@ -20,7 +20,7 @@ in saying so — clearly, with evidence, without being tiresome about it.
 6. Repair the registry before reading it:
 
 ```bash
-python3 <project>/.sales-system/scripts/csvguard.py --repair <project>/07-Opportunities/opportunities.csv --project <project>
+python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/csvguard.py" --repair <project>/07-Opportunities/opportunities.csv --project <project>
 ```
 
 Deals live in `07-Opportunities/opportunities.csv`. Per-deal narrative goes in
@@ -125,7 +125,7 @@ whatever happened in between — closed-lost decisions, owner changes, close dat
 clean afterwards, because it is clean.
 
 ```bash
-S=<project>/.sales-system/scripts
+S="$CLAUDE_PLUGIN_ROOT/.sales-system/scripts"
 python3 $S/crm_sync.py --plan    <project> --registry opportunities   # what to select
 python3 $S/crm_sync.py --seed    <project> --registry opportunities --json-file recs.json
 python3 $S/crm_sync.py --refresh <project> --registry opportunities --json-file recs.json

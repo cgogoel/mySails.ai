@@ -15,7 +15,7 @@ stalled deal — gets lost in it.
 ## Before anything else
 
 1. Find the project root — the connected folder containing `.sales-system/`.
-2. Read `.sales-system/CONVENTIONS.md`.
+2. Read `$CLAUDE_PLUGIN_ROOT/.sales-system/CONVENTIONS.md`.
 3. Read `00-Config/config.md` for `scope` and `default_automation`, and `connections.md` to see
    whether email is available.
 4. Read `02-Context/Company/` and `02-Context/Messaging/` — you can't judge whether an event matters
@@ -23,7 +23,7 @@ stalled deal — gets lost in it.
 5. Repair the registries:
 
 ```bash
-python3 <project>/.sales-system/scripts/csvguard.py --check-all <project>
+python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/csvguard.py" --check-all <project>
 ```
 
 Two files: `03-Market/watchlist.csv` (what to monitor and where to look) and `03-Market/signals.csv`
