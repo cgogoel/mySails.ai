@@ -1,42 +1,38 @@
-# Folder Sales OS
+# Filesystem-Based Sales OS
 
 A complete sales management system that runs on files you can open. Registries are
-CSV or styled Excel workbooks (dropdowns from your CRM's real picklists, risk
-colouring, frozen headers); narrative lives in Markdown; fourteen skills do the work.
+styled Excel workbooks or CSV for ease of browsing/editing. Sync with your CRM or run 
+without a CRM. Designed for use on a local file-system folder but there is experimental
+support for running in a shared drive for multiple users collaborating on a single folder.
 
-**Modules:** project setup with CRM introspection · leads · opportunities · renewals ·
+**Modules:** project setup with optional CRM sync · leads · opportunities · renewals ·
 channel partners (two-tier, deal-reg conflict checking) · competitors (battlecards from
 your real win/loss record) · market signals · demand gen + thought leadership · content
-tailoring · quote generation (price-list guard rails) · daily brief · weekly brief ·
-forecast dashboards (engagement-ranked, goals-framed).
+tailoring · quote generation (with guard rails) · daily brief · weekly brief ·
+forecast dashboards (engagement-ranked based on your email traffic & calendar, goals-framed).
 
-**Design principles:** the folder is the database; CRM pulls are automatic but pushes
-always require confirmation; contactability and sequence gates protect customer
-relationships; numbers from small samples are refused rather than reported.
+**Design principles:** the folder is the database; you should be able to open your opportunities,
+leads, tasks, and other data directly in Excel and filter/search/edit if needed. Most of the time 
+the agent should keep your opportunities up to date with interactions and updates, minimal 
+manual editing required. If you integrate with CRM pulls are automatic but pushes always require 
+confirmation; safe syncing with CRM is built in. 
 
-**Keeping the folder honest.** A registry that validates clean can still be wrong, and
-that's the failure mode that costs real money — a rebuild from a stale snapshot reverting
-a day's decisions, or someone changing the CRM out of band. So:
+**Who is it for?** 
+- Contributors on a larger team w/ existing CRM: I have been using the plugin as a complement
+to my existing CRM system (Salesforce) through the CRM integration option. It can assist you
+in ensuring your Salesforce is up to date, you are following up on opportunities and leads you own,
+and assist you in drafting/customizing content for your opportunities. If additional modules 
+are used it can also track news on your accounts, build competitive battle cards per account,
+build quotes, draft demand generation content (blogs, social posts), and build custom
+forecasts/briefs for you (say before your weekly Forecast call).
 
-- **Drift detection.** `csvguard.py --verify-sync` compares each synced registry against
-  the CRM and reports which side moved: DRIFT (they changed it), AHEAD (you did and never
-  pushed), CONFLICT (both). Briefs and forecasts open with it.
-- **A destructive-write guard.** Every full-file write is diffed against what it replaces
-  and refused — with the diff — if rows would vanish, cells would be blanked, or a closed
-  deal would reopen.
-- **Seed and refresh are different verbs.** `crm_sync.py --seed` refuses to run against a
-  registry that already has rows; `--refresh` merges only CRM-owned columns, so notes,
-  risk flags and everything derived survive it, and IDs are never renumbered.
-- **Bulk import that knows what CRM exports get wrong** — cp1252, US-locale dates, mixed
-  booleans, field labels vs API names, totals footers.
+- Small teams w/o a CRM: Save money and time by automating your CRM locally on your filesystem.
+Instead of subscribing and paying money for an overly complicated cloud CRM like Salesforce,
+have your CRM set up locally with views in software you already use like Excel. The agent helps
+to keep everything up to date and ensure you are following through properly on every lead, opportunity,
+and are keeping up to date with the latest news/market signals applicable to you. 
 
-CRM-specific quirks are declared per CRM rather than assumed — the record identifier and
-timestamp fields, the query language, custom-field suffixes, and whether record IDs have
-more than one form (Salesforce's 15- vs 18-character IDs are currently the only case).
-An unrecognised CRM, or none, gets generic behaviour, and any org can override the lot
-from its own `field-map.json`.
-
-**Setup is resumable.** It's a checklist at `00-Config/setup-checklist.csv` with an HTML
+**Guided setup.** It's a checklist at `00-Config/setup-checklist.csv` with an HTML
 progress dashboard, walked module by module, with each field mapping confirmed against
 real records before anything depends on it. Pause whenever; completion is derived from
 evidence in the folder rather than from memory of having done it.
@@ -78,11 +74,6 @@ layer into that folder on first run, so an empty folder is fine.
 
 ## Updating
 
-**Two things carry a version.** The plugin — the skills and every script they run — comes
-from the marketplace, and updating it changes behaviour in every folder at once. What each
-folder holds is its own `schemas/`, which you're allowed to edit, so those get reconciled
-rather than replaced. Step 1 is the one people miss.
-
 ### 1. Turn on auto-sync for the marketplace
 
 Third-party marketplaces have auto-update **off by default** (only Anthropic's are on), so
@@ -114,7 +105,7 @@ never offer an update. That one needs uninstall and re-upload.
 Updating the plugin brings every skill **and every script** forward at once, because scripts
 run from the plugin rather than from your folders. That's most of the update.
 
-### 2. Reconcile each project folder's schemas
+### 2. Reconcile customizations with the latest updates
 
 The one thing a plugin update can't do is reconcile a folder's schemas, because you're
 allowed to edit those. In a session on that folder, say **"update my sales system"**, or run
@@ -129,35 +120,6 @@ The upgrader ships inside the `update-system` skill, so there's only ever one co
 always matches the skills beside it. Working from a clone of this repo,
 `~/mySails.ai/skills/update-system/scripts/upgrade.py` does the same job — a way to update a
 folder without waiting on the plugin manager at all.
-
-`--check` writes nothing. It classifies every schema:
-
-| | Meaning |
-|---|---|
-| `ADD` | Not installed yet |
-| `SAME` | Already current |
-| `UPDATE` | Byte-identical to what was published at install, so replacing it loses nothing |
-| `MERGE` | A schema you edited. New columns arrive; your columns, extra enum values and ownership choices stay |
-| `KEEP` | Edited and not safely mergeable. Left alone, new version written alongside as `<name>.new` |
-
-That distinction comes from a hash per shipped file, plus the published manifest of every
-past release — so a folder installed before manifests existed still gets an exact answer
-rather than having to assume the worst about every file.
-
-`--apply` backs up what it's about to replace, then runs `csvguard --check-all` so new schema
-columns reach registries that already exist. Never touched: `crm-profile/`, `brand.json`,
-`backups/`, and every registry, note and brief.
-
-**Anything reported as `KEEP` means that folder is still running your version of the file.**
-Diff it against the `.new` copy when you get a moment.
-
-Folders set up before v0.3.0 also hold a `.sales-system/scripts/` directory that nothing
-reads any more. `--check` reports it; `--prune-scripts` retires it to `backups/`. It's opt-in
-because it's a deletion inside your folder, and worth doing — a stale `csvguard.py` sitting
-next to live registries is an invitation to run last month's guard against this month's data.
-
-You don't have to go looking for any of this: `csvguard --check-all` prints a one-line note
-when a folder is behind, and every skill runs that before touching data. It never blocks.
 
 ## Layout
 
@@ -175,25 +137,6 @@ when a folder is behind, and every skill runs that before touching data. It neve
 `.sales-system/scripts/make_template.py` packages `.sales-system/` into
 `sales-system-template.zip` on demand. That zip is a build artifact and is not
 committed.
-
-## Cutting a release
-
-Bump `version` in `.claude-plugin/plugin.json`, then:
-
-```
-git tag v0.1.0 && git push origin v0.1.0
-```
-
-`.github/workflows/release.yml` checks the tag against the manifest version,
-validates the plugin structure, builds the `.plugin` from git-tracked files only,
-and publishes it as a release asset. The download link above always points at the
-newest release, so it never needs updating.
-
-**Tag the commit you mean to ship.** The release asset is built from the tagged tree, so
-a tag pushed before later work lands publishes a plugin missing that work — and moving an
-already-published tag doesn't rebuild the asset, because the workflow won't recreate a
-release that exists. Cut a new version instead. `v0.2.0` was published this way and `v0.2.1`
-is the correction.
 
 ## What is not in this repo
 
