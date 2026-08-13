@@ -31,3 +31,9 @@ style-preview.html
 __pycache__/
 *.pyc
 .DS_Store
+
+# Separate repo: the mysails.ai landing page (cgogoel/mySails.ai-web)
+site/
+
+# Scratch: this bridge cannot delete files, only move them here
+_to_delete/
