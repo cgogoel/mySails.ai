@@ -35,6 +35,11 @@ def shipped_files(ss):
             if fn.endswith((".py", ".json")) and not fn.startswith("patch_"):
                 out.append(f"{sub}/{fn}")
     out += ["CONVENTIONS.md", "VERSION.json"]
+    # Shipped so upgrade.py can tell someone what a version actually changed. A number
+    # that quietly starts meaning something else between releases is how people stop
+    # trusting a tool, and the only defence is saying so at the moment they upgrade.
+    if os.path.exists(os.path.join(ss, "CHANGELOG.md")):
+        out.append("CHANGELOG.md")
     return out
 
 

@@ -427,11 +427,30 @@ DATE_PATTERNS = [
 EXCEL_EPOCH = date(1899, 12, 30)
 
 
+# Words people and agents write into a typed cell to mean "there is something here but I
+# am not counting it": (set), N/A, TBD, a dash. They are not values, and in a column typed
+# number or date they are unreadable — which turns one careless cell into a validation
+# error on every subsequent write, including writes that never touch that row.
+#
+# CONVENTIONS §3 already says empty means unknown, so the honest normalisation is to
+# empty. It is reported as a repair rather than done silently, because the person who
+# typed it meant something by it and deserves to see it go.
+PLACEHOLDERS = {"(set)", "(blank)", "(none)", "(unknown)", "(n/a)", "n/a", "na", "n.a.",
+                "#n/a", "tbd", "tba", "unknown", "none", "null", "nil", "-", "--",
+                "—", "–", "?"}
+
+
+def is_placeholder(s):
+    return (s or "").strip().lower() in PLACEHOLDERS
+
+
 def norm_date(v):
     """Return (iso_string, changed, ok)."""
     s = (v or "").strip()
     if not s:
         return "", False, True
+    if is_placeholder(s):
+        return "", True, True
     if re.fullmatch(r"\d{4}-\d{2}-\d{2}", s):
         return s, False, True
     # Excel serial date
@@ -464,6 +483,8 @@ def norm_money(v):
     s = (v or "").strip()
     if not s:
         return "", False, True
+    if is_placeholder(s):
+        return "", True, True
     neg = s.startswith("(") and s.endswith(")")   # accounting negatives
     cleaned = MONEY_STRIP.sub("", s)
     if cleaned in ("", "-", "."):
@@ -484,6 +505,8 @@ def norm_number(v):
     s = (v or "").strip()
     if not s:
         return "", False, True
+    if is_placeholder(s):
+        return "", True, True
     cleaned = s.replace(",", "").replace(" ", "").rstrip("%")
     try:
         f = float(cleaned)
@@ -499,6 +522,8 @@ FALSE_SET = {"false", "no", "n", "0", ""}
 
 def norm_bool(v):
     s = (v or "").strip()
+    if s and is_placeholder(s):
+        return "", True, True
     if s.lower() in TRUE_SET:
         return "yes", s != "yes", True
     if s.lower() in FALSE_SET:
@@ -527,6 +552,10 @@ def norm_enum(v, values):
     for allowed in values:
         if s.lower() == allowed.lower():
             return allowed, s != allowed, True
+    # Only after the picklist has had its say: an org whose stage list genuinely contains
+    # "None" or "N/A" must keep it, and does, because the loop above matched it first.
+    if is_placeholder(s):
+        return "", True, True
     return s, False, False
 
 

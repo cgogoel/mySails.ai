@@ -4,6 +4,12 @@
   "id_prefix": "OPP",
   "id_width": 4,
   "description": "Active deals. The spine of forecasting. Generic shape; map to your CRM in crm-profile/field-map.json.",
+  "corrections": {
+    "contacts_engaged": [
+      "owner"
+    ]
+  },
+  "corrections_note": "Keys where the new definition must win over what a folder already holds, because the old value was a template defect rather than a choice someone made. contacts_engaged shipped as owner `local` and nothing ever wrote it, which is why single-threaded never fired. It is `derived` now and has to become derived in existing folders too, or the fix reaches nobody who already has one.",
   "picklists_overridable": [
     "loss_reason",
     "on_hold_reason",
@@ -69,7 +75,7 @@
     {
       "name": "amount",
       "type": "money",
-      "note": "The org's authoritative deal value. Which CRM field that is can be ambiguous — the profile names it.",
+      "note": "The org's authoritative deal value. Which CRM field that is can be ambiguous \u2014 the profile names it.",
       "owner": "crm",
       "verify": true
     },
@@ -163,9 +169,16 @@
       "owner": "crm"
     },
     {
+      "name": "contacts_attached",
+      "type": "number",
+      "note": "DERIVED rollup of opportunity-contacts.csv: how many people are on this deal at all, from the CRM's contact roles and from the activity record together. Free to compute and close to worthless as a risk signal on its own \u2014 being on a contact-role list says nothing about whether someone picks up the phone. It earns its place beside contacts_engaged, because the gap between the two is the interesting number.",
+      "owner": "derived"
+    },
+    {
       "name": "contacts_engaged",
       "type": "number",
-      "owner": "local"
+      "note": "DERIVED rollup of opportunity-contacts.csv: how many people have actually replied. This is the one the single-threaded flag reads. Blank, not zero, when the contacts registry is empty or the org's activity logging cannot establish direction \u2014 an absent answer that looks like a real one is the failure this column exists to avoid.",
+      "owner": "derived"
     },
     {
       "name": "pain",
@@ -229,7 +242,7 @@
     {
       "name": "risk_flags",
       "type": "text",
-      "note": "DERIVED, semicolon-separated: single-threaded;no-close-plan;date-slipped;stalled;no-champion",
+      "note": "DERIVED, semicolon-separated: single-threaded;no-close-plan;date-slipped;stalled;no-champion. Four more come from opportunity-contacts.csv wherever it is populated \u2014 single-threaded;no-reply-ever;ghost-roles;auto-reply-only. Those are relationship risk and belong here, not in close_plan_gaps, which is hygiene.",
       "owner": "derived"
     },
     {
@@ -266,7 +279,7 @@
     {
       "name": "engagement_score",
       "type": "number",
-      "note": "DERIVED 0-100 from meetings, emails both ways, and notes in the recent window. Volume alone is weak — a deal with daily internal emails and no customer reply is not engaged.",
+      "note": "DERIVED 0-100 from meetings, emails both ways, and notes in the recent window. Volume alone is weak \u2014 a deal with daily internal emails and no customer reply is not engaged.",
       "owner": "derived"
     },
     {
@@ -279,7 +292,7 @@
         "Cooling",
         "Cold"
       ],
-      "note": "DERIVED by comparing the recent window against the one before it. DIRECTION, not level — a big deal ticking over steadily is not the same as a small one accelerating.",
+      "note": "DERIVED by comparing the recent window against the one before it. DIRECTION, not level \u2014 a big deal ticking over steadily is not the same as a small one accelerating.",
       "owner": "derived"
     },
     {
@@ -297,7 +310,7 @@
     {
       "name": "emails_in_recent",
       "type": "number",
-      "note": "DERIVED: replies FROM the customer. The strongest single engagement signal — outbound volume measures effort, inbound measures interest.",
+      "note": "DERIVED: replies FROM the customer. The strongest single engagement signal \u2014 outbound volume measures effort, inbound measures interest.",
       "owner": "derived"
     },
     {

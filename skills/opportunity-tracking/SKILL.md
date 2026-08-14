@@ -93,8 +93,10 @@ re-baselined or moved out of the forecast. Say that plainly.
 that stage. Late-stage stalls are worse than early ones — a deal that sits in Negotiation is usually
 losing, not marinating.
 
-**Single-threaded.** One contact engaged past the early stages. The most common way good deals die
-is the champion leaving, and it's entirely preventable with enough notice.
+**Single-threaded.** One contact *replying* past the early stages. The most common way good deals
+die is the champion leaving, and it's entirely preventable with enough notice. This one is computed
+from `07-Opportunities/opportunity-contacts.csv`, not from the deal row — see **Threading** below,
+including what to say when that file doesn't exist yet.
 
 **No champion or no economic buyer** named at a stage where they should be. Populate
 `close_plan_gaps` with what's missing — that derived field is the useful output, not the individual
@@ -112,6 +114,69 @@ every forecast downstream, so flag it first and separately.
 Distinguish *risk* from *hygiene*. A single-threaded deal is a real problem to solve. A close date
 three weeks stale is a data problem to fix. Mixing them produces a list where the important items
 don't stand out.
+
+---
+
+## Threading: who is on the deal, and which of them answer
+
+A deal row can't hold a list of people, so the people live in
+`07-Opportunities/opportunity-contacts.csv`, one row each. `contacts_attached` and
+`contacts_engaged` on the deal are rollups of it — attached is everyone, engaged is everyone who
+has actually replied. **The gap between those two numbers is the point.** Being on a contact-role
+list tells you nothing about whether someone picks up the phone.
+
+```bash
+S="$CLAUDE_PLUGIN_ROOT/.sales-system/scripts"
+python3 $S/contacts_sync.py --plan   <project>                     # what to query
+# run those queries through the CRM connector, write the result to contacts.json
+python3 $S/contacts_sync.py --build  <project> --input contacts.json
+python3 $S/contacts_sync.py --flags  <project>                     # the four flags, with evidence
+```
+
+`--plan` reads the `activity` block in `crm-profile/field-map.json`, which is what keeps this
+CRM-agnostic. Never name a CRM object in a query you write by hand here.
+
+### The four flags this unlocks
+
+| | Fires when | What it means |
+|---|---|---|
+| `single-threaded` | Exactly one contact with `replied = yes`, past the early stages | One person is carrying the deal |
+| `no-reply-ever` | Outbound logged, contacts present, no genuine reply | Distinct from stalled: stalled went quiet, this never started |
+| `ghost-roles` | Contact roles exist, none of them appear in the activity | The CRM structure and the real relationship have come apart |
+| `auto-reply-only` | Every inbound is machine-generated | Verify the people before spending more outreach on them |
+
+These belong in `risk_flags`. **Keep them out of `close_plan_gaps`** — that's close-plan
+completeness, and mixing relationship risk into it produces a list where nothing stands out.
+
+### Three things to be careful about, all of them common
+
+**Contact roles and the people talking to you are different sets.** A deal showing two contacts
+can have a dozen in its activity, with the busiest of them on nobody's list. `source` records
+which side each person came from. When you report threading, say which — "two on the contact-role
+list, but the person actually working this is someone else" is the useful sentence, and it's the
+`ghost-roles` case.
+
+**`replied` is nullable and blank means undeterminable.** Plenty of orgs log activity with no
+direction field at all. When `reply_evidence` is `none`, say the data can't support the
+conclusion — do not report the deal as having no replies. That's manufacturing a risk flag out of
+a logging gap, and it's the same failure as a flag that never fires.
+
+**`meeting_evidence` says how strong the meeting claim is.** `opportunity-linked` is solid.
+`invite-accepted` was reconstructed from calendar traffic captured as email, and most orgs link
+almost no meetings to opportunities, so that weakest rung is where most of the answer comes from.
+Mention the rung when a meeting is doing real work in your argument.
+
+### When the file isn't there
+
+New folders and any folder upgraded from an earlier version have no contacts registry. That is
+normal and it must not look like good news.
+
+> Nothing has been loaded into the contacts registry yet, so I can't tell you which of these deals
+> are single-threaded. Want me to build it? It's one CRM pull.
+
+Never report "no threading risk" from an empty or absent file. `--flags` says this itself when
+there's no data; pass that distinction through rather than flattening it into a clean bill of
+health.
 
 ---
 
@@ -141,7 +206,8 @@ user export a report to `07-Opportunities/import/` and use `--ingest` rather tha
 hundred records through the connector one at a time.
 
 Recompute `risk_flags`, `close_plan_gaps`, and `days_in_stage` after every refresh; they're
-derived, so stale values are worse than absent ones.
+derived, so stale values are worse than absent ones. Where the contacts registry exists, run
+`contacts_sync.py --rollup <project>` too, so `contacts_attached` and `contacts_engaged` match it.
 
 **Check for drift before reporting anything**, especially before a pipeline review or forecast:
 

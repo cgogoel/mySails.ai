@@ -89,6 +89,11 @@ schema columns reach registries that already exist.
 - **Name what they gain**, not the version numbers. "This adds the drift check against your
   CRM and the guard that refuses a write which would revert live edits" is the answer to
   "what did that do."
+- **Lead with anything whose meaning changed.** `--check` prints the changelog entries between
+  their version and the new one, under "What changes, in what it means to you". A column that
+  starts measuring something different from last month matters more than five new files, and it
+  is the one thing they cannot discover by looking. Say it in your own words before listing
+  anything else.
 - If a merge kept something of theirs, name it: "kept your `Legal Review` stage and your
   `exec_sponsor_internal` column."
 

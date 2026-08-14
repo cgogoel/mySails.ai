@@ -206,6 +206,27 @@ Write four files:
 | `contactability.json` | What blocks contact, and on which channel — look for channel-specific opt-outs |
 | `profile.md` | The narrative version |
 
+`field-map.json` also carries an **`activity` block** — the objects behind contact roles, email and
+meetings, with the shape set out in `CONVENTIONS.md` §7a. Introspect it here and confirm it,
+because three things about it are wrong more often than not:
+
+- **Which object actually holds the email.** Most orgs have two candidates and populate one. Check
+  volumes on real records rather than trusting that a field exists.
+- **Whether direction can be established at all.** `email_direction_semantics` is
+  `boolean_incoming`, `subject_heuristic`, or `none`. The activity object most orgs populate often
+  has no direction field, and `none` is a legitimate answer — record it rather than reaching for
+  the heuristic. Everything downstream then reports `replied` blank and engagement `undetermined`,
+  which is the honest output and needs saying out loud here so it isn't read later as a bug.
+- **How few meetings are linked to opportunities.** Count them. An org with thousands of meeting
+  records and eighteen linked to a deal needs the account-linked fallback, and that number is
+  usually a surprise worth showing.
+
+Record the org's own auto-reply subject patterns too. An out-of-office counted as a reply marks a
+departed contact's still-running mailbox as an engaged human, and that error compounds quietly.
+
+Fill in `lead_link` even though nothing reads it yet — the same evidence drives lead triage later,
+and introspecting twice is how two versions of one block end up disagreeing.
+
 **Set `crm` correctly — it's load-bearing.** It selects the dialect in
 `csvguard.CRM_DIALECTS`: which field holds the record identifier, which holds the
 last-modified stamp, whether there's a query language, whether custom fields carry a
@@ -274,7 +295,7 @@ mkdir -p <project>/07-Opportunities/import
 Schema names: `team`, `goals`, `tasks`, `task_rules`, `customers`, `market_watchlist`,
 `market_signals`, `competitors`, `campaigns`, `content_opportunities`, `leads`, `opportunities`,
 `renewals`, `partners`, `deal_registrations`, `price_list`, `quotes`, `quote_lines`,
-`content_assets`, `forecast_snapshots`, `sync_log`, `setup_checklist`.
+`content_assets`, `forecast_snapshots`, `sync_log`, `setup_checklist`, `opportunity_contacts`.
 
 **c. Load real data.** Through `crm_sync.py` — never a hand-written import, for the reasons in
 `CONVENTIONS.md` §3c:
@@ -332,6 +353,18 @@ rediscovered painfully in three months.
   `contactability.json` and say how many are contactable, in sequence, and have no email. That
   sentence tells them whether the list is worth working.
 - **Opportunities** — recompute `risk_flags`, `close_plan_gaps`, `days_in_stage` after loading.
+  Then create `opportunity-contacts` and build it, or the `single-threaded` flag has nothing to
+  read and quietly reports every deal as fine:
+
+  ```bash
+  python3 $S/csvguard.py --init <project>/07-Opportunities/opportunity-contacts \
+      --schema opportunity_contacts --project <project>
+  python3 $S/contacts_sync.py --plan  <project>     # what to query, from the activity block
+  python3 $S/contacts_sync.py --build <project> --input contacts.json
+  ```
+
+  Show them one deal's contacts afterwards, ideally one where `source` is `activity-only` — the
+  gap between who the CRM lists and who is actually emailing is the thing that makes this land.
 - **Renewals** — often not a CRM object at all. Ask how renewals are tracked before assuming; a
   contract end date on the closed-won opportunity is the common answer.
 - **Partners** — territories, named accounts and margin are authored here, not imported. Budget

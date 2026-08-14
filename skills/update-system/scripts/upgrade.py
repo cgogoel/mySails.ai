@@ -52,6 +52,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -108,6 +109,36 @@ def version_of(ss):
         "template_version", "unknown")
 
 
+def changes_between(src, old_v, new_v):
+    """The changelog entries a folder is about to move through.
+
+    A list of filenames tells someone what was touched, not what it means. The entry that
+    matters most is the one saying a column now measures something different from what it
+    measured last month — that has to reach them at the moment they upgrade, or the first
+    they know of it is a number they don't recognise."""
+    p = os.path.join(src, "CHANGELOG.md")
+    if not os.path.exists(p) or old_v == "unknown":
+        return []
+    try:
+        with open(p, encoding="utf-8") as f:
+            text = f.read()
+    except OSError:
+        return []
+    out, keep, head = [], False, None
+    for line in text.splitlines():
+        if line.startswith("## "):
+            head = line[3:].strip()
+            # Dated headings only, and only those after the folder's own version.
+            keep = bool(re.fullmatch(r"\d{4}-\d{2}-\d{2}", head)) and \
+                old_v < head <= new_v
+            if keep:
+                out.append((head, []))
+            continue
+        if keep and out:
+            out[-1][1].append(line)
+    return [(v, "\n".join(body).strip()) for v, body in out if "".join(body).strip()]
+
+
 # ------------------------------------------------------------------- schema merging
 # A schema the user has edited still has to gain whatever the new version added, or the
 # upgrade achieves nothing for exactly the person who engaged with the system most.
@@ -134,8 +165,19 @@ def merge_schema(local, new):
                 col["values"] = list(col.get("values", [])) + extra
                 notes.append(f"kept your extra {name} values: {', '.join(extra)}")
         # An explicit ownership or verify choice the user made is a decision, not noise.
+        # Unless the new schema declares it a correction: sometimes what a folder holds
+        # isn't a choice anyone made, it's a mistake the template shipped, and preserving
+        # it forever means the fix never reaches the folders that need it. `corrections`
+        # names those keys explicitly, so it stays a deliberate act rather than the
+        # merge quietly deciding it knows better.
+        corrected = set(new.get("corrections", {}).get(name, []))
         for key in ("owner", "verify"):
             if key in lc and lc[key] != col.get(key) and key in col:
+                if key in corrected:
+                    notes.append(f"corrected {name}.{key}: {lc[key]!r} -> "
+                                 f"{col[key]!r} (this one was a template defect, not a "
+                                 f"setting)")
+                    continue
                 col[key] = lc[key]
                 notes.append(f"kept your {name}.{key} = {lc[key]!r}")
 
@@ -446,6 +488,14 @@ def report(src, dst, actions, has_baseline, project, legacy=()):
               "merged rather than replaced,\n  and everything is copied to backups/ "
               "first. After this upgrade a baseline exists\n  and the next one will be "
               "exact.")
+
+    notes = changes_between(src, old_v, new_v)
+    if notes:
+        print(f"\n  What changes, in what it means to you:")
+        for version, body in notes:
+            print(f"\n    ── {version} ──")
+            for line in body.splitlines():
+                print(f"    {line}" if line.strip() else "")
 
     if legacy:
         explain_legacy(legacy, dst, project)

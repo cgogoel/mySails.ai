@@ -601,6 +601,68 @@ If someone asks about an ignored field, say the system tracks the chosen one onl
 query the CRM directly. That answers the question without quietly adding a second source of truth
 to the folder.
 
+## 7a. Activity, contacts, and evidence that may not exist
+
+Some of the most useful things this system says — who is on a deal, whether they answer, whether
+a meeting happened — are not fields in a CRM. They are inferences from the activity record, and
+the activity record is the messiest data any org owns. Three rules keep the inferences honest.
+
+### The `activity` block names the objects
+
+Contact roles, email and meetings are named differently in every CRM, so nothing in the template
+may hardcode an object name. `field-map.json` carries an `activity` block that
+`configure-project` fills by introspection:
+
+```json
+"activity": {
+  "contact_role_object": "...",
+  "contact_role_fields": {"id": "...", "opportunity": "...", "contact": "...",
+                          "role": "...", "primary": "...", "name": "...",
+                          "title": "...", "email": "..."},
+  "email_object": "...",
+  "email_fields": {"direction_flag": "...", "opportunity_link": "...",
+                   "account_link": "...", "lead_link": "...", "from": "...",
+                   "to": "...", "subject": "...", "date": "..."},
+  "email_direction_semantics": "boolean_incoming | subject_heuristic | none",
+  "meeting_object": "...",
+  "meeting_fields": {"opportunity_link": "...", "account_link": "...",
+                     "lead_link": "...", "attendee": "...", "subject": "...",
+                     "date": "..."},
+  "auto_reply_subject_patterns": ["Automatic reply%", "Out of office%"],
+  "bounce_subject_patterns": ["Undeliverable%"],
+  "meeting_subject_patterns": {"accepted": ["Accepted:%"], "invitation": ["Invitation:%"]}
+}
+```
+
+`lead_link` is recorded even though nothing reads it yet. The same reply and meeting evidence
+drives lead triage, and introspecting twice for one block is how the two versions end up
+disagreeing.
+
+`email_direction_semantics` is the load-bearing one. It is the difference between a reliable
+answer and a guess, and **whatever consumes it must say which one it is giving.**
+
+### Three states, not two
+
+`replied` and `meeting_held` are nullable bools and mean **yes, no, and not determinable**.
+Blank is a real answer: the object most orgs actually populate frequently has no direction field,
+and `Re:` matches your own replies as readily as theirs.
+
+Forcing an unknown to `false` manufactures a risk flag out of a logging gap. That is the same
+class of error as a flag that never fires — a confident statement the data does not support —
+and it is worse than saying nothing, because nobody audits a flag that looks plausible.
+
+### Record which rung the evidence came from
+
+Where evidence has a fallback chain, the rung is stored beside the value. Meetings are the
+standard case: linked to the opportunity (strong), linked to the account and dated inside the
+deal's life (weaker), or recovered from accepted-invitation email subjects (weakest). All three
+produce `meeting_held = yes`. They are not the same claim, and a rep deciding whether to trust it
+deserves to know which they are looking at.
+
+The same applies to attribution. Activity that names a customer with two open deals is left
+unattached and counted, not assigned to whichever deal looked likelier. A guess reported as a
+fact is the one output this system must not produce.
+
 ## 8. Writing for the user
 
 The person using this is selling for a living and reading your output between meetings.
@@ -684,6 +746,7 @@ Each schema is classified before anything is written:
 | `SAME` | Already identical, or reconciled by an earlier upgrade with neither side moving since |
 | `UPDATE` | Byte-identical to what was published at install, so replacing it loses nothing |
 | `MERGE` | An edited schema. New columns arrive; the user's columns, extra enum values and ownership choices stay |
+| | — unless the new schema's `corrections` block names a key. That is for the case where what a folder holds was never a choice, it was a defect the template shipped; preserving it forever means the fix never reaches the folders that need it. Corrections are announced in the upgrade output, never silent. |
 | `KEEP` | An edited script or document. Left alone, with the new version written alongside as `<name>.new` |
 
 That distinction rests on `MANIFEST.json`, a hash per shipped file written at package time, plus

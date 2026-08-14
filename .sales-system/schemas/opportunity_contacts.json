@@ -1,0 +1,214 @@
+{
+  "registry": "opportunity_contacts",
+  "path": "07-Opportunities/opportunity-contacts.csv",
+  "id_prefix": "OPPC",
+  "id_width": 5,
+  "description": "One row per person on a deal. The opportunity registry is one row per deal, so it cannot hold a list of people, and a count of them on the deal row cannot tell you which of them actually answers. This is what makes single-threaded a real flag rather than a promise. Contacts are unioned from the CRM's contact-role object AND from who appears in the activity record, because those are different sets \u2014 the people formally attached to a deal and the people carrying it are routinely not the same.",
+  "picklists_overridable": [
+    "role"
+  ],
+  "columns": [
+    {
+      "name": "id",
+      "type": "id",
+      "required": true,
+      "owner": "local"
+    },
+    {
+      "name": "opportunity_id",
+      "type": "text",
+      "required": true,
+      "owner": "local",
+      "note": "OPP- id this person is on. The link back to the deal."
+    },
+    {
+      "name": "opportunity_name",
+      "type": "text",
+      "owner": "derived",
+      "note": "DERIVED: copied from the deal so the sheet is readable on its own. A file of IDs is a file nobody opens twice."
+    },
+    {
+      "name": "contact_crm_id",
+      "type": "text",
+      "owner": "crm",
+      "note": "The person's record in the CRM. Blank for someone who only ever appears in the activity record as an email address."
+    },
+    {
+      "name": "role_crm_id",
+      "type": "text",
+      "owner": "crm",
+      "note": "The contact-role record linking this person to this deal. Blank for an activity-only contact \u2014 which is itself the signal that they are working the deal without the CRM knowing."
+    },
+    {
+      "name": "name",
+      "type": "text",
+      "owner": "crm"
+    },
+    {
+      "name": "title",
+      "type": "text",
+      "owner": "crm"
+    },
+    {
+      "name": "email",
+      "type": "email",
+      "owner": "crm",
+      "note": "The match key for activity. Where a contact record is missing, this is the only identity there is."
+    },
+    {
+      "name": "role",
+      "type": "text",
+      "owner": "crm",
+      "note": "From the org's own contact-role picklist. Left as free text in the shipped schema because no two orgs use the same list; the profile supplies the real values and the Excel dropdown."
+    },
+    {
+      "name": "is_primary",
+      "type": "bool",
+      "owner": "crm"
+    },
+    {
+      "name": "source",
+      "type": "enum",
+      "values": [
+        "contact-role",
+        "activity-only",
+        "both"
+      ],
+      "owner": "derived",
+      "note": "DERIVED: where this person came from. `activity-only` means they are talking to you and the CRM does not know they are on the deal. `contact-role` with no activity is the reverse, and is the ghost-roles pattern."
+    },
+    {
+      "name": "first_touch_date",
+      "type": "date",
+      "owner": "derived"
+    },
+    {
+      "name": "last_outbound_date",
+      "type": "date",
+      "owner": "derived"
+    },
+    {
+      "name": "outbound_count",
+      "type": "number",
+      "owner": "derived",
+      "note": "DERIVED: messages sent to this person. Effort, not interest \u2014 it is the denominator that makes no-reply-ever meaningful rather than the signal itself."
+    },
+    {
+      "name": "replied",
+      "type": "bool",
+      "owner": "derived",
+      "note": "DERIVED and DELIBERATELY NULLABLE. yes / no / blank, where blank means the org's logging cannot support an answer \u2014 a CRM whose activity object carries no direction flag genuinely cannot tell an inbound message from an outbound one. Forcing an unknown to `no` manufactures a risk flag out of a logging gap. Read `reply_evidence` before believing either value."
+    },
+    {
+      "name": "reply_evidence",
+      "type": "enum",
+      "values": [
+        "direction-flag",
+        "sender-inferred",
+        "subject-heuristic",
+        "no-activity",
+        "none"
+      ],
+      "owner": "derived",
+      "note": "DERIVED: how `replied` was decided, strongest first. `direction-flag` is the org's own inbound/outbound field. `sender-inferred` means the record carried a sender address and one side of it was you \u2014 a fact about the message, not a guess. `subject-heuristic` is a guess from Re:-style prefixes and matches your own replies too. `no-activity` means there are no messages with this person at all, so `no` is trivially true. `none` means messages exist and direction cannot be established; it is the one value that pairs with a blank `replied`."
+    },
+    {
+      "name": "last_reply_date",
+      "type": "date",
+      "owner": "derived"
+    },
+    {
+      "name": "replies_count",
+      "type": "number",
+      "owner": "derived",
+      "note": "DERIVED: genuine replies only. Auto-replies are excluded here and counted in `auto_replies_count`, because an out-of-office proves a mailbox exists and nothing about the person behind it."
+    },
+    {
+      "name": "auto_replies_count",
+      "type": "number",
+      "owner": "derived",
+      "note": "DERIVED: inbound messages matching the profile's auto-reply patterns. Kept rather than discarded \u2014 a contact whose every inbound is machine-generated needs verifying, and that is a different action from chasing them."
+    },
+    {
+      "name": "meeting_held",
+      "type": "bool",
+      "owner": "derived",
+      "note": "DERIVED, nullable on the same rule as `replied`. Read with `meeting_evidence`."
+    },
+    {
+      "name": "meeting_evidence",
+      "type": "enum",
+      "values": [
+        "opportunity-linked",
+        "account-dated",
+        "invite-accepted",
+        "none"
+      ],
+      "owner": "derived",
+      "note": "DERIVED: which rung of the fallback chain this came from, strongest first. Meetings are frequently not linked to the opportunity at all, so `opportunity-linked` alone finds almost nothing in most orgs; `invite-accepted` is calendar traffic recovered from email subjects and is much weaker evidence. Recorded because a rep deserves to know which they are looking at."
+    },
+    {
+      "name": "last_meeting_date",
+      "type": "date",
+      "owner": "derived"
+    },
+    {
+      "name": "meetings_count",
+      "type": "number",
+      "owner": "derived"
+    },
+    {
+      "name": "engagement",
+      "type": "enum",
+      "values": [
+        "engaged",
+        "auto-reply-only",
+        "contacted-no-reply",
+        "never-contacted",
+        "bounced",
+        "undetermined"
+      ],
+      "owner": "derived",
+      "note": "DERIVED. Not a boolean, because these are genuinely different states with different actions: `auto-reply-only` means verify the person before spending more outreach on them, `never-contacted` means the deal has a name attached and nobody has tried. `undetermined` is what an org with no usable direction data gets, and is honest rather than empty."
+    },
+    {
+      "name": "notes",
+      "type": "text",
+      "owner": "local"
+    },
+    {
+      "name": "sync_status",
+      "type": "enum",
+      "values": [
+        "local-only",
+        "synced",
+        "pending-push",
+        "conflict"
+      ],
+      "owner": "local"
+    },
+    {
+      "name": "crm_id",
+      "type": "text",
+      "owner": "crm",
+      "note": "Match key for sync. The contact-role record where there is one, otherwise a stable synthetic key of opportunity plus email, so an activity-only contact does not get re-inserted on every rebuild."
+    },
+    {
+      "name": "last_synced",
+      "type": "date",
+      "owner": "crm"
+    },
+    {
+      "name": "last_updated",
+      "type": "date",
+      "owner": "local"
+    }
+  ],
+  "browsable": true,
+  "archive": {
+    "follow": {
+      "registry": "opportunities",
+      "key": "opportunity_id"
+    }
+  }
+}

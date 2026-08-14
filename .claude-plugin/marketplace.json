@@ -2,6 +2,6 @@
   "name": "cgogoel-marketplace",
   "owner": {"name": "Chris Gogoel", "url": "https://github.com/cgogoel"},
   "plugins": [
-    {"name": "folder-sales-os", "source": "./", "description": "Folder-first sales management: 13 skills over spreadsheet registries with CRM introspection, drift detection against your CRM, engagement-ranked forecasting, and channel conflict checking."}
+    {"name": "folder-sales-os", "source": "./", "description": "Folder-first sales management: 14 skills over spreadsheet registries with CRM introspection, drift detection against your CRM, deal threading and relationship risk flags, engagement-ranked forecasting, and channel conflict checking."}
   ]
 }

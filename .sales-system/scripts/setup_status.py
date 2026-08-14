@@ -118,6 +118,23 @@ def registry_rows(schema_name, minimum=1, where=None):
     return check
 
 
+def profile_block(name, needs=()):
+    """A named block in field-map.json, present and carrying the keys that make it
+    usable. A block with an object name and no direction semantics is half-answered, and
+    half-answered here means every downstream flag quietly reads as clean."""
+    def check(root):
+        fm = G.load_field_map(root) or {}
+        block = fm.get(name)
+        if not isinstance(block, dict) or not block:
+            return False, ""
+        missing = [k for k in needs if not block.get(k)]
+        if missing:
+            return False, f"`{name}` block is missing {', '.join(missing)}"
+        return True, (f"field-map.json · `{name}` block, direction "
+                      f"{block.get('email_direction_semantics', 'unrecorded')}")
+    return check
+
+
 def any_of(*checks):
     def check(root):
         for c in checks:
@@ -215,6 +232,11 @@ CORE = [
     ("crm-contactability", "CRM Profile", "Record what blocks contact",
      "Channel-specific opt-outs. Getting this wrong is the one data error with legal consequences.",
      False, file_exists(".sales-system/crm-profile/contactability.json")),
+    ("crm-activity", "CRM Profile", "Map where activity lives, and whether direction is knowable",
+     "Which objects hold contact roles, email and meetings, and whether this CRM can tell an "
+     "inbound message from an outbound one. Without it the relationship flags read a column "
+     "nothing populates and report every deal as fine.",
+     False, profile_block("activity", needs=("email_direction_semantics",))),
     ("crm-never-push", "CRM Profile", "Agree what must never be pushed",
      "Integration-owned and automation-stamped fields. A push to one either gets overwritten or fights the integration.",
      True, None),
@@ -333,6 +355,13 @@ def module_steps(slug):
                       "agreement with the system of record.", True,
                       synced_and_fresh(must_have_data[0] if must_have_data
                                        else must_exist[0])))
+    if slug == "opportunities":
+        steps.append((f"{slug}-contacts", "Modules",
+                      f"{label}: build the contact list",
+                      "Who is on each deal and which of them reply. Until this exists the "
+                      "single-threaded flag has nothing to read, and a flag that never "
+                      "fires reports every deal as healthy.",
+                      False, registry_rows("opportunity_contacts")))
     if slug in ("daily-brief", "weekly-brief", "forecast"):
         steps.append((f"{slug}-firstrun", "Modules", f"{label}: run it once",
                       "The fastest way to find out whether the data behind it is good "
