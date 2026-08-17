@@ -11,8 +11,22 @@ in saying so — clearly, with evidence, without being tiresome about it.
 
 ## Before anything else
 
-1. Find the project root — the connected folder containing `.sales-system/`.
-2. Read `$CLAUDE_PLUGIN_ROOT/.sales-system/CONVENTIONS.md`.
+1. Find the project root — the connected folder containing `.sales-system/`. Then resolve the
+   scripts, and **stop if that fails**:
+
+   ```bash
+   S=$(python3 "<project>/.sales-system/find_scripts.py") || exit 1
+   ```
+
+   Every command below runs as `python3 "$S/<script>.py"`. Do not interpolate
+   `$CLAUDE_PLUGIN_ROOT` directly: it is empty in some sandboxes, and an empty variable does not
+   fail loudly — the path collapses to `/`, python exits 2, and the skill carries on to produce
+   normal-looking output that never ran the registry repair or the drift check it claims to have
+   run. **A non-zero exit here is a full stop**: say so in plain terms and produce nothing. A
+   brief or forecast built without registry repair and drift verification is a different artifact
+   and must not be presented as the same one. A folder with no `find_scripts.py` predates this
+   release — run `update-system`.
+2. Read `$S/../CONVENTIONS.md`.
 3. Read `00-Config/config.md` for `scope`, `default_automation`, quota, and fiscal calendar.
 4. If `00-Config/config.md` is missing, stop and run `configure-project` instead.
 5. Read `.sales-system/crm-profile/` — `field-map.json`, `picklists.json`, `profile.md`. This skill
@@ -20,7 +34,7 @@ in saying so — clearly, with evidence, without being tiresome about it.
 6. Repair the registry before reading it:
 
 ```bash
-python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/csvguard.py" --repair <project>/07-Opportunities/opportunities.csv --project <project>
+python3 "$S/csvguard.py" --repair <project>/07-Opportunities/opportunities.csv --project <project>
 ```
 
 Deals live in `07-Opportunities/opportunities.csv`. Per-deal narrative goes in
@@ -126,7 +140,7 @@ has actually replied. **The gap between those two numbers is the point.** Being 
 list tells you nothing about whether someone picks up the phone.
 
 ```bash
-S="$CLAUDE_PLUGIN_ROOT/.sales-system/scripts"
+S=$(python3 "<project>/.sales-system/find_scripts.py") || exit 1
 python3 $S/contacts_sync.py --plan   <project>                     # what to query
 # run those queries through the CRM connector, write the result to contacts.json
 python3 $S/contacts_sync.py --build  <project> --input contacts.json
@@ -190,7 +204,7 @@ whatever happened in between — closed-lost decisions, owner changes, close dat
 clean afterwards, because it is clean.
 
 ```bash
-S="$CLAUDE_PLUGIN_ROOT/.sales-system/scripts"
+S=$(python3 "<project>/.sales-system/find_scripts.py") || exit 1
 python3 $S/crm_sync.py --plan    <project> --registry opportunities   # what to select
 python3 $S/crm_sync.py --seed    <project> --registry opportunities --json-file recs.json
 python3 $S/crm_sync.py --refresh <project> --registry opportunities --json-file recs.json

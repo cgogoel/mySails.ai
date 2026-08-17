@@ -35,6 +35,12 @@ def shipped_files(ss):
             if fn.endswith((".py", ".json")) and not fn.startswith("patch_"):
                 out.append(f"{sub}/{fn}")
     out += ["CONVENTIONS.md", "VERSION.json"]
+    # The one executable that ships INTO the folder rather than running from the plugin.
+    # It has to: it is what tells a skill where the plugin's scripts are, and the only path
+    # a skill reliably knows is the project folder it was handed. Leaving it out of the
+    # manifest is how the last round of scripts became undetectable to upgrade.py.
+    if os.path.exists(os.path.join(ss, "find_scripts.py")):
+        out.append("find_scripts.py")
     # Shipped so upgrade.py can tell someone what a version actually changed. A number
     # that quietly starts meaning something else between releases is how people stop
     # trusting a tool, and the only defence is saying so at the moment they upgrade.

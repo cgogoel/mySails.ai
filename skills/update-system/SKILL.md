@@ -51,13 +51,36 @@ never offer an update; that one needs uninstall and re-upload.
 
 ## Step 2 — Is the folder behind the plugin?
 
+This skill is the one that has to work in a folder that is *already* broken, so it resolves
+the plugin longhand rather than relying on `find_scripts.py` — the folder being upgraded may
+predate it. Every other skill uses the one-liner; this one earns the exception.
+
 ```bash
-python3 "$CLAUDE_PLUGIN_ROOT/skills/update-system/scripts/upgrade.py" --check <project>
+R=$(python3 "<project>/.sales-system/find_scripts.py" --plugin-root 2>/dev/null)
+if [ -z "$R" ]; then
+  for c in "${SALES_SYSTEM_SCRIPTS%/.sales-system/scripts}" \
+           "$CLAUDE_PLUGIN_ROOT" \
+           "$(dirname "<project>")"/.remote-plugins/*/ \
+           "$HOME"/.claude/plugins/*/ "$HOME"/.claude/plugins/*/*/; do
+    [ -n "$c" ] && [ -f "$c/skills/update-system/scripts/upgrade.py" ] && { R="$c"; break; }
+  done
+fi
+[ -n "$R" ] || { echo "STOP: cannot locate the installed plugin. Set SALES_SYSTEM_SCRIPTS and retry."; exit 1; }
+python3 "$R/skills/update-system/scripts/upgrade.py" --check <project>
 ```
 
-If `$CLAUDE_PLUGIN_ROOT` isn't set, the script sits at `scripts/upgrade.py` beside this
-`SKILL.md` — resolve it from there. There is only one copy of it and it ships with these
-skills, so it always agrees with them.
+**Never write `$CLAUDE_PLUGIN_ROOT` straight into a command.** It is empty in Cowork's bash
+sandbox, the path collapses to `/`, python exits 2, and the skill carries on as if the step had
+worked. That is how fourteen skills spent six days running no scripts at all in a live folder
+while producing perfectly normal-looking output.
+
+There is only one copy of `upgrade.py` and it ships with these skills, so it always agrees with
+them.
+
+**A folder missing `.sales-system/find_scripts.py` is the case this step exists for.** It
+predates the resolver, which means every scripted step in every other skill has been failing
+silently in it. `--apply` installs the resolver as an `ADD`. Say that plainly when reporting
+what the upgrade did: it is the most consequential thing in the release and it is invisible.
 
 `--check` writes nothing. It classifies every file the folder holds:
 
@@ -75,7 +98,7 @@ merged; everything else is a straight update" beats pasting the table.
 Then apply:
 
 ```bash
-python3 "$CLAUDE_PLUGIN_ROOT/skills/update-system/scripts/upgrade.py" --apply <project>
+python3 "$R/skills/update-system/scripts/upgrade.py" --apply <project>
 ```
 
 It backs up what it's about to replace, applies, and runs `csvguard --check-all` so new
@@ -108,7 +131,7 @@ prevent.
 deletion inside their folder:
 
 ```bash
-python3 "$CLAUDE_PLUGIN_ROOT/skills/update-system/scripts/upgrade.py" --apply <project> --prune-scripts
+python3 "$R/skills/update-system/scripts/upgrade.py" --apply <project> --prune-scripts
 ```
 
 They're copied to `backups/retired-scripts-<stamp>/` first, not destroyed.

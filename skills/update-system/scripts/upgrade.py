@@ -65,7 +65,11 @@ MANIFEST = "MANIFEST.json"
 # CONVENTIONS.md are deliberately absent: they run from the plugin, so there is nothing
 # in the folder to bring forward. Schemas stay because they are meant to be edited.
 OWNED_DIRS = ("schemas",)
-OWNED_FILES = ("VERSION.json",)
+# find_scripts.py is the exception to "no scripts in the folder", and it earns it: it is how
+# every skill locates the plugin's scripts, and it can only do that from a path the skill
+# reliably knows, which is the project folder. A folder without it has every scripted step
+# fail silently. Installing it into folders that predate it is the main thing this upgrade does.
+OWNED_FILES = ("VERSION.json", "find_scripts.py")
 PRESERVE = ("crm-profile", "brand.json", "backups", "cache", "locks")
 # Left behind by folders set up before the split. Nothing reads any of it: the skills run
 # the plugin's scripts and read the plugin's CONVENTIONS.md.
@@ -261,6 +265,12 @@ def plan(src, dst):
         if rel in ("VERSION.json", MANIFEST):
             actions.append((rel, "UPDATE", "version metadata", None))
             continue
+        # Machinery, not content. Leaving a folder on its own edited copy of the resolver
+        # would leave every other skill unable to find the scripts — the exact failure this
+        # file exists to prevent — so it is replaced rather than preserved as `.new`.
+        if rel == "find_scripts.py":
+            actions.append((rel, "UPDATE", "script resolver, replaced not merged", None))
+            continue
         base = (baseline or {}).get(rel)
         if base and cur == base:
             actions.append((rel, "UPDATE", "unchanged since install", None))
@@ -432,7 +442,17 @@ def apply(src, dst, actions, migrate=True, project=None):
 
     if migrate and project:
         print("migrating the registries (new columns get added in place)...")
-        guard = os.path.join(dst, "scripts", "csvguard.py")
+        # `src` is the plugin's own .sales-system, not the folder's. This used to point at
+        # dst/scripts/csvguard.py — the in-project copy that stopped existing when scripts
+        # moved into the plugin. subprocess on a missing file raises, or in the shell
+        # equivalent exits 2, and either way the migration silently did nothing while the
+        # upgrade reported success. Same defect, same cause, one layer down.
+        guard = os.path.join(src, "scripts", "csvguard.py")
+        if not os.path.isfile(guard):
+            print(f"  SKIPPED: no csvguard.py at {guard}. New schema columns have NOT "
+                  "reached your existing registries. Run --check-all yourself once the "
+                  "plugin is properly installed, or the new columns stay absent.")
+            return 1
         r = subprocess.run([sys.executable, guard, "--check-all", project],
                            capture_output=True, text=True)
         out = (r.stdout or "").strip()

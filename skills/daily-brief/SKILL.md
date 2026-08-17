@@ -15,8 +15,22 @@ The bar: after reading, they know what to do first, and they walk into every mee
 
 ## Before anything else
 
-1. Find the project root — the connected folder containing `.sales-system/`.
-2. Read `$CLAUDE_PLUGIN_ROOT/.sales-system/CONVENTIONS.md`.
+1. Find the project root — the connected folder containing `.sales-system/`. Then resolve the
+   scripts, and **stop if that fails**:
+
+   ```bash
+   S=$(python3 "<project>/.sales-system/find_scripts.py") || exit 1
+   ```
+
+   Every command below runs as `python3 "$S/<script>.py"`. Do not interpolate
+   `$CLAUDE_PLUGIN_ROOT` directly: it is empty in some sandboxes, and an empty variable does not
+   fail loudly — the path collapses to `/`, python exits 2, and the skill carries on to produce
+   normal-looking output that never ran the registry repair or the drift check it claims to have
+   run. **A non-zero exit here is a full stop**: say so in plain terms and produce nothing. A
+   brief or forecast built without registry repair and drift verification is a different artifact
+   and must not be presented as the same one. A folder with no `find_scripts.py` predates this
+   release — run `update-system`.
+2. Read `$S/../CONVENTIONS.md`.
 3. Read `00-Config/config.md` — `scope`, `default_automation`, and **`brief_content`**, which
    records what this user wants in daily versus weekly. Honour it; the split below is the default,
    not a rule.
@@ -25,15 +39,15 @@ The bar: after reading, they know what to do first, and they walk into every mee
 6. Repair the registries:
 
 ```bash
-python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/csvguard.py" --check-all <project>
+python3 "$S/csvguard.py" --check-all <project>
 ```
 
 7. **Check whether anything moved in the CRM overnight** — for `opportunities` and `leads`:
 
 ```bash
-python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/csvguard.py" --sync-query <project> --registry opportunities
+python3 "$S/csvguard.py" --sync-query <project> --registry opportunities
 # run that query through the CRM connector, write the result to snapshot.json
-python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/csvguard.py" --verify-sync <project> \
+python3 "$S/csvguard.py" --verify-sync <project> \
     --registry opportunities --crm-json snapshot.json
 ```
 

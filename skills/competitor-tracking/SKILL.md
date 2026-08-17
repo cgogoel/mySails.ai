@@ -15,14 +15,28 @@ capability last week that blunts our main win theme" is something a rep can act 
 
 ## Before anything else
 
-1. Find the project root — the connected folder containing `.sales-system/`.
-2. Read `$CLAUDE_PLUGIN_ROOT/.sales-system/CONVENTIONS.md`.
+1. Find the project root — the connected folder containing `.sales-system/`. Then resolve the
+   scripts, and **stop if that fails**:
+
+   ```bash
+   S=$(python3 "<project>/.sales-system/find_scripts.py") || exit 1
+   ```
+
+   Every command below runs as `python3 "$S/<script>.py"`. Do not interpolate
+   `$CLAUDE_PLUGIN_ROOT` directly: it is empty in some sandboxes, and an empty variable does not
+   fail loudly — the path collapses to `/`, python exits 2, and the skill carries on to produce
+   normal-looking output that never ran the registry repair or the drift check it claims to have
+   run. **A non-zero exit here is a full stop**: say so in plain terms and produce nothing. A
+   brief or forecast built without registry repair and drift verification is a different artifact
+   and must not be presented as the same one. A folder with no `find_scripts.py` predates this
+   release — run `update-system`.
+2. Read `$S/../CONVENTIONS.md`.
 3. Read `00-Config/config.md` for `scope`, and `.sales-system/crm-profile/field-map.json` —
    especially the `competitors` block.
 4. Repair the registries:
 
 ```bash
-python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/csvguard.py" --check-all <project>
+python3 "$S/csvguard.py" --check-all <project>
 ```
 
 Competitors live in `04-Competitors/competitors`. Battlecards in

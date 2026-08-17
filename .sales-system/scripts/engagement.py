@@ -181,10 +181,30 @@ def score_all(activity, as_of=None, window=14, deal_types=None):
     return out
 
 
+def _warn_if_stale_cache(root):
+    """A cache written before the email-direction fix is not merely old, it is wrong: any
+    day with traffic both ways kept one event and dropped the other, and in practice the
+    one dropped was the reply. Scoring it produces confident, plausible, too-cold numbers.
+    Say so rather than letting the column look normal."""
+    try:
+        from activity_sync import CACHE_FORMAT, cache_paths, load_json
+    except ImportError:
+        return
+    _, meta_p = cache_paths(root)
+    meta = load_json(meta_p, {})
+    if meta and meta.get("cache_format", 1) < CACHE_FORMAT:
+        print("WARNING: the activity cache predates the fix for dropped inbound email. "
+              "Replies that landed on the same day as an outbound message were discarded, "
+              "so emails_in_recent is understated and trends read colder than reality. "
+              "Run:  activity_sync.py --rebuild <project>  then re-ingest a full history "
+              "window before trusting these scores.", file=sys.stderr)
+
+
 def load_activity(root):
     p = _cache_file(root)
     if not os.path.exists(p):
         return {}
+    _warn_if_stale_cache(root)
     try:
         with open(p, encoding="utf-8") as f:
             return json.load(f)

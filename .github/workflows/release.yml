@@ -52,9 +52,35 @@ jobs:
                   errors.append(f'skills/{s} has no SKILL.md')
 
           # The support layer must ship, or configure-project cannot bootstrap a fresh folder.
-          for path in ('.sales-system/CONVENTIONS.md', '.sales-system/schemas', '.sales-system/scripts'):
+          for path in ('.sales-system/CONVENTIONS.md', '.sales-system/schemas', '.sales-system/scripts',
+                       '.sales-system/find_scripts.py'):
               if not os.path.exists(path):
                   errors.append(f'missing {path}')
+
+          # Every script the manifest claims to ship must actually be in the tree. The manifest
+          # once listed only schemas, and a session reading it concluded the plugin had no
+          # scripts at all — which was the wrong answer and led somewhere expensive.
+          man = json.load(open('.sales-system/MANIFEST.json'))
+          shipped = [f for f in man.get('files', {}) if f.startswith('scripts/')]
+          if not shipped:
+              errors.append('MANIFEST.json lists no scripts — rerun make_template.py')
+          for rel in shipped + ['find_scripts.py']:
+              if not os.path.exists(f'.sales-system/{rel}'):
+                  errors.append(f'MANIFEST.json names .sales-system/{rel}, which is not in the tree')
+
+          # $CLAUDE_PLUGIN_ROOT is empty in Cowork's bash sandbox, so interpolating it into a
+          # command produces a path that fails on a line nobody reads while the skill carries on
+          # and emits a normal-looking result. Fourteen skills did that for six days. Never again.
+          for root_dir in ('skills', '.sales-system'):
+              for dirpath, _, files in os.walk(root_dir):
+                  for fn in files:
+                      if not fn.endswith(('.md', '.py')):
+                          continue
+                      p = os.path.join(dirpath, fn)
+                      for i, line in enumerate(open(p, encoding='utf-8'), 1):
+                          if '$CLAUDE_PLUGIN_ROOT/' in line and '${CLAUDE_PLUGIN_ROOT:+' not in line:
+                              errors.append(f'{p}:{i} interpolates $CLAUDE_PLUGIN_ROOT into a path; '
+                                            'resolve via .sales-system/find_scripts.py instead')
 
           if errors:
               for e in errors:

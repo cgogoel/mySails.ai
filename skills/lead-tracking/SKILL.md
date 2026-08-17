@@ -11,8 +11,22 @@ people are worth attention today, and what to do about each one.
 
 ## Before anything else
 
-1. Find the project root — the connected folder containing `.sales-system/`.
-2. Read `$CLAUDE_PLUGIN_ROOT/.sales-system/CONVENTIONS.md`. It governs CSV handling, task raising, and CRM sync.
+1. Find the project root — the connected folder containing `.sales-system/`. Then resolve the
+   scripts, and **stop if that fails**:
+
+   ```bash
+   S=$(python3 "<project>/.sales-system/find_scripts.py") || exit 1
+   ```
+
+   Every command below runs as `python3 "$S/<script>.py"`. Do not interpolate
+   `$CLAUDE_PLUGIN_ROOT` directly: it is empty in some sandboxes, and an empty variable does not
+   fail loudly — the path collapses to `/`, python exits 2, and the skill carries on to produce
+   normal-looking output that never ran the registry repair or the drift check it claims to have
+   run. **A non-zero exit here is a full stop**: say so in plain terms and produce nothing. A
+   brief or forecast built without registry repair and drift verification is a different artifact
+   and must not be presented as the same one. A folder with no `find_scripts.py` predates this
+   release — run `update-system`.
+2. Read `$S/../CONVENTIONS.md`. It governs CSV handling, task raising, and CRM sync.
 3. Read `00-Config/config.md` for `scope` (individual vs team) and `default_automation`.
 4. If `00-Config/config.md` is missing, stop and run `configure-project` instead.
 5. **Read `.sales-system/crm-profile/` if it exists** — see below. This is what makes the skill fit
@@ -20,7 +34,7 @@ people are worth attention today, and what to do about each one.
 6. Repair the registry before reading it:
 
 ```bash
-python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/csvguard.py" --repair <project>/06-Leads/leads.csv --project <project>
+python3 "$S/csvguard.py" --repair <project>/06-Leads/leads.csv --project <project>
 ```
 
 Leads live in `06-Leads/leads.csv`. Narrative goes in `06-Leads/Notes/LEAD-0042-jane-doe.md`.
@@ -133,7 +147,7 @@ and paraphrasing makes it useless to whoever has to fix the record.
 **Use `crm_sync.py`. Never write your own import** — see `CONVENTIONS.md` §3c for why.
 
 ```bash
-S="$CLAUDE_PLUGIN_ROOT/.sales-system/scripts"
+S=$(python3 "<project>/.sales-system/find_scripts.py") || exit 1
 python3 $S/crm_sync.py --plan    <project> --registry leads          # what to select
 python3 $S/crm_sync.py --seed    <project> --registry leads --json-file recs.json
 python3 $S/crm_sync.py --refresh <project> --registry leads --json-file recs.json

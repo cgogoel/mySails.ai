@@ -15,6 +15,7 @@ script is how it's kept honest:
   --check    look at the folder and mark steps complete from evidence, not memory
   --report   print where things stand and what to do next
   --html     render the same as a dashboard
+  --doctor   assert the scripts resolve and actually run in this environment
 
 The distinction that matters is `--check`. A session that crashed mid-phase remembers
 nothing, and a user who did something manually last week never told anyone. Both are
@@ -27,6 +28,7 @@ Usage:
   setup_status.py --report <project>
   setup_status.py --html   <project> [--out <file.html>]
   setup_status.py --set    <project> --key crm-profile --status Done [--notes "..."]
+  setup_status.py --doctor <project>
 """
 
 import argparse
@@ -157,6 +159,30 @@ def all_of(*checks):
     return check
 
 
+def scripts_runnable():
+    """Not "are the scripts installed" but "can this folder reach them right now". The two
+    came apart when the scripts moved into the plugin and `$CLAUDE_PLUGIN_ROOT` turned out
+    to be empty in Cowork's sandbox, and because nothing asserted the second, fourteen
+    skills reported success while running nothing for six days. Cheap enough to evaluate on
+    every --check, which is the point: the expensive version is the one nobody runs."""
+    def check(root):
+        resolver = os.path.join(root, G.SYSTEM_DIR, "find_scripts.py")
+        if not os.path.isfile(resolver):
+            return False, "no .sales-system/find_scripts.py — run update-system"
+        try:
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("_fs_probe", resolver)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            scripts, source = mod.find_scripts(root)
+        except Exception as e:                                    # noqa: BLE001
+            return False, f"find_scripts.py failed to run: {e}"
+        if not scripts:
+            return False, "the plugin's scripts cannot be found from this folder"
+        return True, f"scripts resolve via {source} — run --doctor to confirm they execute"
+    return check
+
+
 def module_folder(rel):
     return file_exists(rel)
 
@@ -189,10 +215,18 @@ def synced_and_fresh(schema_name):
 # ------------------------------------------------------------------- the catalogue
 
 CORE = [
+    # CONVENTIONS.md deliberately isn't checked for here any more: it moved into the plugin,
+    # so a correctly set-up folder doesn't have one and this step was reporting incomplete
+    # for exactly the folders that were right. What the folder must hold is its schemas and
+    # the resolver that lets the skills reach everything else.
     ("system-layer", "Foundation", "Install the system layer",
-     "Schemas, scripts and conventions every skill depends on. Nothing else works without it.",
-     True, all_of(file_exists(".sales-system/CONVENTIONS.md"),
+     "Schemas and the script resolver every skill depends on. Nothing else works without it.",
+     True, all_of(file_exists(".sales-system/find_scripts.py"),
                   file_exists(".sales-system/schemas"))),
+    ("scripts-runnable", "Foundation", "Confirm the scripts actually run",
+     "Every skill shells out to these. If they can't be reached the steps fail silently and "
+     "briefs still come out looking normal, so this is checked rather than assumed.",
+     True, scripts_runnable()),
     ("config-file", "Foundation", "Create the config file",
      "Where scope, storage format, brief content and cadences live. Skills read it before anything else.",
      True, file_exists("00-Config/config.md")),
@@ -745,6 +779,102 @@ def render_html(root, out):
     return out
 
 
+# ---------------------------------------------------------------------------- doctor
+# Every skill runs scripts. Whether those scripts can actually be found and executed was,
+# until now, checked by nothing — so when the plugin moved and `$CLAUDE_PLUGIN_ROOT` turned
+# out to be empty in Cowork's sandbox, fourteen skills spent six days doing no scripted work
+# at all in a live folder while producing entirely normal-looking briefs. One check that runs
+# one script and looks at the exit code would have caught it on day one. This is that check.
+
+
+def doctor(root):
+    """Assert the support layer is not just present but *runnable*. Returns 0 or 1."""
+    import subprocess
+
+    problems = []
+    ok = []
+
+    resolver = os.path.join(root, G.SYSTEM_DIR, "find_scripts.py")
+    print("support layer")
+    if not os.path.isfile(resolver):
+        print(f"  FAIL  no find_scripts.py in {G.SYSTEM_DIR}/")
+        print("        Every skill locates the plugin's scripts through this file. Without "
+              "it they interpolate\n        an empty variable and every scripted step fails "
+              "without saying so. Run update-system.")
+        return 1
+    ok.append("find_scripts.py present")
+
+    r = subprocess.run([sys.executable, resolver, root],
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        print("  FAIL  the scripts cannot be located")
+        for ln in (r.stderr or "").strip().splitlines():
+            print(f"        {ln}")
+        return 1
+    scripts = r.stdout.strip()
+    print(f"  ok    scripts resolve to {scripts}")
+
+    # Reachable is not the same as runnable. Run one for real.
+    guard = os.path.join(scripts, "csvguard.py")
+    r = subprocess.run([sys.executable, guard, "--check-all", root],
+                       capture_output=True, text=True)
+    if r.returncode not in (0, 1):     # 1 means the guard found data problems, which is fine
+        problems.append(f"csvguard.py --check-all exited {r.returncode}: "
+                        f"{(r.stderr or '').strip().splitlines()[-1] if r.stderr else ''}")
+    else:
+        ok.append(f"csvguard.py runs (exit {r.returncode})")
+
+    # Everything the manifest says shipped should be where the resolver points. Read the
+    # PLUGIN's manifest, not the folder's: a folder's own manifest records only what the
+    # folder holds — schemas and the resolver — and reading that one would assert nothing
+    # about the scripts, which are the thing in question.
+    man = read_json_safe(os.path.join(scripts, os.pardir, "MANIFEST.json"))
+    named = [f for f in (man.get("files") or {}) if f.startswith("scripts/")]
+    missing = [f for f in named if not os.path.isfile(os.path.join(scripts, os.path.basename(f)))]
+    if missing:
+        problems.append(f"{len(missing)} script(s) named in the plugin's MANIFEST.json are "
+                        f"not at the resolved path: {', '.join(sorted(missing))}")
+    elif named:
+        ok.append(f"all {len(named)} manifest scripts present and hashed")
+    else:
+        problems.append("the plugin's MANIFEST.json names no scripts, so what shipped "
+                        "cannot be verified — a session inspecting it would conclude there "
+                        "are no scripts at all")
+
+    # The regression cover for the bugs that were invisible in the field.
+    act = os.path.join(scripts, "activity_sync.py")
+    if os.path.isfile(act):
+        r = subprocess.run([sys.executable, act, "--selftest"], capture_output=True, text=True)
+        line = (r.stdout or r.stderr or "").strip().splitlines()
+        if r.returncode != 0:
+            problems.append("activity_sync selftest failed: " + (line[-1] if line else ""))
+        else:
+            ok.append(line[-1] if line else "activity_sync selftest passed")
+
+    print("\nchecks")
+    for s in ok:
+        print(f"  ok    {s}")
+    for s in problems:
+        print(f"  FAIL  {s}")
+
+    if problems:
+        print(f"\n{len(problems)} problem(s). Until these are fixed, any skill that says it "
+              "repaired the registries\nor verified against the CRM did not do so. Treat "
+              "briefs and forecasts produced meanwhile as unverified.")
+        return 1
+    print("\nall good — the scripts resolve and run, so scripted steps in the skills are "
+          "really happening.")
+    return 0
+
+
+def read_json_safe(p):
+    try:
+        with open(p, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
 def main():
     ap = argparse.ArgumentParser(add_help=True)
     ap.add_argument("--init")
@@ -759,13 +889,17 @@ def main():
     ap.add_argument("--blocked-reason", dest="blocked")
     ap.add_argument("--modules")
     ap.add_argument("--out")
+    ap.add_argument("--doctor")
     a = ap.parse_args()
 
-    root = os.path.abspath(a.init or a.check or a.report or a.html or a.set or "")
+    root = os.path.abspath(a.init or a.check or a.report or a.html or a.set
+                          or a.doctor or "")
     if not root or not os.path.isdir(os.path.join(root, G.SYSTEM_DIR)):
         print("error: pass a project root containing .sales-system", file=sys.stderr)
         return 2
 
+    if a.doctor:
+        return doctor(root)
     if a.init:
         init(root, read_modules(root, a.modules))
         check(root, quiet=True)

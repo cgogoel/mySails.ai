@@ -29,16 +29,31 @@ they update when the plugin does and there is never a stale copy sitting next to
 What the folder holds is the part the user is allowed to edit — their schemas — plus their CRM
 profile and brand.
 
-Resolve the plugin root: use `$CLAUDE_PLUGIN_ROOT` when set, otherwise the directory two levels
-above this `SKILL.md`. Then:
+Resolving the plugin root is the one step that has no folder to resolve *from* yet, so it is
+the one place the discovery is written out longhand. Every other skill, and every later step
+here, uses `find_scripts.py` instead — which this step is what installs.
 
 ```bash
-PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:?resolve from this skill's own path if unset}"
+PLUGIN_ROOT=""
+for c in "${SALES_SYSTEM_SCRIPTS%/scripts}" \
+         "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/.sales-system}" \
+         "$(dirname "<project>")"/.remote-plugins/*/.sales-system \
+         "$HOME"/.claude/plugins/*/.sales-system \
+         "$HOME"/.claude/plugins/*/*/.sales-system; do
+  [ -f "$c/find_scripts.py" ] && { PLUGIN_ROOT="$(dirname "$c")"; break; }
+done
+[ -n "$PLUGIN_ROOT" ] || { echo "STOP: cannot find the installed plugin. Set SALES_SYSTEM_SCRIPTS and retry."; exit 1; }
+
 mkdir -p "<project>/.sales-system"/{schemas,crm-profile,backups,cache}
 cp "$PLUGIN_ROOT/.sales-system/schemas/"*.json "<project>/.sales-system/schemas/"
 cp "$PLUGIN_ROOT/.sales-system/VERSION.json" "$PLUGIN_ROOT/.sales-system/MANIFEST.json" \
-   "<project>/.sales-system/"
+   "$PLUGIN_ROOT/.sales-system/find_scripts.py" "<project>/.sales-system/"
 ```
+
+**`find_scripts.py` is not optional.** It is how all thirteen other skills locate the scripts,
+and a folder without it has every scripted step fail — silently, because `$CLAUDE_PLUGIN_ROOT`
+is empty in Cowork and an empty variable produces a path that errors on a line nobody reads.
+If the copy above didn't land, nothing downstream of this folder works and setup should stop.
 
 If a copy fails with a permission error — some connected folders reject `cp` because it
 preserves the source's read-only mode — stream the files instead:
@@ -47,11 +62,25 @@ preserves the source's read-only mode — stream the files instead:
 for f in "$PLUGIN_ROOT/.sales-system/schemas/"*.json; do
   cat "$f" > "<project>/.sales-system/schemas/$(basename "$f")"
 done
+cat "$PLUGIN_ROOT/.sales-system/find_scripts.py" > "<project>/.sales-system/find_scripts.py"
 ```
 
-Verify `schemas/` and `VERSION.json` are present. `MANIFEST.json` is what lets a later upgrade
-tell a schema the user edited from one that hasn't been touched, so don't skip it. Say plainly
-that the system layer was installed; don't expose paths unless asked.
+Verify `schemas/`, `VERSION.json` and `find_scripts.py` are present. `MANIFEST.json` is what
+lets a later upgrade tell a schema the user edited from one that hasn't been touched, so don't
+skip it. Say plainly that the system layer was installed; don't expose paths unless asked.
+
+Then record where the scripts were found, and prove they run:
+
+```bash
+mkdir -p "<project>/00-Config"
+S=$(python3 "<project>/.sales-system/find_scripts.py") || exit 1   # writes 00-Config/paths.json
+python3 "$S/setup_status.py" --doctor <project>
+```
+
+`--doctor` runs one script and reports its exit code, which is the check that would have caught
+six days of silently skipped repairs on day one. **If it fails, fix it before continuing** —
+everything after this point assumes the scripts actually execute, and the entire failure mode
+being guarded against here is work that looks done and wasn't.
 
 **If `.sales-system/` already exists**, don't re-copy anything — go to 1a.
 
@@ -64,7 +93,8 @@ The plugin and the folder's schemas version independently, so check at the start
 session:
 
 ```bash
-python3 "$CLAUDE_PLUGIN_ROOT/skills/update-system/scripts/upgrade.py" --check <project>
+R=$(python3 "<project>/.sales-system/find_scripts.py" --plugin-root) || exit 1
+python3 "$R/skills/update-system/scripts/upgrade.py" --check <project>
 ```
 
 If it reports changes, hand off to the **`update-system`** skill rather than reimplementing the
@@ -78,15 +108,14 @@ explanation. Say what's waiting in plain terms first:
 **A folder that's behind is not broken**, so don't block on it. If they'd rather press on, note
 it and carry on; just don't promise behaviour the installed layer doesn't have.
 
-Then read `$CLAUDE_PLUGIN_ROOT/.sales-system/CONVENTIONS.md` — the rulebook the rest of this
-assumes. It lives in the plugin, not the folder, because it has to agree with the skills that
-follow it.
+Then read `$S/../CONVENTIONS.md` — the rulebook the rest of this assumes. It lives in the
+plugin, not the folder, because it has to agree with the skills that follow it.
 
 ### 2. Find out where they already are
 
 ```bash
-S="$CLAUDE_PLUGIN_ROOT/.sales-system/scripts"
-python3 $S/setup_status.py --check <project>     # or --init on a first run
+S=$(python3 "<project>/.sales-system/find_scripts.py") || exit 1
+python3 "$S/setup_status.py" --check <project>     # or --init on a first run
 ```
 
 `--check` looks at the folder and marks steps complete from **evidence** — the file that exists,

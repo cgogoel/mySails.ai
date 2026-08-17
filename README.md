@@ -109,8 +109,9 @@ allowed to edit those. In a session on that folder, say **"update my sales syste
 it directly:
 
 ```bash
-python3 "$CLAUDE_PLUGIN_ROOT/skills/update-system/scripts/upgrade.py" --check <project>
-python3 "$CLAUDE_PLUGIN_ROOT/skills/update-system/scripts/upgrade.py" --apply <project>
+R=$(python3 "<project>/.sales-system/find_scripts.py" --plugin-root)
+python3 "$R/skills/update-system/scripts/upgrade.py" --check <project>
+python3 "$R/skills/update-system/scripts/upgrade.py" --apply <project>
 ```
 
 The upgrader ships inside the `update-system` skill, so there's only ever one copy and it

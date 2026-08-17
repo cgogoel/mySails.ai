@@ -15,18 +15,40 @@ of the confusion around updating.
 
 | | Holds | Lives in | Updated by |
 |---|---|---|---|
-| **The plugin** | The skills, every script, this file | `$CLAUDE_PLUGIN_ROOT` | The marketplace |
+| **The plugin** | The skills, every script, this file | The installed plugin directory | The marketplace |
 | **The folder** | Registries, notes, briefs, `schemas/`, `crm-profile/`, `brand.json` | The connected project folder | `update-system` |
 
-**Scripts run from the plugin, never from the project folder.** Every invocation in every
-skill is:
+**Scripts run from the plugin, never from the project folder.** Finding the plugin is the
+part that has to be done properly, and there is exactly one supported way to do it:
 
 ```bash
-python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/csvguard.py" --check-all <project>
+S=$(python3 "<project>/.sales-system/find_scripts.py") || exit 1
+python3 "$S/csvguard.py" --check-all <project>
 ```
 
-If `$CLAUDE_PLUGIN_ROOT` is unset, resolve it from the running skill's own path: a
-`SKILL.md` sits at `<plugin>/skills/<name>/`, so the plugin root is two levels above it.
+**Never interpolate `$CLAUDE_PLUGIN_ROOT` into a command.** It is set in Claude Code and
+**empty in Cowork's bash sandbox**, and an empty variable is the worst kind of failure: the
+path collapses to `/.sales-system/scripts/csvguard.py`, python exits 2 on a line the skill
+was told to run before the real work, nothing surfaces to the user, and the brief comes out
+looking entirely normal without ever having run the repair or the drift check. In one live
+folder that went unnoticed for six days, during which engagement scoring never ran and two
+schema violations sat unreported.
+
+`find_scripts.py` resolves in this order — explicit override, cached answer, the documented
+variable, then discovery of how Cowork and Claude Code actually lay plugins out — and exits
+non-zero with an explanation when it can't. **Treat a non-zero exit as a full stop.** Say so
+to the user and produce nothing: a brief built without registry repair and drift verification
+is a different artifact and presenting it as the same one is the failure, not the missing
+script.
+
+It resolves *outward from the project folder*, because that is the one path a skill always
+knows — it is the folder the user connected and the argument every command already takes. The
+answer is cached in `00-Config/paths.json`, which is a cache and safe to delete. Override with
+`SALES_SYSTEM_SCRIPTS`. To locate the plugin root itself rather than its scripts, add
+`--plugin-root`.
+
+A copy of `find_scripts.py` sits in the folder's `.sales-system/`; it is the only executable
+that does, and it exists so the rest do not have to.
 
 This is a deliberate reversal of the original design, which copied the whole layer into
 every folder. That left each folder holding its own ageing copy of the scripts — including
@@ -102,8 +124,8 @@ a binary buys nothing.
 Converting is safe and reversible:
 
 ```bash
-python3 <project>/.sales-system/scripts/csvguard.py --convert-all <project> --to xlsx
-python3 <project>/.sales-system/scripts/csvguard.py --convert <path> --to csv
+python3 "$S"/csvguard.py --convert-all <project> --to xlsx
+python3 "$S"/csvguard.py --convert <path> --to csv
 ```
 
 Originals are kept until the user deletes them.
@@ -132,7 +154,7 @@ everything shouts is a sheet nobody reads, and colouring every past date — inc
 ### Rules that apply to both formats
 
 These exist because the user edits these files in Excel, and Excel is careless with CSVs.
-`.sales-system/scripts/csvguard.py` enforces and repairs them. Under `xlsx` most of the
+`csvguard.py`, in the plugin, enforces and repairs them. Under `xlsx` most of the
 repairs stop being necessary, because a real date cell can't be reformatted into ambiguity
 and a real number can't acquire a currency symbol — but the rules still define the canonical
 form the data is normalised to.
@@ -161,7 +183,7 @@ assume the user put it there on purpose.
 Before reading any registry:
 
 ```bash
-python3 <project>/.sales-system/scripts/csvguard.py --check-all <project>
+python3 "$S"/csvguard.py --check-all <project>
 ```
 
 Or for one file: `--check <path>` to inspect, `--repair <path>` to fix in place (it backs up
@@ -689,7 +711,7 @@ Rows accumulate; a tasks file gains rows daily, and a registry with thousands of
 open and slower to style. Each schema carries an `archive` policy (closed states + age). Run:
 
 ```bash
-python3 <project>/.sales-system/scripts/csvguard.py --archive <project> [--dry-run]
+python3 "$S"/csvguard.py --archive <project> [--dry-run]
 ```
 
 Rows move to `99-Archive/<registry>-<year>` in the same schema and styling — still openable, still
@@ -731,8 +753,9 @@ is reconcile a folder's **schemas**, because the user is allowed to edit those. 
 `update-system` skill's job:
 
 ```bash
-python3 "$CLAUDE_PLUGIN_ROOT/skills/update-system/scripts/upgrade.py" --check <project>
-python3 "$CLAUDE_PLUGIN_ROOT/skills/update-system/scripts/upgrade.py" --apply <project>
+R=$(python3 "<project>/.sales-system/find_scripts.py" --plugin-root) || exit 1
+python3 "$R/skills/update-system/scripts/upgrade.py" --check <project>
+python3 "$R/skills/update-system/scripts/upgrade.py" --apply <project>
 ```
 
 The upgrader lives in the skill rather than in this layer, so there is only ever one copy of

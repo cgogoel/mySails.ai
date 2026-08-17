@@ -20,13 +20,27 @@ question here.
 
 ## Before anything else
 
-1. Find the project root — the connected folder containing `.sales-system/`.
-2. Read `$CLAUDE_PLUGIN_ROOT/.sales-system/CONVENTIONS.md`.
+1. Find the project root — the connected folder containing `.sales-system/`. Then resolve the
+   scripts, and **stop if that fails**:
+
+   ```bash
+   S=$(python3 "<project>/.sales-system/find_scripts.py") || exit 1
+   ```
+
+   Every command below runs as `python3 "$S/<script>.py"`. Do not interpolate
+   `$CLAUDE_PLUGIN_ROOT` directly: it is empty in some sandboxes, and an empty variable does not
+   fail loudly — the path collapses to `/`, python exits 2, and the skill carries on to produce
+   normal-looking output that never ran the registry repair or the drift check it claims to have
+   run. **A non-zero exit here is a full stop**: say so in plain terms and produce nothing. A
+   brief or forecast built without registry repair and drift verification is a different artifact
+   and must not be presented as the same one. A folder with no `find_scripts.py` predates this
+   release — run `update-system`.
+2. Read `$S/../CONVENTIONS.md`.
 3. Read `00-Config/config.md` for `scope`, and `.sales-system/crm-profile/field-map.json`.
 4. Repair the registries:
 
 ```bash
-python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/csvguard.py" --check-all <project>
+python3 "$S/csvguard.py" --check-all <project>
 ```
 
 `11-Partners/` holds `partners`, `deal-registrations`, and per-partner folders.
@@ -63,7 +77,7 @@ agreement doesn't state.
 **Run it on every registration, before approving anything.**
 
 ```bash
-python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/partner_conflict.py" --check <project> \
+python3 "$S/partner_conflict.py" --check <project> \
   --partner "GuidePoint Security" --role Reseller \
   --customer "Dept of Homeland Security" --domain dhs.gov \
   --distributor "Carahsoft" --country US --segment Government
@@ -123,7 +137,7 @@ Record `protection_days` **from the agreement at time of approval**, not looked 
 change, and a claim is governed by what was agreed when it was made.
 
 ```bash
-python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/partner_conflict.py" --audit <project>
+python3 "$S/partner_conflict.py" --audit <project>
 ```
 
 Claims expiring within two weeks warrant a nudge; lapsed ones should be resolved rather than left
@@ -134,7 +148,7 @@ ambiguous.
 ## Listing partner deals
 
 ```bash
-python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/partner_conflict.py" --list <project> [--partner "Optiv"]
+python3 "$S/partner_conflict.py" --list <project> [--partner "Optiv"]
 ```
 
 Opportunities carrying a `partner_id` alongside registrations not yet converted, with motion,
@@ -204,7 +218,7 @@ that's the number that says whether the alliance is real.
 **Import** — through `crm_sync.py` only, never a hand-rolled script (`CONVENTIONS.md` §3c):
 
 ```bash
-S="$CLAUDE_PLUGIN_ROOT/.sales-system/scripts"
+S=$(python3 "<project>/.sales-system/find_scripts.py") || exit 1
 python3 $S/crm_sync.py --refresh <project> --registry partners --json-file recs.json
 python3 $S/crm_sync.py --refresh <project> --registry deal_registrations --json-file recs.json
 ```

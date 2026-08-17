@@ -17,8 +17,22 @@ contract, and whether the customer has heard about it yet.
 
 ## Before anything else
 
-1. Find the project root — the connected folder containing `.sales-system/`.
-2. Read `$CLAUDE_PLUGIN_ROOT/.sales-system/CONVENTIONS.md`.
+1. Find the project root — the connected folder containing `.sales-system/`. Then resolve the
+   scripts, and **stop if that fails**:
+
+   ```bash
+   S=$(python3 "<project>/.sales-system/find_scripts.py") || exit 1
+   ```
+
+   Every command below runs as `python3 "$S/<script>.py"`. Do not interpolate
+   `$CLAUDE_PLUGIN_ROOT` directly: it is empty in some sandboxes, and an empty variable does not
+   fail loudly — the path collapses to `/`, python exits 2, and the skill carries on to produce
+   normal-looking output that never ran the registry repair or the drift check it claims to have
+   run. **A non-zero exit here is a full stop**: say so in plain terms and produce nothing. A
+   brief or forecast built without registry repair and drift verification is a different artifact
+   and must not be presented as the same one. A folder with no `find_scripts.py` predates this
+   release — run `update-system`.
+2. Read `$S/../CONVENTIONS.md`.
 3. Read `00-Config/config.md` for `scope` and `default_automation`.
 4. Read `.sales-system/crm-profile/field-map.json`, especially the `renewals` block and any
    `org_renewal_policy` it carries. **The org's renewal policy determines what counts as late here**,
@@ -26,7 +40,7 @@ contract, and whether the customer has heard about it yet.
 5. Repair the registry:
 
 ```bash
-python3 "$CLAUDE_PLUGIN_ROOT/.sales-system/scripts/csvguard.py" --repair <project>/08-Renewals/renewals.csv --project <project>
+python3 "$S/csvguard.py" --repair <project>/08-Renewals/renewals.csv --project <project>
 ```
 
 Contracts live in `08-Renewals/renewals.csv`. Account narrative belongs with the account, in
@@ -178,7 +192,7 @@ flat renewals become churn.
 **Use `crm_sync.py`, never a hand-rolled import** (`CONVENTIONS.md` §3c):
 
 ```bash
-S="$CLAUDE_PLUGIN_ROOT/.sales-system/scripts"
+S=$(python3 "<project>/.sales-system/find_scripts.py") || exit 1
 python3 $S/crm_sync.py --plan    <project> --registry renewals
 python3 $S/crm_sync.py --refresh <project> --registry renewals --json-file recs.json
 ```
