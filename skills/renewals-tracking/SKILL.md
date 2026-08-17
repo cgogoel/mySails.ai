@@ -41,6 +41,7 @@ contract, and whether the customer has heard about it yet.
 
 ```bash
 python3 "$S/csvguard.py" --repair <project>/08-Renewals/renewals.csv --project <project>
+python3 "$S/fx.py" --convert <project> --registry renewals
 ```
 
 Contracts live in `08-Renewals/renewals.csv`. Account narrative belongs with the account, in
@@ -202,6 +203,13 @@ locally — `churn_risk_reason`, `expansion_signal`, `conversation_target_date`,
 so a refresh writes only the CRM-owned columns and leaves that work intact. A rebuild would
 also renumber every `REN` id and orphan every task pointing at one, which is why bulk loading
 goes through `--upsert` and never a rewrite.
+
+Coverage is a sum, so it is computed from `converted_current_value` and
+`converted_proposed_value` — never from `current_value` directly, which is in the contract's own
+currency. A renewal reaching Renewed, Churned, Downgraded or Auto-Renewed freezes its converted
+value, so a closed renewal year stays the number it was. A renewal proposed in a different currency
+from the contract it replaces is a different contract and belongs in a new record, not a second
+currency on this one.
 
 Verify before reporting coverage:
 

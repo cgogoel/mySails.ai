@@ -104,6 +104,11 @@ python3 "$R/skills/update-system/scripts/upgrade.py" --apply <project>
 It backs up what it's about to replace, applies, and runs `csvguard --check-all` so new
 schema columns reach registries that already exist.
 
+A new column that nothing populates is worse than no column, because it reads as a value of
+nothing. Where a release adds derived columns with a script behind them, run that script too
+before saying the update is done — for the currency columns that is `fx.py --convert <project>`,
+which needs `base_currency:` in `config.md` and at least one row in `00-Config/fx-rates` first.
+
 ## Step 3 — Say what actually happened
 
 - **Anything reported `KEEP` means that folder is still running the user's version of that

@@ -164,7 +164,9 @@ form the data is normalised to.
 - **Column one is `id`.** Format `PREFIX-0001`. Stable forever, never reused, never renumbered.
   If a row is deleted its ID retires with it.
 - **Dates are `YYYY-MM-DD`.** Always. Excel will mangle these; the guard repairs them.
-- **Money is a bare number.** `120000`, not `$120,000.00`. Currency is a separate column.
+- **Money is a bare number.** `120000`, not `$120,000.00`. Currency is a separate column, and a
+  derived `converted_*` column beside it holds the same money in the folder's base currency — see
+  §8a. Sum the converted one.
 - **No formulas.** A formula in a source file breaks every non-Excel reader. If the user wants
   a calculated view, generate a separate report file.
 - **Empty means unknown, not zero.** Don't fill blanks with `0` or `N/A` or `TBD`.
@@ -699,11 +701,65 @@ The person using this is selling for a living and reading your output between me
 
 ## 8a. Money and currency
 
-Amounts are bare numbers; `currency` is a separate column, and orgs with multi-currency CRMs will
-have mixed books. **Never sum amounts across currencies.** A €80K and a $120K deal do not make
-"200K" of anything. Totals in forecasts, briefs, and goal attainment group by currency; if a book
-is single-currency, this costs nothing. If someone wants a blended figure, that requires a
-conversion rate and a date, which is a decision — ask, don't assume.
+Amounts are bare numbers in the record's own currency; `currency` is a separate column, and orgs
+with multi-currency CRMs will have mixed books. **Never sum the raw amount column across
+currencies.** A €80K and a $120K deal do not make "200K" of anything.
+
+That rule used to end there, which left every total in the system unbuildable on a mixed book. It
+now has a second half: the folder converts, once, into one currency, and totals are built from the
+converted column.
+
+- **`base_currency:` in `00-Config/config.md`** is the currency every total is expressed in. There
+  is no default. A folder that has not been told cannot convert, and guessing puts a number into a
+  column meaning something nobody agreed to.
+- **`00-Config/fx-rates`** holds dated rates, one row per currency per rate change per source.
+  `rate_to_base` is a **multiplier**: amount × rate_to_base = amount in base. Most CRMs, Salesforce
+  included, store the reciprocal, as do both public providers; `fx.py --pull` and `--fetch` invert
+  it and keep the source's own figure verbatim in `source_rate` beside the convention it follows.
+  Inverting it twice is the likeliest way to produce a confident wrong total.
+- **Where rates come from is a separate question from which ones convert.** The table holds every
+  source side by side — `CRM` from the CRM's currency setup, `API` from a public market feed via
+  `fx.py --fetch`, `Manual` from a human. **`rate_source:` in config.md names the one that
+  converts, and it defaults to `crm`**: totals that reconcile against the system of record are
+  worth more than totals that are marginally more accurate and match nothing. Set it to `market`
+  for a folder with no CRM, or one whose currency table nobody maintains.
+- **The sources that are not converting are not decoration.** `fx.py --check` compares them and
+  reports any gap past `rate_drift_threshold:` (default 2%). This is the only way anyone finds out
+  that a CRM currency table last touched a year ago has been converting several percent out —
+  silently, confidently, on every deal. It reports and never applies: which source is authoritative
+  is a decision in config.md, not something a drift check gets to overrule. `rate_staleness_days:`
+  (default 30) does the same job for age, and fires on every conversion rather than waiting to be
+  asked, because a stale table converts exactly as confidently as a fresh one.
+- **Only `--fetch` touches the network.** ECB reference rates by default, because it is the one
+  free source with a historical endpoint, and history is what a system that freezes closed records
+  needs — backfilling a settled quarter means asking what March was, not what today is. It covers
+  around thirty currencies on business days; anything it does not publish falls back to a wider
+  provider, and the mixed provenance is stated rather than hidden.
+- **Each record carries `converted_*` beside its amount**, plus `fx_rate`, `fx_rate_date` and
+  `converted_currency`, so any converted figure can be reconstructed without guessing which rate
+  was in force. Opportunities, renewals, quotes and goals each declare what converts in an `fx`
+  block in their schema.
+- **Closed records freeze.** Once a deal is Closed Won or Closed Lost — or a renewal resolves, or a
+  quote is sent, or a goal's period ends — the converted figure is computed once and never
+  recomputed. Last quarter's attainment has to be the same number every time someone reads it. A
+  record that is merely *late* does not freeze: a deal whose close date has passed while it is
+  still open is live pipeline, and belongs in the forecast at today's rate, not at the rate of a
+  date it failed to close on. The freeze is on state, not on the calendar. `fx.py --refreeze` is
+  the one deliberate door back through it.
+- **A conversion that cannot be done is blank, never zero.** No currency on the record, or no rate
+  for it, and the converted column stays empty and gets reported by `fx.py --check`. A zero would
+  pass silently through every sum and shrink the forecast — the exact failure this machinery
+  exists to prevent.
+- **Say the total is converted.** A blended figure that does not name its base currency, its rate
+  date and what it was converted from is not readable, and the reader has no way to tell it from
+  one that was never converted at all.
+
+Quotes are the exception worth stating: only the total converts, for reporting. Line items,
+discounts and subtotals stay in the currency the customer agreed to, because a converted discount
+percentage is a number nobody quoted.
+
+Run `fx.py --convert <project>` after any import, amount change or stage change, and before
+building anything that adds up.
 
 ## 8b. Archiving — registries must not grow forever
 

@@ -40,6 +40,32 @@ because it gets read on a forecast call and referred back to afterwards.
 python3 "$S/csvguard.py" --check-all <project>
 ```
 
+6a. **Bring the currency conversion up to date, before any total.** Every figure in this
+   forecast is a sum, and a sum is only meaningful in one currency (CONVENTIONS §8a).
+
+```bash
+python3 "$S/fx.py" --convert <project>
+```
+
+   Open records reconvert at the current rate; closed ones keep the rate they were frozen at, so
+   a settled quarter reads the same number every time. A non-zero exit means some records could
+   not be converted — **they are missing from every total on the dashboard**, so carry the count
+   into the payload as `unconverted_records` and name them in the narrative rather than
+   presenting a total that quietly excludes them. If the rate table is stale or empty, pull it:
+   query the CRM's currency table through the connector and hand it over as
+   `{"base":"USD","convention":"units-of-currency-per-base","rates":{"EUR":0.91}}` to
+   `fx.py --pull`. In Salesforce that is
+   `SELECT IsoCode, ConversionRate, IsCorporate FROM CurrencyType WHERE IsActive = true` — and
+   `ConversionRate` there is the **reciprocal** of the multiplier, which `--pull` inverts for you.
+   Do not invert it yourself as well. A folder with no CRM uses `fx.py --fetch` instead, which
+   takes rates from a public source.
+
+   `--convert` also warns when the rate table is past its staleness window. **Do not build a
+   forecast on a stale rate table without saying so in the narrative** — the totals will look
+   exactly as authoritative as they would on fresh rates. If `fx.py --check` reports drift between
+   the CRM's rates and the market, that belongs in the forecast too: pipeline that appears to have
+   grown because the CRM's euro rate is a year out has not grown.
+
 7. **Verify the pipeline still matches the CRM.** This comes before any arithmetic, because
    the failure it catches is invisible afterwards — a clean registry that quietly disagrees
    with the system of record produces a confident, wrong forecast.
@@ -154,6 +180,18 @@ prominently. Commit, best case, weighted, closed in period, gap to goal, coverag
 forecast-category API mapping — filtering on a display label rather than the stored value silently
 drops a category.
 
+**Sum `converted_amount`, never `amount`.** `amount` is the deal in its own currency and is the
+right number to quote back to the customer and the wrong number to add up. Every total, weighted
+figure, gap and coverage ratio on this dashboard is built from the converted column. A deal whose
+`converted_amount` is blank is not a zero — it is a deal nobody can total, and it belongs in the
+narrative, not silently in the denominator. Goal attainment compares against `converted_target`
+for the same reason.
+
+Put the currency picture in the payload so the dashboard can state it: `base_currency`,
+`currency_mix` as `{"USD": 12, "EUR": 3}` counted across the records in scope, `rates_as_of` from
+the newest `effective_from` in `00-Config/fx-rates`, and `unconverted_records`. A converted total
+that does not say it is converted is as unreadable as one that never converted.
+
 Run the engagement scorer:
 
 ```bash
@@ -170,7 +208,8 @@ trusted.
 Measured against **100%**. Every renewal not secured is leakage, not a deal you didn't win.
 
 From `08-Renewals/`: value due in the period, secured, at risk, and where the number sat at the last
-forecast so movement shows.
+forecast so movement shows — from `converted_current_value` and `converted_proposed_value`, on the
+same rule as new business.
 
 Called out by name: **at risk**, from the renewals module's own flags with value and reason; and
 **resolved since the last forecast**, with what it did to the tracker. "US Army renewed five weeks

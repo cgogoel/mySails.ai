@@ -4,7 +4,7 @@
   "id_prefix": "QUOTE",
   "id_width": 4,
   "browsable": true,
-  "description": "One row per quote issued or drafted. Versioned, because a renegotiated quote is a new version rather than an edit — you need to be able to say what the customer was actually sent.",
+  "description": "One row per quote issued or drafted. Versioned, because a renegotiated quote is a new version rather than an edit \u2014 you need to be able to say what the customer was actually sent.",
   "picklists_overridable": [
     "status",
     "payment_terms",
@@ -105,7 +105,32 @@
     {
       "name": "currency",
       "type": "text",
-      "owner": "local"
+      "owner": "local",
+      "note": "ISO code this quote is denominated in. What the customer sees and agrees to. converted_total exists for reporting only and is never shown on the document."
+    },
+    {
+      "name": "converted_currency",
+      "type": "text",
+      "note": "DERIVED. Which currency converted_* is expressed in \u2014 the folder's base_currency at the moment of conversion. Stored per row rather than read from config, so a folder that later changes its base currency cannot silently reinterpret numbers already written.",
+      "owner": "derived"
+    },
+    {
+      "name": "fx_rate",
+      "type": "number",
+      "note": "DERIVED. The multiplier actually applied: amount x fx_rate = converted amount. Stored so the converted figure can be reconstructed and audited without guessing which rate was in force. 1 when the record is already in the base currency.",
+      "owner": "derived"
+    },
+    {
+      "name": "fx_rate_date",
+      "type": "date",
+      "note": "DERIVED. effective_from of the fx-rates row used. Not the same as when the conversion ran: a rate dated before the record's own date is the normal case, and a rate dated after it means no rate that old exists and fx.py --check will say so.",
+      "owner": "derived"
+    },
+    {
+      "name": "fx_frozen",
+      "type": "bool",
+      "note": "DERIVED. yes once this record reaches a closed state, after which the converted figure is never recomputed \u2014 a closed number that moves with the exchange rate makes last quarter's attainment a different number every time it is read. Open records reconvert at the current rate on every run.",
+      "owner": "derived"
     },
     {
       "name": "subtotal_list",
@@ -141,6 +166,12 @@
       "type": "money",
       "required": true,
       "note": "DERIVED. What the customer pays.",
+      "owner": "derived"
+    },
+    {
+      "name": "converted_total",
+      "type": "money",
+      "note": "DERIVED. What the customer pays in the base currency, from total x fx_rate. Blank \u2014 never zero \u2014 when total is blank, when currency is blank, or when no rate exists for that currency. A missing conversion that reads as zero silently shrinks a forecast.",
       "owner": "derived"
     },
     {
@@ -235,5 +266,27 @@
     ],
     "age_column": "issue_date",
     "keep_days": 365
+  },
+  "fx": {
+    "currency_column": "currency",
+    "convert": [
+      {
+        "from": "total",
+        "to": "converted_total"
+      }
+    ],
+    "rate_date_column": "issue_date",
+    "freeze": {
+      "column": "status",
+      "values": [
+        "Sent",
+        "Under Negotiation",
+        "Accepted",
+        "Declined",
+        "Expired",
+        "Superseded"
+      ]
+    },
+    "note": "Frozen the moment the quote leaves the building, matching the rule that a sent quote is never edited in place but reissued as a new version. Only the total converts. The line items, subtotal and discounts stay in the quote's own currency because they are what the customer agreed to, and a converted discount percentage is a number nobody quoted."
   }
 }

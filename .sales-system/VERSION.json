@@ -1,4 +1,4 @@
 {
-  "template_version": "2026-08-17",
+  "template_version": "2026-08-18",
   "note": "unpack into <project>/.sales-system/, then run configure-project"
 }

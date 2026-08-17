@@ -3,7 +3,7 @@
   "path": "08-Renewals/renewals.csv",
   "id_prefix": "REN",
   "id_width": 4,
-  "description": "Contract calendar. One row per active contract, tracking the window between 'this expires' and 'someone is working it'. NOT a second pipeline — once a renewal opportunity exists, this row points at it and the opportunity carries the commercial detail.",
+  "description": "Contract calendar. One row per active contract, tracking the window between 'this expires' and 'someone is working it'. NOT a second pipeline \u2014 once a renewal opportunity exists, this row points at it and the opportunity carries the commercial detail.",
   "picklists_overridable": [
     "status",
     "outcome",
@@ -52,7 +52,7 @@
     {
       "name": "notice_period_days",
       "type": "number",
-      "note": "Days before expiry that formal notice must be given. Many orgs have no formal notice period — the profile says. Blank means unknown or not applicable, never zero.",
+      "note": "Days before expiry that formal notice must be given. Many orgs have no formal notice period \u2014 the profile says. Blank means unknown or not applicable, never zero.",
       "owner": "local"
     },
     {
@@ -79,6 +79,42 @@
       "note": "Value of the contract now up for renewal",
       "owner": "crm",
       "verify": true
+    },
+    {
+      "name": "currency",
+      "type": "text",
+      "note": "ISO code the contract is denominated in. Blank is not assumed to mean the base currency \u2014 fx.py --backfill-currency fills it explicitly and says how many rows it touched.",
+      "owner": "crm"
+    },
+    {
+      "name": "converted_current_value",
+      "type": "money",
+      "note": "DERIVED. Value of the contract now up for renewal in the base currency, from current_value x fx_rate. Blank \u2014 never zero \u2014 when current_value is blank, when currency is blank, or when no rate exists for that currency. A missing conversion that reads as zero silently shrinks a forecast.",
+      "owner": "derived"
+    },
+    {
+      "name": "converted_currency",
+      "type": "text",
+      "note": "DERIVED. Which currency converted_* is expressed in \u2014 the folder's base_currency at the moment of conversion. Stored per row rather than read from config, so a folder that later changes its base currency cannot silently reinterpret numbers already written.",
+      "owner": "derived"
+    },
+    {
+      "name": "fx_rate",
+      "type": "number",
+      "note": "DERIVED. The multiplier actually applied: amount x fx_rate = converted amount. Stored so the converted figure can be reconstructed and audited without guessing which rate was in force. 1 when the record is already in the base currency.",
+      "owner": "derived"
+    },
+    {
+      "name": "fx_rate_date",
+      "type": "date",
+      "note": "DERIVED. effective_from of the fx-rates row used. Not the same as when the conversion ran: a rate dated before the record's own date is the normal case, and a rate dated after it means no rate that old exists and fx.py --check will say so.",
+      "owner": "derived"
+    },
+    {
+      "name": "fx_frozen",
+      "type": "bool",
+      "note": "DERIVED. yes once this record reaches a closed state, after which the converted figure is never recomputed \u2014 a closed number that moves with the exchange rate makes last quarter's attainment a different number every time it is read. Open records reconvert at the current rate on every run.",
+      "owner": "derived"
     },
     {
       "name": "term_months",
@@ -123,7 +159,7 @@
     {
       "name": "first_renewal_touch_date",
       "type": "date",
-      "note": "First email or meeting with the customer explicitly about this renewal. Detectable from sent mail — this is what proves the conversation actually started rather than being merely planned.",
+      "note": "First email or meeting with the customer explicitly about this renewal. Detectable from sent mail \u2014 this is what proves the conversation actually started rather than being merely planned.",
       "owner": "local"
     },
     {
@@ -149,6 +185,12 @@
       "type": "money",
       "note": "From the renewal opportunity, once one exists",
       "owner": "local"
+    },
+    {
+      "name": "converted_proposed_value",
+      "type": "money",
+      "note": "DERIVED. Proposed renewal value in the base currency, from proposed_value x fx_rate. Blank \u2014 never zero \u2014 when proposed_value is blank, when currency is blank, or when no rate exists for that currency. A missing conversion that reads as zero silently shrinks a forecast.",
+      "owner": "derived"
     },
     {
       "name": "outcome",
@@ -193,7 +235,7 @@
     {
       "name": "expansion_signal",
       "type": "text",
-      "note": "Evidence this could grow — new teams, usage at cap, adjacent need",
+      "note": "Evidence this could grow \u2014 new teams, usage at cap, adjacent need",
       "owner": "local"
     },
     {
@@ -276,5 +318,29 @@
       "owner": "local"
     }
   ],
-  "browsable": true
+  "browsable": true,
+  "fx": {
+    "currency_column": "currency",
+    "convert": [
+      {
+        "from": "current_value",
+        "to": "converted_current_value"
+      },
+      {
+        "from": "proposed_value",
+        "to": "converted_proposed_value"
+      }
+    ],
+    "rate_date_column": "contract_end_date",
+    "freeze": {
+      "column": "status",
+      "values": [
+        "Renewed",
+        "Churned",
+        "Downgraded",
+        "Auto-Renewed"
+      ]
+    },
+    "note": "Both money columns share one currency and one rate \u2014 a renewal proposed in a different currency from the contract it replaces is a different contract, and should be a new record rather than a second currency on this one."
+  }
 }

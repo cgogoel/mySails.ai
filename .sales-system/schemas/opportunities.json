@@ -75,14 +75,45 @@
     {
       "name": "amount",
       "type": "money",
-      "note": "The org's authoritative deal value. Which CRM field that is can be ambiguous \u2014 the profile names it.",
+      "note": "The org's authoritative deal value, in this deal's own currency. Which CRM field that is can be ambiguous \u2014 the profile names it. Never sum this column directly across a mixed-currency book; sum converted_amount.",
       "owner": "crm",
       "verify": true
     },
     {
+      "name": "converted_amount",
+      "type": "money",
+      "note": "DERIVED. Deal value in the base currency, from amount x fx_rate. Blank \u2014 never zero \u2014 when amount is blank, when currency is blank, or when no rate exists for that currency. A missing conversion that reads as zero silently shrinks a forecast.",
+      "owner": "derived"
+    },
+    {
       "name": "currency",
       "type": "text",
-      "owner": "crm"
+      "owner": "crm",
+      "note": "ISO code this deal's amount is denominated in. Blank is not read as the base currency: fx.py leaves converted_amount blank and reports it, and --backfill-currency fills it explicitly. Guessing here is how a EUR deal joins a USD total unnoticed."
+    },
+    {
+      "name": "converted_currency",
+      "type": "text",
+      "note": "DERIVED. Which currency converted_* is expressed in \u2014 the folder's base_currency at the moment of conversion. Stored per row rather than read from config, so a folder that later changes its base currency cannot silently reinterpret numbers already written.",
+      "owner": "derived"
+    },
+    {
+      "name": "fx_rate",
+      "type": "number",
+      "note": "DERIVED. The multiplier actually applied: amount x fx_rate = converted amount. Stored so the converted figure can be reconstructed and audited without guessing which rate was in force. 1 when the record is already in the base currency.",
+      "owner": "derived"
+    },
+    {
+      "name": "fx_rate_date",
+      "type": "date",
+      "note": "DERIVED. effective_from of the fx-rates row used. Not the same as when the conversion ran: a rate dated before the record's own date is the normal case, and a rate dated after it means no rate that old exists and fx.py --check will say so.",
+      "owner": "derived"
+    },
+    {
+      "name": "fx_frozen",
+      "type": "bool",
+      "note": "DERIVED. yes once this record reaches a closed state, after which the converted figure is never recomputed \u2014 a closed number that moves with the exchange rate makes last quarter's attainment a different number every time it is read. Open records reconvert at the current rate on every run.",
+      "owner": "derived"
     },
     {
       "name": "probability",
@@ -407,5 +438,23 @@
     ],
     "age_column": "close_date",
     "keep_days": 400
+  },
+  "fx": {
+    "currency_column": "currency",
+    "convert": [
+      {
+        "from": "amount",
+        "to": "converted_amount"
+      }
+    ],
+    "rate_date_column": "close_date",
+    "freeze": {
+      "column": "stage",
+      "values": [
+        "Closed Won",
+        "Closed Lost"
+      ]
+    },
+    "note": "Frozen on close, not on the close date passing. A deal whose close date has slipped is still live pipeline and still belongs in the forecast at today's rate; freezing it on the date alone would carry a months-old rate into a current number. Once the stage is Closed Won or Closed Lost the figure is history and stops moving."
   }
 }

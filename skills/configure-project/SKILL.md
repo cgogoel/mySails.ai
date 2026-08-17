@@ -186,6 +186,41 @@ an invalid stage genuinely can't be typed. Recommend `csv` with no CRM, or if th
 folder. Write `storage_format:`. Plumbing stays CSV either way via `browsable: false`. Changing
 later is safe and reversible: `--convert-all <project> --to xlsx`.
 
+**Base currency.** Ask, and write `base_currency:` into `config.md`. It is the currency every
+forecast total, goal attainment figure and pipeline number will be expressed in — records keep
+their own currency, and a `converted_*` column beside each amount holds the same money in this one.
+There is no default: a folder that has not been told cannot convert anything, and picking one for
+them would put a number in a column meaning something they never agreed to.
+
+If the CRM has a currency table, seed the rates from it in the same breath, so the folder's totals
+reconcile against the CRM's own reports instead of quietly disagreeing:
+
+```bash
+python3 "$S/fx.py" --pull <project> --json '{"base":"USD",
+  "convention":"units-of-currency-per-base","source":"CRM","rates":{"EUR":0.91,"GBP":0.80}}'
+```
+
+In Salesforce that is `SELECT IsoCode, ConversionRate, IsCorporate FROM CurrencyType WHERE
+IsActive = true`; the corporate currency is the sensible default base, and `ConversionRate` is the
+**reciprocal** of the multiplier the folder stores — `--pull` inverts it, so do not invert it
+first as well. A single-currency org still benefits from one row at 1.0 and costs nothing.
+
+**With no CRM, or a CRM whose currency table nobody maintains**, rates can come from a public
+source instead:
+
+```bash
+python3 "$S/fx.py" --fetch <project>
+```
+
+Leave `rate_source:` unset (it defaults to `crm`) when a CRM currency table exists, so the folder's
+totals reconcile against the CRM's own reports; write `rate_source: market` when it does not, or
+when the user says outright that they do not trust it. Either way, **fetch the market rates as
+well** — they cost one command and become the second opinion that `fx.py --check` measures the
+authoritative source against. A CRM currency table set up once and never revisited is common, and
+drifts several percent without anyone noticing; the drift line is how they find out. Mention
+`rate_drift_threshold:` (default 2%) and `rate_staleness_days:` (default 30) only if they ask —
+the defaults are reasonable and the setup conversation is long enough already.
+
 **Folder structure.** Always `README.md`, `00-Config/`, `01-Tasks/`, `02-Context/`,
 `.sales-system/`. Everything else arrives with its module, in Track 4 — an empty `05-Demand-Gen/`
 in a folder belonging to someone who doesn't run campaigns is clutter that makes the whole thing
@@ -324,7 +359,8 @@ mkdir -p <project>/07-Opportunities/import
 Schema names: `team`, `goals`, `tasks`, `task_rules`, `customers`, `market_watchlist`,
 `market_signals`, `competitors`, `campaigns`, `content_opportunities`, `leads`, `opportunities`,
 `renewals`, `partners`, `deal_registrations`, `price_list`, `quotes`, `quote_lines`,
-`content_assets`, `forecast_snapshots`, `sync_log`, `setup_checklist`, `opportunity_contacts`.
+`content_assets`, `forecast_snapshots`, `sync_log`, `setup_checklist`, `opportunity_contacts`,
+`fx_rates`.
 
 **c. Load real data.** Through `crm_sync.py` — never a hand-written import, for the reasons in
 `CONVENTIONS.md` §3c:
@@ -477,6 +513,11 @@ overwriting; a goal that moved is part of the story.
 
 For renewals the goal is **100%** — every renewal not secured is leakage, not a deal lost. Track
 it separately in the forecast rather than as a currency target.
+
+Set the goal in the base currency unless there is a reason not to. A target denominated in another
+currency is converted like everything else, which means it moves during its own period as the rate
+moves — defensible for reporting, uncomfortable for a quota, and worth saying out loud before they
+choose.
 
 ---
 

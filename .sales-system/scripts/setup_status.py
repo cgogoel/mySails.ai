@@ -236,6 +236,17 @@ CORE = [
     ("storage-format", "Foundation", "Choose CSV or styled Excel",
      "Excel gives dropdowns of your real picklist values, so an invalid stage can't be typed.",
      True, config_has("storage_format")),
+    ("base-currency", "Foundation", "Set the base currency",
+     "The one currency every forecast total, pipeline figure and goal attainment number is "
+     "expressed in. Without it nothing can be added up across a mixed-currency book, and "
+     "there is no safe default to pick on your behalf.",
+     True, config_has("base_currency")),
+    ("fx-rates", "Foundation", "Load the conversion rates",
+     "From your CRM's currency table, so the folder's totals reconcile against the CRM's own "
+     "reports \u2014 or from a public source with fx.py --fetch where there is no CRM. Loading both "
+     "costs one extra command and is what lets the drift check tell you a CRM currency table "
+     "nobody has maintained has been converting several percent out.",
+     False, registry_rows("fx_rates")),
     ("folder-structure", "Foundation", "Build the folder structure",
      "The numbered folders you'll actually browse in Finder.",
      True, all_of(file_exists("01-Tasks"), file_exists("02-Context"))),

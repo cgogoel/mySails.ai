@@ -1,0 +1,103 @@
+{
+  "registry": "fx_rates",
+  "path": "00-Config/fx-rates.csv",
+  "id_prefix": "FX",
+  "id_width": 4,
+  "description": "Dated conversion rates, one row per currency per rate change. Every converted amount anywhere in the folder was produced by exactly one row in here, and names it. Rates come from the CRM where the CRM has a currency table, so the folder's converted totals reconcile against the CRM's own reports rather than quietly disagreeing with them.",
+  "picklists_overridable": [
+    "source"
+  ],
+  "columns": [
+    {
+      "name": "id",
+      "type": "id",
+      "required": true,
+      "owner": "local"
+    },
+    {
+      "name": "currency",
+      "type": "text",
+      "required": true,
+      "note": "ISO 4217 code of the currency being converted FROM, e.g. EUR.",
+      "owner": "crm"
+    },
+    {
+      "name": "base_currency",
+      "type": "text",
+      "required": true,
+      "note": "ISO code this rate converts TO \u2014 the folder's base_currency from config.md. Stored per row rather than assumed, because a folder that changes its base currency must not silently reinterpret every rate it already holds.",
+      "owner": "local"
+    },
+    {
+      "name": "rate_to_base",
+      "type": "number",
+      "required": true,
+      "note": "THE MULTIPLIER. amount_in_currency x rate_to_base = amount_in_base. One direction, stated once, so nobody has to infer it. This is deliberately NOT the number most CRMs store: Salesforce's CurrencyType.ConversionRate is units of the currency per one unit of the corporate currency, which is the reciprocal of this. Both public providers quote the same way round as Salesforce, so the same inversion applies to all three. The reciprocal is kept verbatim in source_rate so the two can be checked against each other, and getting the direction backwards is the single most likely way this feature produces confident wrong totals.",
+      "owner": "derived"
+    },
+    {
+      "name": "effective_from",
+      "type": "date",
+      "required": true,
+      "note": "First date this rate applies. A pull from a CRM with no dated-rate history stamps the pull date, which is honest: it is the first date we can vouch for, not the first date the rate was true.",
+      "owner": "local"
+    },
+    {
+      "name": "effective_to",
+      "type": "date",
+      "note": "DERIVED. Set to the day before the next rate for the same currency starts. Blank means this is the rate in force now.",
+      "owner": "derived"
+    },
+    {
+      "name": "source",
+      "type": "enum",
+      "values": [
+        "CRM",
+        "Manual",
+        "API"
+      ],
+      "note": "Where the number came from. CRM = your CRM's currency table, the default and the one whose totals reconcile against CRM reports. API = a public market feed via `fx.py --fetch`. Manual = someone typed it, which is a decision and should look like one. Rows from every source live here together; `rate_source:` in config.md names the one that actually converts, and the rest are the second opinion `--check` measures drift against.",
+      "owner": "local"
+    },
+    {
+      "name": "source_rate",
+      "type": "number",
+      "note": "The rate exactly as the source stated it, before any inversion. Kept so a human can open the CRM's currency setup page and see the same number.",
+      "owner": "crm"
+    },
+    {
+      "name": "source_convention",
+      "type": "text",
+      "note": "Which way round source_rate runs, e.g. 'units-of-currency-per-base' (Salesforce) or 'units-of-base-per-currency'. Without this, source_rate is an uninterpretable number.",
+      "owner": "local"
+    },
+    {
+      "name": "pulled_date",
+      "type": "date",
+      "note": "When this row was read from its source. effective_from is what the rate claims; this is when we looked.",
+      "owner": "local"
+    },
+    {
+      "name": "status",
+      "type": "enum",
+      "values": [
+        "Current",
+        "Superseded"
+      ],
+      "note": "DERIVED from effective_to. Kept as a column so the spreadsheet reads without a date comparison in the reader's head.",
+      "owner": "derived"
+    },
+    {
+      "name": "notes",
+      "type": "text",
+      "owner": "local"
+    },
+    {
+      "name": "last_updated",
+      "type": "date",
+      "owner": "local"
+    }
+  ],
+  "browsable": true,
+  "fx_note": "A currency may hold one row per source per rate change. Two providers quoting EUR are parallel opinions, not a history \u2014 effective_to and status are computed within a source, so a market rate never marks a CRM rate superseded."
+}

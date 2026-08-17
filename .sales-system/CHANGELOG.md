@@ -6,6 +6,78 @@ gained — and, more importantly, what quietly means something different now.
 
 The format is one `## YYYY-MM-DD` heading per template version, matching `VERSION.json`.
 
+## 2026-08-18
+
+**Money can be added up now. Before this release, on a mixed-currency book, it could not.**
+
+- **New: a `currency` and a `converted_*` column on every registry that holds money** —
+  opportunities, renewals, quotes and goals. The amount column stays in the record's own currency,
+  which is the right number to quote at a customer and the wrong one to add up. `converted_amount`
+  (and `converted_current_value`, `converted_proposed_value`, `converted_total`,
+  `converted_target`) hold the same money in the folder's base currency, which is what every
+  total, weighted forecast, coverage ratio and attainment figure is now built from. **If you have
+  been reading forecasts from a folder with more than one currency in it, those totals were adding
+  incompatible units.** Re-run them.
+- **New file in your folder: `00-Config/fx-rates`.** Dated rates, one row per currency per rate
+  change, seeded from your CRM's own currency table so your totals reconcile against your CRM's
+  reports instead of quietly disagreeing with them. `rate_to_base` is a multiplier — amount ×
+  rate_to_base = base — which is the **reciprocal** of what Salesforce stores in
+  `CurrencyType.ConversionRate`. `fx.py --pull` does the inversion; the source's own number is kept
+  verbatim in `source_rate` so you can check it against the CRM screen.
+- **New setting: `base_currency:` in `00-Config/config.md`, and it has no default.** Until it is
+  set, nothing converts and `fx.py` refuses rather than guessing. Setting a base currency decides
+  what every number in every forecast means, so it is not a decision the system makes for you.
+- **New script: `fx.py`** — `--pull`, `--convert`, `--check`, `--backfill-currency`, `--refreeze`,
+  `--rates`. Run `--convert` after any import, amount change or stage change; the opportunity,
+  renewal, forecast and setup skills now do.
+- **Closed records freeze, and this is the part whose meaning is easy to miss.** Once a deal is
+  Closed Won or Closed Lost — or a renewal resolves, a quote is sent, a goal's period ends — its
+  converted figure is computed once and never recomputed, so a settled quarter reports the same
+  number next month as it did on the day. A record that is merely late does **not** freeze: a deal
+  whose close date has passed while it is still open is live pipeline and reconverts at today's
+  rate. The freeze is on state, not on the calendar. `fx.py --refreeze --registry X --id ID` is the
+  one deliberate way back through it.
+- **A conversion that cannot be done is blank, never zero**, and is reported rather than absorbed.
+  A record with no currency, or a currency with no rate on file, is missing from every total —
+  `fx.py --check` names them, and the forecast dashboard now prints a red line saying how many were
+  dropped. A zero here would have silently shrunk the forecast, which is the failure this whole
+  feature exists to prevent, not one it should introduce.
+- **Blank currencies are not assumed to be your base currency.** `fx.py --backfill-currency` fills
+  them explicitly and tells you how many rows it touched. Turning missing information into an
+  assertion is a decision, and it needs a command of its own.
+- **The forecast dashboard no longer hardcodes `$`.** It takes the symbol from `base_currency` and
+  states, above the numbers, which currency they are in and what was converted to get there. A
+  `$` in front of a European book's total was a wrong number wearing the right punctuation.
+- **`fx.py --convert` refuses to be quietly useless.** If none of a schema's declared closed states
+  exist in your org's picklist — your stages are "Won"/"Lost" rather than "Closed Won"/"Closed
+  Lost" — it says so instead of never freezing anything, which would look exactly like working
+  correctly until a closed quarter rewrote itself. Edit `fx.freeze.values` in the schema; schemas
+  live in your folder for this reason.
+- **CONVENTIONS §8a rewritten.** It used to say never sum across currencies and stop there, which
+  left every total in the system unbuildable on a mixed book. It now describes the conversion, the
+  freeze, and the obligation to say a total is converted.
+- **Rates can come from a public source instead of the CRM.** `fx.py --fetch` pulls from ECB
+  reference rates (via Frankfurter), keyless, falling back to exchangerate-api's open endpoint for
+  currencies the ECB does not publish. `--date 2026-03-31` fetches a historical rate, which is what
+  backfilling a settled quarter needs given closed records freeze. It is the only command in this
+  system that touches the network.
+- **`rate_source:` in config.md decides which source converts — default `crm`, and this is the
+  important sentence.** Rates from every source live in the same table side by side; the default
+  stays the CRM so your folder's totals keep reconciling against your CRM's own reports. Set it to
+  `market` for a folder with no CRM, or one whose currency table nobody maintains.
+- **`fx.py --check` now reports rate drift between the sources on file**, past
+  `rate_drift_threshold:` (default 2%). **This is the reason to hold a second opinion at all**: a
+  CRM currency table nobody has touched in a year keeps converting, silently and confidently,
+  several percent out, and nothing else in the system can tell. Drift is reported and never
+  applied — which source is authoritative is a decision in config.md.
+- **Stale rates are flagged on every conversion**, not only when asked, past
+  `rate_staleness_days:` (default 30). A stale table converts exactly as confidently as a fresh one.
+- Two providers quoting the same currency are **parallel opinions, not a history**: `effective_to`
+  and `status` are computed within a source, so a market rate never marks the CRM's rate
+  superseded, and a market fetch never reads a CRM row as "the previous rate".
+- **New setup steps**: `base-currency` (required) and `fx-rates` (optional) in the Foundation
+  section of the checklist.
+
 ## 2026-08-17
 
 **The scripts were never running. Everything else in this entry follows from that.**

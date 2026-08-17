@@ -174,6 +174,12 @@ When a quote is generated for a deal, ask whether the opportunity amount should 
 
 > This quote totals $93,720. The opportunity is currently at $120,000. Update it to the quote total?
 
+If the quote and the opportunity are in different currencies, say so and give both numbers — the
+quote total in its own currency and its converted equivalent — because "update it to the quote
+total" across a currency boundary is a different question with a rate hidden inside it. Never write
+a converted figure into `amount`: the opportunity's amount is in the opportunity's currency, and
+`fx.py --convert` derives the rest.
+
 Ask because a quote and a deal amount legitimately differ. The deal may include a phase not yet
 quoted; the quote may be one of several; the amount may deliberately reflect expected outcome rather
 than opening ask. Overwriting a considered number with a quote total loses information.

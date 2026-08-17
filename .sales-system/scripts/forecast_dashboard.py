@@ -37,7 +37,29 @@ TREND_STYLE = {
 }
 
 
-def money(v, cur="$"):
+# Every figure on this dashboard is in one currency — the folder's base — because the
+# skill hands over converted amounts, not raw ones. The symbol therefore has to follow the
+# folder rather than be assumed: a $ in front of a European book's total is a wrong number
+# wearing the right punctuation, and nobody reading it would know.
+SYMBOLS = {"USD": "$", "EUR": "€", "GBP": "£", "JPY": "¥", "CNY": "¥", "AUD": "A$",
+           "CAD": "C$", "NZD": "NZ$", "CHF": "CHF ", "SEK": "kr", "NOK": "kr",
+           "DKK": "kr", "INR": "₹", "BRL": "R$", "MXN": "MX$", "ZAR": "R",
+           "SGD": "S$", "HKD": "HK$", "ILS": "₪", "PLN": "zł", "KRW": "₩"}
+_SYMBOL = "$"
+_BASE = ""
+
+
+def set_currency(code):
+    """Set the symbol every money() call uses. An unknown code falls back to the code
+    itself — 'PHP 1.2M' is honest where a guessed symbol would not be."""
+    global _SYMBOL, _BASE
+    code = (code or "").strip().upper()
+    _BASE = code
+    _SYMBOL = SYMBOLS.get(code, (code + " ") if code else "$")
+
+
+def money(v, cur=None):
+    cur = _SYMBOL if cur is None else cur
     try:
         v = float(v)
     except (TypeError, ValueError):
@@ -47,6 +69,36 @@ def money(v, cur="$"):
             s = f"{v/div:.1f}".rstrip("0").rstrip(".")
             return f"{cur}{s}{suf}"
     return f"{cur}{v:,.0f}"
+
+
+def currency_band(p, pal):
+    """States the currency every number below is in, and — when the book is mixed — what
+    was converted to get there. A converted total that does not say it is converted is the
+    same failure as a total that never converted at all: the reader cannot tell."""
+    mix = p.get("currency_mix") or {}
+    unconv = int(p.get("unconverted_records") or 0)
+    if not _BASE and not mix and not unconv:
+        return ""
+    foreign = {k: v for k, v in mix.items() if k.upper() != _BASE and k != "(blank)"}
+    bits = []
+    if _BASE:
+        bits.append(f"All figures in <b>{esc(_BASE)}</b>")
+    if foreign:
+        parts = ", ".join(f"{n} in {esc(c)}" for c, n in sorted(foreign.items()))
+        asof = esc(p.get("rates_as_of", ""))
+        bits.append("converted from " + parts
+                    + (f" at rates dated {asof}" if asof else "")
+                    + ". Closed records keep the rate they were frozen at")
+    elif _BASE and mix:
+        bits.append("single-currency book, nothing converted")
+    warn = ""
+    if unconv:
+        warn = (f'<div style="margin-top:6px;color:#A32C22;font-weight:600">'
+                f'{unconv} record(s) could not be converted and are missing from every '
+                f'total below — run <code>fx.py --check</code>.</div>')
+    return (f'<div style="background:#fff;border:1px solid #{pal["rule"]};border-radius:8px;'
+            f'padding:9px 14px;margin-bottom:16px;font-size:11.5px;color:#5A626C;'
+            f'line-height:1.5">{" · ".join(bits)}.{warn}</div>')
 
 
 def pct(v):
@@ -247,6 +299,7 @@ def section(title, subtitle, inner, pal):
 
 def render(p):
     import sheetstyle as S
+    set_currency(p.get("base_currency"))
     brand = S.load_brand(p.get("project_root"))
     P = S.Palette(brand)
     pal = {"rule": P.rule, "accent": P.accent, "accent_ink": P.accent_ink,
@@ -289,6 +342,9 @@ def render(p):
                              c.get("tone", "neutral"), pal) for c in (hc or []))
 
     body = []
+    band = currency_band(p, pal)
+    if band:
+        body.append(band)
     if alerts:
         body.append(section("Needs your attention",
                             "material movement at quarter or year level", alerts, pal))
@@ -332,6 +388,8 @@ def render(p):
                             "new business only — renewals are tracked above", tbl, pal))
 
     gen = esc(p.get("generated", ""))
+    cur_note = (f" · amounts converted to {esc(_BASE)} from 00-Config/fx-rates"
+                if _BASE else "")
     return f"""<!doctype html><meta charset="utf-8">
 <title>{esc(p.get('title','Forecast update'))}</title>
 <body style="margin:0;padding:26px;background:#F4F5F7;color:#1A1A1A;
@@ -347,7 +405,7 @@ def render(p):
   </div>
   {''.join(body)}
   <div style="color:#98A0AA;font-size:11px;margin-top:22px">Generated {gen} ·
-    engagement from CRM activity, email and calendar · figures from the project registries</div>
+    engagement from CRM activity, email and calendar · figures from the project registries{cur_note}</div>
 </div></body>"""
 
 

@@ -54,6 +54,28 @@ choice is unconfirmed, surface that the first time deal value matters in a sessi
 quietly picking one. A forecast built on the wrong amount field is confidently wrong, which is worse
 than uncertain.
 
+**`amount` is the deal's own currency; `converted_amount` is the one that adds up.** Every deal
+carries a `currency`, and a pipeline total that sums `amount` across a mixed book is arithmetic on
+incompatible units — €80K plus $120K is not 200K of anything. Quote `amount` back at a deal
+(what the customer sees), sum `converted_amount` for anything with more than one deal in it. After
+importing or changing amounts, currencies or stages, bring the conversion up to date:
+
+```bash
+python3 "$S/fx.py" --convert <project>
+```
+
+Rates come from the CRM's currency table by default. `fx.py --fetch` adds market rates from a
+public source, and `rate_source:` in config.md decides which of them converts. Even where the CRM
+stays authoritative, having the market rates on file is what makes `fx.py --check` able to say the
+CRM's are stale.
+
+Closed Won and Closed Lost deals freeze: their converted value is computed once and never
+recomputed, so a closed quarter reports the same number next month as it did on the day. Open deals
+reconvert at the current rate on every run — including one whose close date has slipped, which is
+still live pipeline and belongs in the forecast at today's rate. A blank `converted_amount` is a
+deal that could not be converted, not a deal worth nothing; `fx.py --check` says which and why, and
+it should be named rather than quietly dropped from a total.
+
 If the profile also lists `ignore_fields`, those rival money fields have already been ruled out by
 the user. Don't import them, don't display them, don't offer to reconcile them. Re-surfacing a
 rejected field rebuilds exactly the ambiguity that got resolved. When asked about one, say the
@@ -234,7 +256,9 @@ right. AHEAD means a local change was never pushed and the CRM is currently wron
 means both moved; show both and ask, per `CONVENTIONS.md` §7.
 
 Report movement, not just totals. "Pipeline is $2.4M" is nearly useless on its own. "Pipeline is
-$2.4M, up $180K — two new deals in, Globex slipped out of the quarter" is what someone wants.
+$2.4M, up $180K — two new deals in, Globex slipped out of the quarter" is what someone wants. Say
+which currency the total is in when the book is mixed, and say what moved the number: pipeline that
+grew because sterling did is not pipeline that grew.
 
 ### Pipeline review
 

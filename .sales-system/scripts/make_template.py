@@ -14,7 +14,15 @@ later tell "the user edited this" from "this hasn't been touched since install",
 which is the difference between a safe upgrade and one that quietly discards
 someone's work.
 
-Usage: make_template.py <project_root> [--out sales-system-template.zip]
+Usage: make_template.py <project_root> [--out sales-system-template.zip] [--version YYYY-MM-DD]
+
+Version defaults to today. Two releases on one day collide — the second would rewrite the
+first's entry in manifests/, and upgrade.py uses those entries as the baseline that tells an
+edited file from an untouched one, so folders already installed from the first release would
+lose the ability to detect their own edits. Rather than corrupt that quietly, packaging refuses
+when an existing release manifest would change, and asks for an explicit --version. Pass
+--force to overwrite anyway, which is right for a version you have built but not yet shipped
+and wrong for one anybody has installed.
 """
 import hashlib
 import json
@@ -62,18 +70,41 @@ def main():
     out = (sys.argv[sys.argv.index("--out") + 1] if "--out" in sys.argv
            else os.path.join(root, "sales-system-template.zip"))
     ss = os.path.join(root, ".sales-system")
-    version = date.today().isoformat()
+    version = (sys.argv[sys.argv.index("--version") + 1] if "--version" in sys.argv
+               else date.today().isoformat())
     with open(os.path.join(ss, "VERSION.json"), "w", encoding="utf-8") as f:
         json.dump({"template_version": version,
                    "note": "unpack into <project>/.sales-system/, then run configure-project"},
                   f, indent=2)
 
     files = shipped_files(ss)
+    prior = os.path.join(ss, "manifests", f"{version}.json")
+    prior_hashes = None
+    if os.path.exists(prior):
+        try:
+            with open(prior, encoding="utf-8") as f:
+                prior_hashes = json.load(f).get("files", {})
+        except (OSError, json.JSONDecodeError):
+            prior_hashes = None
+
     manifest = {"template_version": version,
                 "note": "sha256 per shipped file, written at package time. upgrade.py "
                         "compares against it to tell an edited file from an untouched "
                         "one. Not a security control — just provenance.",
                 "files": {rel: sha(os.path.join(ss, rel)) for rel in files}}
+    if (prior_hashes is not None and prior_hashes != manifest["files"]
+            and "--force" not in sys.argv):
+        changed = sorted(set(prior_hashes) ^ set(manifest["files"])) or sorted(
+            k for k in manifest["files"]
+            if prior_hashes.get(k) != manifest["files"][k])
+        sys.exit(
+            f"refusing to repackage {version}: a release manifest for that version already "
+            f"exists and {len(changed)} file(s) differ from it "
+            f"({', '.join(changed[:5])}{' ...' if len(changed) > 5 else ''}).\n"
+            f"Rewriting it would leave folders installed from the first {version} unable to "
+            f"tell their own edits from shipped files. Pass --version with a new date, or "
+            f"--force if this version has been built but never shipped.")
+
     with open(os.path.join(ss, MANIFEST), "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2)
         f.write("\n")
