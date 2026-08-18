@@ -1,0 +1,250 @@
+{
+  "registry": "meetings",
+  "path": "13-Meetings/meetings.csv",
+  "id_prefix": "MTG",
+  "id_width": 4,
+  "browsable": true,
+  "description": "One row per customer meeting or call that was processed from a transcript or notes. The row is the index — the searchable summary and the joins. The full material lives beside it: the verbatim transcript in Raw/, the processed note in Notes/. A meeting that is only in someone's memory is not in this registry, and that is the gap the module exists to close.",
+  "picklists_overridable": [
+    "outcome"
+  ],
+  "columns": [
+    {
+      "name": "id",
+      "type": "id",
+      "required": true,
+      "owner": "local"
+    },
+    {
+      "name": "meeting_date",
+      "type": "date",
+      "required": true,
+      "owner": "local"
+    },
+    {
+      "name": "title",
+      "type": "text",
+      "required": true,
+      "note": "What the meeting was, in a line a search would find: 'Acme POC wrap-up', not 'sync'.",
+      "owner": "local"
+    },
+    {
+      "name": "account_name",
+      "type": "text",
+      "owner": "local"
+    },
+    {
+      "name": "related_type",
+      "type": "enum",
+      "required": true,
+      "values": [
+        "opportunity",
+        "renewal",
+        "customer",
+        "lead",
+        "none"
+      ],
+      "note": "What this meeting was about. 'none' is a deliberate answer (an internal call, a conference conversation) — not a dodge for a meeting nobody matched. If the deal can't be identified, ask; don't file it as none to move on.",
+      "owner": "local"
+    },
+    {
+      "name": "related_id",
+      "type": "text",
+      "required_when": {
+        "column": "related_type",
+        "not_in": [
+          "none"
+        ]
+      },
+      "note": "OPP-/REN-/CUST-/LEAD- id. Required the moment related_type names a record type — a meeting 'about an opportunity' with no opportunity named is unjoinable, and every downstream use (engagement, prep, commitments) needs the join.",
+      "owner": "local"
+    },
+    {
+      "name": "source",
+      "type": "enum",
+      "required": true,
+      "values": [
+        "Zoom",
+        "Transcript File",
+        "Notes File",
+        "Pasted",
+        "Other"
+      ],
+      "note": "Where the material came from. Zoom = pulled via the connector; Transcript File / Notes File = dropped into 13-Meetings/Inbox/; Pasted = given in conversation.",
+      "owner": "local"
+    },
+    {
+      "name": "raw_path",
+      "type": "text",
+      "note": "The verbatim original in 13-Meetings/Raw/. Blank only for Pasted material the user chose not to keep — otherwise the raw is kept always, because the processed note is an interpretation and the original is the evidence behind it.",
+      "owner": "local"
+    },
+    {
+      "name": "notes_path",
+      "type": "text",
+      "required": true,
+      "note": "The processed note in 13-Meetings/Notes/. A registry row with no note behind it is a claim with no substance.",
+      "owner": "local"
+    },
+    {
+      "name": "attendees_internal",
+      "type": "text",
+      "note": "Semicolon-separated names, your side.",
+      "owner": "local"
+    },
+    {
+      "name": "attendees_external",
+      "type": "text",
+      "note": "Semicolon-separated, customer side, as 'Name <email>' where the email is known — the email is what lets contact threading and engagement dedup work. Resolve it from opportunity-contacts where the transcript only gives a name.",
+      "owner": "local"
+    },
+    {
+      "name": "new_faces",
+      "type": "text",
+      "note": "External attendees seen for the first time on this deal. A new face usually means the deal is widening or the champion is being second-guessed — either way worth a line in the note.",
+      "owner": "local"
+    },
+    {
+      "name": "summary",
+      "type": "text",
+      "required": true,
+      "note": "Two or three sentences. What happened and what changed — written so that six months later, this row alone answers 'what was that meeting'.",
+      "owner": "local"
+    },
+    {
+      "name": "outcome",
+      "type": "enum",
+      "values": [
+        "Advanced",
+        "Neutral",
+        "Setback",
+        "Unclear"
+      ],
+      "note": "A judgement, recorded as one. Advanced = something concrete moved (next step agreed, new stakeholder engaged, blocker cleared). A pleasant meeting where nothing moved is Neutral, however good it felt.",
+      "owner": "local"
+    },
+    {
+      "name": "sentiment",
+      "type": "enum",
+      "values": [
+        "Positive",
+        "Mixed",
+        "Neutral",
+        "Negative",
+        "Unclear"
+      ],
+      "note": "How the customer sounded — a different question from `outcome`, which records whether the deal moved. The divergences are the signal: Positive sentiment with a Neutral outcome is the classic pleasant-meetings-no-deal pattern, and Negative with Advanced is a hard conversation that did its job. `Unclear` is a legitimate answer for a garbled transcript or a guarded room; reaching for it beats inventing a reading.",
+      "owner": "local"
+    },
+    {
+      "name": "sentiment_evidence",
+      "type": "text",
+      "required_when": {
+        "column": "sentiment",
+        "in": [
+          "Positive",
+          "Mixed",
+          "Negative"
+        ]
+      },
+      "note": "What was actually said that supports the reading — a quote or close paraphrase, with the speaker. Required for any non-neutral sentiment: a sentiment with no evidence behind it is a vibe wearing a column name, and vibes are exactly what this registry exists to replace. Neutral and Unclear need no defence.",
+      "owner": "local"
+    },
+    {
+      "name": "action_items_ours",
+      "type": "number",
+      "owner": "local"
+    },
+    {
+      "name": "action_items_theirs",
+      "type": "number",
+      "owner": "local"
+    },
+    {
+      "name": "tasks_raised",
+      "type": "text",
+      "note": "Semicolon-separated TASK- ids raised from this meeting's action items.",
+      "owner": "local"
+    },
+    {
+      "name": "commitments_logged",
+      "type": "number",
+      "note": "Rows written to the commitments registry from this meeting.",
+      "owner": "local"
+    },
+    {
+      "name": "key_quote",
+      "type": "text",
+      "note": "The single most consequential thing said, verbatim, with the speaker. The full set lives in the note; this one is here so a registry search surfaces it.",
+      "owner": "local"
+    },
+    {
+      "name": "competitors_mentioned",
+      "type": "text",
+      "note": "Semicolon-separated competitor names heard in the meeting. Each should also have been routed to competitor tracking — this column is the index, not the destination.",
+      "owner": "local"
+    },
+    {
+      "name": "risks",
+      "type": "text",
+      "note": "Semicolon-separated, short. Deal-relevant challenges heard: a feature gap named as blocking, a budget wobble, a competitor gaining ground.",
+      "owner": "local"
+    },
+    {
+      "name": "positives",
+      "type": "text",
+      "note": "Semicolon-separated, short. Buying signals heard: an advantage acknowledged, expansion interest, champion language.",
+      "owner": "local"
+    },
+    {
+      "name": "next_step",
+      "type": "text",
+      "note": "The next step as agreed IN the meeting, in the customer's framing. What flows to the opportunity's next_step field once the user confirms it.",
+      "owner": "local"
+    },
+    {
+      "name": "next_meeting_date",
+      "type": "date",
+      "note": "When a follow-up was agreed. Feeds prep: the daily brief reads this registry for the account before that day's meeting.",
+      "owner": "local"
+    },
+    {
+      "name": "engagement_ingested",
+      "type": "enum",
+      "required": true,
+      "default": "no",
+      "values": [
+        "ingested",
+        "already-on-calendar",
+        "no"
+      ],
+      "note": "Whether this meeting reached the activity cache. 'already-on-calendar' means the calendar/CRM copy is already counted and ingesting again would risk double-counting the single highest-weighted event kind there is. 'ingested' means this was an off-calendar meeting and the transcript is the only record — the case where this module moves the engagement score at all.",
+      "owner": "local"
+    },
+    {
+      "name": "crm_activity_id",
+      "type": "text",
+      "note": "Set when the meeting summary was logged to the CRM as an activity — with confirmation, like every push.",
+      "owner": "local"
+    },
+    {
+      "name": "owner",
+      "type": "text",
+      "owner": "local"
+    },
+    {
+      "name": "notes",
+      "type": "text",
+      "owner": "local"
+    },
+    {
+      "name": "last_updated",
+      "type": "date",
+      "owner": "local"
+    }
+  ],
+  "archive": {
+    "age_column": "meeting_date",
+    "keep_days": 365
+  }
+}

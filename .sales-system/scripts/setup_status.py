@@ -81,13 +81,20 @@ def file_exists(*rel):
     return check
 
 
-def dir_has_files(rel, exts=None, minimum=1):
+def dir_has_files(rel, exts=None, minimum=1, exclude=()):
+    """`exclude` names files that live in this directory but are not what the step is
+    asking about. `standing-profile.md` sits in 02-Context/Messaging/ and is a different
+    artifact from the positioning material — counting it would report "add positioning and
+    messaging" as done for a folder that has none, which is the class of quietly-wrong
+    completion this checklist exists to prevent."""
+    skip = {f.lower() for f in exclude} | {"readme.md"}
+
     def check(root):
         d = os.path.join(root, rel)
         if not os.path.isdir(d):
             return False, ""
         got = [f for f in os.listdir(d)
-               if not f.startswith(".") and f.lower() != "readme.md"
+               if not f.startswith(".") and f.lower() not in skip
                and (not exts or f.lower().endswith(tuple(exts)))]
         if len(got) >= minimum:
             return True, f"{rel}/ · {len(got)} file(s): {', '.join(sorted(got)[:3])}"
@@ -306,7 +313,8 @@ CORE = [
     ("context-messaging", "Content", "Add positioning and messaging",
      "Kept verbatim plus a distilled summary — a 40-page deck is too expensive to load on every request.",
      False, any_of(file_exists("02-Context/Messaging/messaging-summary.md"),
-                   dir_has_files("02-Context/Messaging"))),
+                   dir_has_files("02-Context/Messaging",
+                                 exclude=("standing-profile.md",)))),
     ("context-corporate-deck", "Content", "Add the corporate deck",
      "Who we are. Executives want this one.",
      False, dir_has_files("02-Context/Presentations/Corporate")),
@@ -354,13 +362,20 @@ CORE = [
 MODULES = {
     "market": ("Market Tracking", "03-Market", ["market_watchlist"], ["market_watchlist"], False),
     "competitors": ("Competitor Tracking", "04-Competitors", ["competitors"], ["competitors"], False),
-    "demand-gen": ("Demand Gen", "05-Demand-Gen", ["campaigns"], ["campaigns"], False),
+    # Both registries, because Demand Gen is two halves: campaigns measure what ran,
+    # content-opportunities tracks what is worth saying. Listing only campaigns reported a
+    # folder complete while the half the skill spends most of its time in had nowhere to
+    # write. Only campaigns has to hold rows — a content pipeline legitimately starts empty.
+    "demand-gen": ("Demand Gen", "05-Demand-Gen",
+                   ["campaigns", "content_opportunities"], ["campaigns"], False),
     "leads": ("Lead Tracking", "06-Leads", ["leads"], ["leads"], True),
     "opportunities": ("Opportunity Tracking", "07-Opportunities", ["opportunities"], ["opportunities"], True),
     "renewals": ("Renewals Tracking", "08-Renewals", ["renewals"], ["renewals"], True),
     "partners": ("Partner Tracking", "11-Partners", ["partners"], ["partners"], True),
     "content": ("Content Tailoring", "10-Content", ["content_assets"], [], False),
     "quotes": ("Quote Generation", "12-Quotes", ["price_list"], ["price_list"], False),
+    # Neither registry has to hold rows at setup — the module fills as meetings happen.
+    "meetings": ("Meeting Notes", "13-Meetings", ["meetings", "commitments"], [], False),
     "daily-brief": ("Daily Brief", "09-Briefs/Daily", [], [], False),
     "weekly-brief": ("Weekly Brief", "09-Briefs/Weekly", [], [], False),
     "forecast": ("Forecast Update", "09-Briefs/Forecast", [], [], False),
@@ -374,6 +389,9 @@ MODULE_ALIASES = {
     "pipeline": "opportunities", "renewals tracking": "renewals",
     "partner tracking": "partners", "content tailoring": "content",
     "quote generation": "quotes", "quotes": "quotes",
+    "meeting notes": "meetings", "meetings": "meetings",
+    "meeting tracking": "meetings", "transcripts": "meetings",
+    "call notes": "meetings",
     "daily brief": "daily-brief", "weekly brief": "weekly-brief",
     "forecast update": "forecast", "forecast": "forecast",
 }
@@ -407,6 +425,50 @@ def module_steps(slug):
                       "single-threaded flag has nothing to read, and a flag that never "
                       "fires reports every deal as healthy.",
                       False, registry_rows("opportunity_contacts")))
+    # Demand Gen is two halves and only one of them used to get configured. Campaign
+    # measurement needs a registry, which the structure step covers. The content half needs
+    # to know what this organisation may credibly speak about — and until that was captured
+    # at setup, the first sweep inferred it from the website and document titles and wrote
+    # the guess into the folder as settled fact. A wrong exclusion there suppresses a whole
+    # category of content silently and permanently, because nobody audits the things that
+    # were never suggested. So it is a step, scored from evidence, and it is required:
+    # a dashboard reporting 100% on a folder with no standing profile is how the gap
+    # stayed invisible.
+    if slug == "demand-gen":
+        steps.append((f"{slug}-standing", "Modules",
+                      f"{label}: capture what you can credibly speak about",
+                      "The standing profile, answered by you rather than inferred from your "
+                      "website. Surface signals under-represent what an organisation knows "
+                      "— research is titled for its subject, not its platform — so a guess "
+                      "here reads as fact later and quietly kills a category of content.",
+                      True, file_exists("02-Context/Messaging/standing-profile.md")))
+        steps.append((f"{slug}-content-rules", "Modules",
+                      f"{label}: seed the content folder",
+                      "Where drafts live, with the two rules that must not be re-derived "
+                      "each session: never comment publicly on a competitor's funding or "
+                      "bad news, and perishability is a deadline rather than a label.",
+                      False, file_exists("05-Demand-Gen/Content/README.md")))
+        steps.append((f"{slug}-content-config", "Modules",
+                      f"{label}: set voice, publisher and sweep cadence",
+                      "Who content goes out as, who approves it, where it publishes, and "
+                      "whether the sweep is standalone or rides inside a brief.",
+                      False, config_has("content_sweep_cadence")))
+    if slug == "meetings":
+        steps.append((f"{slug}-folders", "Modules",
+                      f"{label}: create the Inbox, Raw and Notes folders",
+                      "Inbox/ is where transcript exports get dropped; Raw/ keeps the "
+                      "verbatim original; Notes/ holds the processed record. The raw is "
+                      "kept always — the note is an interpretation and the original is "
+                      "the evidence behind it.",
+                      True, all_of(file_exists("13-Meetings/Inbox"),
+                                   file_exists("13-Meetings/Raw"),
+                                   file_exists("13-Meetings/Notes"))))
+        steps.append((f"{slug}-sources", "Modules",
+                      f"{label}: record where transcripts come from",
+                      "Which tool records their calls (Zoom via the connector, or Otter/"
+                      "Teams/Gong exports dropped in the Inbox, or typed notes). Recorded "
+                      "so the skill offers the right pull instead of asking every time.",
+                      False, config_has("meeting_sources")))
     if slug in ("daily-brief", "weekly-brief", "forecast"):
         steps.append((f"{slug}-firstrun", "Modules", f"{label}: run it once",
                       "The fastest way to find out whether the data behind it is good "

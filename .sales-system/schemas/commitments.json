@@ -1,0 +1,129 @@
+{
+  "registry": "commitments",
+  "path": "13-Meetings/commitments.csv",
+  "id_prefix": "CMT",
+  "id_width": 4,
+  "browsable": true,
+  "description": "Who promised what, by when, in both directions. Yours become tasks and are verified like any task. Theirs are the underused half: an unmet customer commitment — the security questionnaire that never arrived, the intro to the VP that never happened — is one of the earliest stall signals a deal gives off, and until this registry existed nothing was in a position to notice it.",
+  "columns": [
+    {
+      "name": "id",
+      "type": "id",
+      "required": true,
+      "owner": "local"
+    },
+    {
+      "name": "meeting_id",
+      "type": "text",
+      "required": true,
+      "note": "The MTG- row this came out of. A commitment with no meeting behind it was never actually made.",
+      "owner": "local"
+    },
+    {
+      "name": "meeting_date",
+      "type": "date",
+      "owner": "local"
+    },
+    {
+      "name": "account_name",
+      "type": "text",
+      "owner": "local"
+    },
+    {
+      "name": "related_type",
+      "type": "enum",
+      "values": [
+        "opportunity",
+        "renewal",
+        "customer",
+        "lead",
+        "none"
+      ],
+      "owner": "local"
+    },
+    {
+      "name": "related_id",
+      "type": "text",
+      "owner": "local"
+    },
+    {
+      "name": "direction",
+      "type": "enum",
+      "required": true,
+      "values": [
+        "ours",
+        "theirs"
+      ],
+      "note": "ours = we promised it (raise a task, verify it happened). theirs = they promised it (watch for it; chase it gently when overdue; read a pattern of broken ones as the stall signal it is).",
+      "owner": "local"
+    },
+    {
+      "name": "who",
+      "type": "text",
+      "note": "The person who made the commitment, by name.",
+      "owner": "local"
+    },
+    {
+      "name": "what",
+      "type": "text",
+      "required": true,
+      "note": "The commitment in the words it was made in, specific enough to verify: 'send the SOC 2 report', not 'follow up on security'.",
+      "owner": "local"
+    },
+    {
+      "name": "due_date",
+      "type": "date",
+      "note": "When it was promised for. Blank when no date was given — which is itself worth noticing, and worth pinning down in the follow-up email. Overdue is computed on read: status Open and due_date past.",
+      "owner": "local"
+    },
+    {
+      "name": "status",
+      "type": "enum",
+      "required": true,
+      "default": "Open",
+      "values": [
+        "Open",
+        "Done",
+        "Dropped"
+      ],
+      "note": "There is deliberately no 'Overdue' value — overdue is Open plus a past due_date, computed when read, so it can never go stale in the file.",
+      "owner": "local"
+    },
+    {
+      "name": "resolved_date",
+      "type": "date",
+      "owner": "local"
+    },
+    {
+      "name": "evidence",
+      "type": "text",
+      "note": "How we know it was met — the email that arrived, the meeting that happened. For ours, the task's verification usually settles it.",
+      "owner": "local"
+    },
+    {
+      "name": "task_id",
+      "type": "text",
+      "note": "For direction ours: the TASK- row that carries it. The task machinery owns drafting, automation posture and verification; this row owns the fact that it was promised.",
+      "owner": "local"
+    },
+    {
+      "name": "notes",
+      "type": "text",
+      "owner": "local"
+    },
+    {
+      "name": "last_updated",
+      "type": "date",
+      "owner": "local"
+    }
+  ],
+  "archive": {
+    "when_column": "status",
+    "when_values": [
+      "Done",
+      "Dropped"
+    ],
+    "age_column": "meeting_date",
+    "keep_days": 180
+  }
+}

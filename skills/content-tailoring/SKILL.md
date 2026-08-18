@@ -59,6 +59,7 @@ name dropped in.
 | `02-Context/Messaging/` | The company's actual language, rather than a parallel vocabulary |
 | `02-Context/Presentations/` | Corporate and Product source material |
 | `10-Content/asset-index` | **Something that already answers this** |
+| `13-Meetings/Notes/` + commitments | What the customer actually said last time — verbatim quotes, open commitments, the risk they named. An asset that answers the question they asked in the room beats one that answers the question we imagine |
 | Email + calendar | What was actually asked, in their words |
 
 **Check the index for an existing answer first.** The best outcome of a request is often "this

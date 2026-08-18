@@ -44,6 +44,21 @@
       "owner": "local"
     },
     {
+      "name": "standing_ref",
+      "type": "text",
+      "required_when": {
+        "column": "status",
+        "in": [
+          "Approved",
+          "Drafted",
+          "In Review",
+          "Published"
+        ]
+      },
+      "note": "Which named row in 02-Context/Messaging/standing-profile.md this piece rests on. Makes the standing gate auditable instead of a judgement somebody made mid-sweep and never recorded. Deliberately not required on New, Declined or Expired — an untested idea has no answer yet and a passed-over one never will — but a drafted piece without one is the exact failure this column exists to catch. If no profile row fits, the answer is no piece rather than a weaker piece.",
+      "owner": "local"
+    },
+    {
       "name": "matched_products",
       "type": "text",
       "note": "Which products the angle touches",

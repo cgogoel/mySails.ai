@@ -249,6 +249,39 @@ Every column in every schema declares an `owner`:
 overwritten by an import. This is the knowledge that used to live only inside whatever
 import script a session happened to write.
 
+### `default` and `required_when`
+
+Two optional per-column keys, both enforced by the guard on every `--check-all`. They exist because
+a rule that lives in skill prose gets re-derived from a paragraph by every session, and a rule that
+depends on being remembered is a rule that is sometimes not applied.
+
+**`default`** — a blank cell in this column is filled with this value, and the fill is reported as
+a repair. It runs before the `required` check, which is the whole point: when a new **required**
+column ships into an existing registry, header reconciliation adds it blank to every row, and
+without a default every one of those rows becomes a `NEEDS YOU` on the next run — in every skill,
+since they all run the guard first.
+
+Declare one **only where the value is genuinely the right reading of a blank.** `lens: deal` on
+`market_watchlist` qualifies: every watchlist built before that column existed was deal-oriented,
+so `deal` is not a guess, it is what those rows already meant. Never declare a default on an
+amount, a date, a currency, or anything a person is supposed to decide — turning missing
+information into an assertion is the failure mode this whole system is built against, and §8a
+exists because of it.
+
+**`required_when`** — required only at some point in a record's life:
+
+```json
+"required_when": {"column": "status", "in": ["Approved", "Drafted", "Published"]}
+"required_when": {"column": "status", "not_in": ["New", "Declined"]}
+```
+
+`standing_ref` on `content_opportunities` is the case it was built for. A `New` idea hasn't been
+tested against the standing profile yet and a `Declined` one never will be, so requiring it
+outright would flag rows that are correct. A **drafted** piece with no named justification is
+precisely what the column exists to catch. If the trigger column is missing or its cell is blank,
+the gate holds no opinion — a check that fires because someone renamed the column it watches is
+worse than one that stays quiet.
+
 ## 3a. Scope: whose pipeline is this?
 
 `00-Config/config.md` carries a `scope` field that is either `individual` or `team`. It changes
@@ -678,10 +711,19 @@ and it is worse than saying nothing, because nobody audits a flag that looks pla
 ### Record which rung the evidence came from
 
 Where evidence has a fallback chain, the rung is stored beside the value. Meetings are the
-standard case: linked to the opportunity (strong), linked to the account and dated inside the
-deal's life (weaker), or recovered from accepted-invitation email subjects (weakest). All three
-produce `meeting_held = yes`. They are not the same claim, and a rep deciding whether to trust it
-deserves to know which they are looking at.
+standard case: on the record in a processed transcript (`transcript`, the strongest — the person
+is heard speaking in the room, which no calendar inference can match), linked to the opportunity
+(strong), linked to the account and dated inside the deal's life (weaker), or recovered from
+accepted-invitation email subjects (weakest). All four produce `meeting_held = yes`. They are not
+the same claim, and a rep deciding whether to trust it deserves to know which they are looking at.
+
+Transcript evidence lives in the meetings registry (`13-Meetings/meetings.csv`), and the contacts
+build **folds it in from there on every run** rather than trusting rows previously written to the
+contacts registry. That is a deliberate shape: the build is an upsert that recomputes derived
+columns, so evidence held only in the rows it overwrites would silently revert. Evidence belongs
+in a source the build reads; then no rebuild can lose it. The same registry deliberately does
+NOT flip `meeting_held` to "no" for everyone else — two processed transcripts prove attendance
+for their attendees without proving absence for anybody who wasn't in them.
 
 The same applies to attribution. Activity that names a customer with two open deals is left
 unattached and counted, not assigned to whichever deal looked likelier. A guess reported as a
@@ -858,3 +900,25 @@ behind still works.
 If `00-Config/config.md` doesn't exist, the project hasn't been set up. Don't improvise a
 folder structure — run the `configure-project` skill instead. Half-configured projects are
 worse than unconfigured ones because they look finished.
+
+### Missing configuration is not an invitation to infer it
+
+The general rule: **when a decision was never recorded, the answer is to ask, not to work it out.**
+A skill that derives a missing setting from whatever is to hand and then writes it into the folder
+has converted a guess into a durable fact, and the folder gives no sign of which is which.
+
+`02-Context/Messaging/standing-profile.md` is the sharpest case, and the one that taught this. It
+records what the organisation may credibly speak about publicly. Absent it, the content half of
+`demand-gen` **stops** rather than assessing standing from the website, the product list or
+document titles — because surface signals systematically under-represent what an organisation
+knows. Research is titled for its subject rather than its platform; capability is not always
+marketed. A company can hold half its evidence on a topic its titles never name.
+
+The cost is asymmetric, which is why this is a rule rather than a preference. A wrong inclusion
+produces one bad post somebody notices. A wrong **exclusion** suppresses a category of content
+permanently and silently, because nobody audits the things that were never suggested.
+
+The same reasoning applies to `base_currency` (§8a), to `brief_content`, and to the CRM field
+mapping: say what's missing, name the skill that captures it, and produce nothing that depends on
+it. `Asserted` is the marker for a value the user stated but the folder could not verify — allowed,
+because they know things the folder does not, and marked rather than silently promoted.

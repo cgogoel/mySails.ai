@@ -129,6 +129,13 @@ Campaigns that matured enough to judge, and — from `05-Demand-Gen/content-oppo
 where the company has standing to comment but hasn't yet. A perishable angle unused for a week is
 about to expire, and this is the last useful moment to say so.
 
+Standing comes from `02-Context/Messaging/standing-profile.md`. **If that file doesn't exist, skip
+the content part of this section with one line saying why** — "no standing profile in this folder,
+so I'm not assessing what's worth publishing; `configure-project` captures it in about five
+minutes." Don't derive standing from the website or from document titles to fill the gap: a guess
+made under deadline reads in a brief exactly like a finding. Campaign measurement is unaffected and
+still belongs here.
+
 Also: drafts sitting in review for a week. That's a process problem worth naming.
 
 ### Renewals and pipeline
@@ -138,6 +145,15 @@ position, keep this to what changed and what it implies, and don't duplicate the
 
 Renewal exposure entering the window, and conversations now overdue, are worth a line here even when
 the forecast covers them — they're time-sensitive and easy to defer.
+
+If the Meeting Notes module is on, sweep `13-Meetings/commitments`: **customer commitments now
+overdue are one of the earliest stall signals a deal gives off** — the security questionnaire that
+never arrived usually says more than the stage field does. One line per overdue `theirs` row, with
+the deal and how long it's been. Ours overdue belong to the daily brief's task list; a pattern of
+them belongs here, because a rep consistently behind on their own promises is a coaching fact, not
+a task fact. While in that registry, read sentiment across the week's meetings per deal: a
+trajectory sliding toward Negative on a deal the pipeline still calls healthy is exactly the kind
+of pattern this brief exists to surface — cite the `sentiment_evidence` quotes, not the labels.
 
 ---
 

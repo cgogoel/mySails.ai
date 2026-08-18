@@ -139,13 +139,14 @@
       "name": "meeting_evidence",
       "type": "enum",
       "values": [
+        "transcript",
         "opportunity-linked",
         "account-dated",
         "invite-accepted",
         "none"
       ],
       "owner": "derived",
-      "note": "DERIVED: which rung of the fallback chain this came from, strongest first. Meetings are frequently not linked to the opportunity at all, so `opportunity-linked` alone finds almost nothing in most orgs; `invite-accepted` is calendar traffic recovered from email subjects and is much weaker evidence. Recorded because a rep deserves to know which they are looking at."
+      "note": "DERIVED: which rung of the fallback chain this came from, strongest first. `transcript` is the top rung — the person is on the record speaking in the room, which settles attendance in a way no calendar inference can. Then `opportunity-linked` (frequently near-empty in real orgs, since meetings are rarely linked to deals), `account-dated`, and `invite-accepted` — calendar traffic recovered from email subjects, the weakest. Recorded because a rep deserves to know which they are looking at. contacts_sync folds the meetings registry in on every build, so transcript evidence survives a rebuild."
     },
     {
       "name": "last_meeting_date",

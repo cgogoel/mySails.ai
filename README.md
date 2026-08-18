@@ -8,7 +8,9 @@ support for running in a shared drive for multiple users collaborating on a sing
 **Modules:** project setup with optional CRM sync · leads · opportunities · renewals ·
 channel partners (two-tier, deal-reg conflict checking) · competitors (battlecards from
 your real win/loss record) · market signals · demand gen + thought leadership · content
-tailoring · quote generation (with guard rails) · daily brief · weekly brief ·
+tailoring · quote generation (with guard rails) · meeting notes (transcripts processed into
+action items, commitments both ways, competitor intel and engagement — raw kept, searchable) ·
+daily brief · weekly brief ·
 forecast dashboards (engagement-ranked based on your email traffic & calendar, goals-framed).
 
 **Design principles:** the folder is the database; you should be able to open your opportunities,
@@ -121,7 +123,7 @@ folder without waiting on the plugin manager at all.
 
 ## Layout
 
-- `skills/` — the fourteen skills, including `update-system` which carries the upgrader
+- `skills/` — the fifteen skills, including `update-system` which carries the upgrader
 - `.sales-system/` — the generic support layer: schemas, scripts, conventions. Contains
   no org data. Scripts and `CONVENTIONS.md` run from here and are never copied into a
   project folder, so updating the plugin updates every folder's behaviour at once. Only

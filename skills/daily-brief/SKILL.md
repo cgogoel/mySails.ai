@@ -98,6 +98,15 @@ Flag anyone new to the deal. A first-time attendee usually means either the deal
 close-plan gaps, engagement trend. Two or three sentences, not a data dump. If the deal has slipped
 twice or is single-threaded, that belongs here.
 
+**What happened last time.** If the Meeting Notes module is on, pull the account's most recent
+note from `13-Meetings/` — the summary, the outcome, the sentiment with its evidence, and the
+agreed agenda for this meeting — and
+**open commitments in both directions** from the commitments registry. Lead with anything we
+promised and haven't done: walking in unaware of your own unmet commitment is the avoidable version
+of a bad meeting. A customer commitment now overdue is worth a line too — this meeting is the
+natural moment to chase it without it reading as a chase. Sequence beats snapshot: "last time they
+raised SSO as blocking; here's where that stands" is preparation.
+
 **What's changed at their end.** Check `03-Market/signals` for anything about this account or its
 industry, and check whether their org has shifted — a new CIO at a target account changes the whole
 conversation. Recent funding, a breach, a regulatory deadline: all worth thirty seconds of the

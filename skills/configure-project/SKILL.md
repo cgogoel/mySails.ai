@@ -329,13 +329,14 @@ python3 $S/setup_status.py --init <project>    # adds the steps for the modules 
 |---|---|
 | Market Tracking | Signals from your own newsletters and sources that change what to do |
 | Competitor Tracking | Battlecards from your real win/loss record, stale-flagged by news |
-| Demand Gen | Campaign attribution, plus turning signals into content worth publishing |
+| Demand Gen | Campaign attribution, plus turning signals into content worth publishing. The content half needs the standing conversation in Track 5a |
 | Lead Tracking | Working lead list with contactability and sequence gates |
 | Opportunity Tracking | Pipeline with risk flags and engagement |
 | Renewals Tracking | Contract calendar, conversation commitments, churn risk |
 | Partner Tracking | Sell-through and sell-with partners, kept separate |
 | Quote Generation | Quotes off a real price list, with floors and approval thresholds |
 | Content Tailoring | Decks, one-pagers, comparisons and follow-ups for named deals |
+| Meeting Notes | Transcripts and call notes processed into action items, commitments, quotes and engagement |
 | Daily Brief | Today's actions and meeting preparation |
 | Weekly Brief | Trends, signals, competitor and account changes |
 | Forecast Update | Pipeline against goals as an HTML dashboard |
@@ -360,7 +361,7 @@ Schema names: `team`, `goals`, `tasks`, `task_rules`, `customers`, `market_watch
 `market_signals`, `competitors`, `campaigns`, `content_opportunities`, `leads`, `opportunities`,
 `renewals`, `partners`, `deal_registrations`, `price_list`, `quotes`, `quote_lines`,
 `content_assets`, `forecast_snapshots`, `sync_log`, `setup_checklist`, `opportunity_contacts`,
-`fx_rates`.
+`fx_rates`, `meetings`, `commitments`.
 
 **c. Load real data.** Through `crm_sync.py` — never a hand-written import, for the reasons in
 `CONVENTIONS.md` §3c:
@@ -430,12 +431,24 @@ rediscovered painfully in three months.
 
   Show them one deal's contacts afterwards, ideally one where `source` is `activity-only` — the
   gap between who the CRM lists and who is actually emailing is the thing that makes this land.
+- **Demand Gen** — two registries, `campaigns` and `content-opportunities`, because it is two
+  jobs. Create both here; the content half is then configured in **Track 5a**, which is not
+  optional if they enabled this module. A folder with campaigns and no standing profile runs the
+  measurement half correctly and the content half on an inference nobody checked.
 - **Renewals** — often not a CRM object at all. Ask how renewals are tracked before assuming; a
   contract end date on the closed-won opportunity is the common answer.
 - **Partners** — territories, named accounts and margin are authored here, not imported. Budget
   time for it or mark it `In progress` and move on.
 - **Quotes** — needs a real price list with floors. If they don't have one to hand, mark it
   `Blocked` with what's needed rather than inventing prices.
+- **Meetings** — create `13-Meetings/{Inbox,Raw,Notes}` alongside the two registries
+  (`meetings`, `commitments`), and ask one question: **where do their call recordings and notes
+  actually come from?** Zoom via a connector, exports from Otter or Teams dropped into the
+  Inbox, or typed notes — record the answer as `meeting_sources:` in config so the skill offers
+  the right pull instead of asking every time. If a transcript connector was found in Track 2,
+  name it here and confirm it works by listing recent recordings. No import step: the registries
+  fill as meetings happen, and an empty meetings registry at setup is the normal state, not a
+  gap.
 - **Briefs and forecast** — run each once at the end of the session. It's the fastest way to find
   out whether the data behind it is good enough yet, and it's the moment the whole thing starts
   looking worth having.
@@ -493,6 +506,144 @@ loses the exact words someone chose.
 
 For anything they don't have, create the folder with a README explaining what belongs there.
 An empty folder with an explanation is an invitation; an empty folder is a gap.
+
+---
+
+## Track 5a — Content standing
+
+**Only when the Demand Gen module is enabled.** Skip it otherwise, and say nothing about it —
+campaign measurement has no standing dependency and a folder that never runs content should not
+be asked these questions.
+
+It sits here, after the context library, because the material just filed is what makes these
+questions answerable rather than abstract.
+
+### Do not infer standing. Ask.
+
+> Surface signals systematically under-represent what an organisation knows. Research is titled
+> for its subject, not its platform. Capability is not always marketed. A company can have half
+> its evidence on a topic its published titles never name.
+
+Proposing candidates from the context library is fine and often helps someone think. **Writing one
+down before they have confirmed it is not.** What makes this worth a phase of its own is the shape
+of the error: an inferred exclusion suppresses a whole category of content indefinitely, silently,
+and nobody audits the pieces that were never suggested. So anything the user has not confirmed is
+either left out or marked `Asserted` — never promoted quietly to fact.
+
+### The questions, in order
+
+1. **"What can you talk about publicly that a competitor couldn't?"** Open. For each answer,
+   follow up twice: *"what's the evidence — data, research, a pattern across customers?"* and
+   *"where does that live?"* The second follow-up is the one people skip and the one that matters:
+   a standing claim whose evidence cannot be located cannot be used.
+2. **"What's adjacent to you that you should stay out of?"** This populates the exclusions table,
+   and it is **required, not optional** — a profile with no exclusions has not been thought about,
+   and the exclusions are what stop news-hijacking. Prompt with the obvious traps: general
+   commentary on their sector, policy at large, whatever topic is fashionable this month.
+3. **"Is there anything you know that's hard to find internally?"** Populates the third section.
+   Expect a real answer here; most organisations have one. Flagging it is the difference between
+   a module that under-performs mysteriously and one whose limits are written down.
+4. **Channel and voice** — where content publishes, under whose name, and who approves it.
+5. **Sweep cadence** — standalone, or riding inside a brief they already run.
+
+### Write the profile from their answers
+
+```bash
+mkdir -p "<project>/02-Context/Messaging"
+cat > "<project>/02-Context/Messaging/standing-profile.md" <<'EOF'
+# Standing profile
+
+What this organisation can credibly speak about publicly, and the evidence behind each claim.
+Captured at setup on <date>. Confirm quarterly — evidence accumulates and standing widens.
+
+Answered by the person who runs this folder. Nothing here was inferred from the website, from
+document titles, or from the product list, and nothing should be added that way later.
+
+## Where we have standing
+
+| Topic | Why us | Evidence | Where the evidence lives | Confidence |
+|---|---|---|---|---|
+| <topic> | <the specific claim only this org can make> | <data, research, customer pattern> | <path or URL> | Confirmed / Asserted |
+
+## Where we do NOT have standing
+
+| Topic | Why not |
+|---|---|
+| <adjacent topic> | <e.g. we sell into this market but hold no evidence about it> |
+
+## Evidence that exists but is hard to find
+
+<Anything the organisation knows but cannot easily locate or cite. An unlocatable claim cannot be
+used, and this is where a content module quietly under-performs.>
+EOF
+```
+
+Then fill it in with what they actually said, and enforce three rules:
+
+- **Every row in the first table names a locatable artifact.** "We have a lot of research" is not
+  evidence. A path or a URL is.
+- **`Asserted` means they stated it and the artifact wasn't verified.** Allowed — they know things
+  the folder does not — but marked, so a later sweep knows which claims have been checked.
+- **The exclusions table is not optional.** If they can't think of one, prompt until they can.
+
+### Seed the content-lens watchlist rows
+
+One row per standing area, so market tracking is looking for the things they could actually speak
+to rather than only the things that move deals:
+
+```bash
+python3 $S/csvguard.py --check-all <project>     # after adding the rows
+```
+
+Each carries `lens: content` (or `both`, where the term also matters to a named account) and an
+`evidence_ref` naming the profile row that justifies it. A content row with no `evidence_ref`
+hasn't passed the gate. Leave the deal-lens rows built in Track 4 alone — they default to `deal`,
+which is what they were.
+
+### Seed the content folder
+
+```bash
+mkdir -p "<project>/05-Demand-Gen/Content"
+cat > "<project>/05-Demand-Gen/Content/README.md" <<'EOF'
+# Content
+
+Drafts live here — social posts, blogs, webinar briefs, signal-led outreach. One file per piece,
+linked back to its row in `../content-opportunities` by `draft_path`.
+
+Every piece has to name the standing-profile claim it rests on, in `standing_ref`. If no claim
+fits, the answer is no piece rather than a weaker piece. Widening the profile is a conversation,
+not a decision made mid-draft.
+
+Two rules that are not preferences:
+
+**Never comment publicly on a competitor's win, funding round or bad news.** It reads as rattled
+rather than authoritative, and buyers notice. That intelligence is genuinely useful — it belongs
+in competitor tracking, where it shapes positioning instead of becoming a post.
+
+**Perishability is a deadline, not a label.** An `Hours` or `Days` item moves now or gets declined
+and marked `Expired`. A breach comment written a fortnight late is worse than silence: it
+announces you weren't paying attention. Leaving perishable items sitting in `New` until they rot
+is the most common way this folder wastes a good angle.
+EOF
+```
+
+### Record it in config
+
+Written as bullets like the rest of `config.md`, so the skills can read it and a person can too:
+
+```markdown
+### Content
+
+- standing_profile: 02-Context/Messaging/standing-profile.md
+- content_voice: <person's name / corporate>
+- content_publisher: <who approves and publishes>
+- content_destination: <blog, LinkedIn, newsletter>
+- content_sweep_cadence: <standalone / inside the weekly brief>
+- content_automation: review
+```
+
+`review` is not a default worth changing here. Content goes out under someone's name, and the
+week spent watching what the system *would* have published is cheap.
 
 ---
 
@@ -609,6 +760,7 @@ Common asks and where they land:
 | "My quota changed" | Track 6; supersede the old goal row, don't overwrite it |
 | "Move to Excel" | `csvguard.py --convert-all <project> --to xlsx` |
 | "The stages are wrong" | Re-run Track 3 for that object, then re-confirm against real records |
+| "We can talk about X now too" | Track 5a; add the row with its evidence, and seed the content-lens watchlist row |
 | "Start over" | Confirm first. Keep their data and context; rebuild config and checklist |
 
 `--init` is safe to re-run at any time: it adds steps for newly enabled modules and never resets

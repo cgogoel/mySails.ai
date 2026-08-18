@@ -121,6 +121,29 @@ terms.
 
 Ten watched well beats fifty watched never.
 
+### Every row needs a `lens`, and it's a different question from `why`
+
+`lens` says which test the row is for, and the two tests are not the same test:
+
+| `lens` | The test | Failing it looks like |
+|---|---|---|
+| `deal` | Does this change what to do about a named account, deal or renewal? | Interesting news with nobody to call |
+| `content` | Does this organisation have standing to say something publicly? | A post that reads as news-hijacking |
+| `both` | Genuinely both, which is less common than it feels | |
+
+A term usually serves one and fails the other. A supply-chain incident at a named retailer is a
+strong `deal` row and a poor `content` row unless the company holds real evidence about that risk.
+A regulation with a compliance deadline is often the reverse.
+
+**Set it when you add the row** — it defaults to `deal`, which is right for most of them and wrong
+silently for the rest. When you add a `content` or `both` row, fill `evidence_ref` with the row in
+`02-Context/Messaging/standing-profile.md` that justifies it. If you can't name one, the honest
+move is a `deal` row, or no row: the standing profile is widened by a conversation with the user,
+never by adding a watch term and letting a later sweep treat it as settled.
+
+If the folder has no standing profile at all, don't infer one and don't guess at content rows —
+say the content lens is unconfigured and point at `configure-project`.
+
 ---
 
 ## Sweeping newsletters

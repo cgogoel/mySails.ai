@@ -38,6 +38,31 @@ python3 "$S/csvguard.py" --check-all <project>
 Campaigns in `05-Demand-Gen/campaigns`, content ideas in `05-Demand-Gen/content-opportunities`,
 drafts in `05-Demand-Gen/Content/`.
 
+5. **Read `02-Context/Messaging/standing-profile.md`. If it isn't there, part two does not run.**
+
+   Say so plainly and stop the content half — then offer to capture it, here, before going any
+   further:
+
+   > There's no standing profile in this folder, so I've got nothing to test a content idea
+   > against. I could work out what you're probably able to speak about from your website and
+   > your document titles, and I'm not going to: that inference is confidently wrong often
+   > enough to matter. Research gets titled for its subject rather than its platform, so a topic
+   > you have half your evidence on can be invisible in the titles — and a wrong exclusion
+   > suppresses a whole category of content without anyone noticing, because nobody audits the
+   > posts that were never suggested.
+   >
+   > Five minutes of questions fixes it permanently. Want to do that now, or shall I just run the
+   > campaign numbers?
+
+   If they say yes, run the questions from **Track 5a of `configure-project`** — the same five, in
+   the same order, with the same rule: every entry confirmed by them before it is written, and
+   anything unconfirmed marked `Asserted`. Write the profile, then continue. If they'd rather not,
+   run part one and say the content half is waiting on it. **Do not draft anything in the
+   meantime, and do not write a standing assessment of your own into the folder.**
+
+   **Part one is unaffected by any of this.** Campaign measurement has no standing dependency, and
+   a folder that never enables content must keep working exactly as it does now.
+
 ---
 
 # Part one — campaign measurement
@@ -118,6 +143,11 @@ can say — and the point is being **early and relevant**, not prolific.
 Read `03-Market/signals` where `content_reviewed = no`. Report what's arrived since the last sweep,
 which is usually what the daily brief wants.
 
+Weight the sweep toward signals matching watchlist rows with `lens: content` or `both` — those are
+the terms someone decided this company could speak to, and each carries an `evidence_ref` naming
+the claim behind it. A signal that only matches a `deal`-lens row is far more likely to be a reason
+to call somebody than a reason to publish.
+
 Triage each against `02-Context/Company/` and `02-Context/Messaging/`. Three outcomes:
 
 **Worth commenting on** — the event touches something the company genuinely knows about.
@@ -133,6 +163,19 @@ doesn't resurface every sweep.
 
 `relevance_why` is required, and it's the quality gate for the whole module. It answers: *why does
 this company specifically have the right to say something here?*
+
+**Test every candidate against a named row in the standing profile, and record which row in
+`standing_ref`.** Not a paraphrase of the profile — the row. The guard requires it before a piece
+can reach `Approved`, which makes the gate auditable instead of a judgement that happened in
+someone's head mid-sweep and was never written down.
+
+Check the exclusions table as deliberately as the standing table. It exists to be hit, and a topic
+listed there is a no however good the angle is.
+
+**If no row fits, the answer is no piece — not a weaker piece.** Widening the profile is a
+conversation with the user, not a call made mid-sweep: propose the addition, name what evidence
+would support it, and let them decide. Then the next sweep has a real row to test against instead
+of a precedent nobody agreed to.
 
 Good standing looks like: the event is in a domain the company has real evidence about, or it
 matches a pattern seen across customers, or the company has data nobody else has.
@@ -170,8 +213,9 @@ contrarian, since that's higher risk and higher reward and the user should choos
 | Outreach email | The signal matters to a *specific* account more than the market | See below |
 | Newsletter item | Worth saying but not worth a standalone piece | |
 
-**3. Draft on confirmation.** Write to `05-Demand-Gen/Content/`, set `draft_path` and `status`, and
-link back to the signal via `content_opp_id`.
+**3. Draft on confirmation.** Write to `05-Demand-Gen/Content/`, set `draft_path`, `standing_ref`
+and `status`, and link back to the signal via `content_opp_id`. The guard will refuse the status
+change without `standing_ref`, and that refusal is the feature.
 
 ## Signal-led outreach — the highest-value case
 

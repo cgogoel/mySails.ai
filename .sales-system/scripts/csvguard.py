@@ -635,6 +635,22 @@ def process(path, schema, repair=False):
                 nv, ch, ok = norm_enum(v, c.get("values", []))
             else:
                 nv, ch, ok = norm_text(v)
+            # A declared `default` fills a blank cell, and this has to happen before the
+            # required check below or the two keys contradict each other. It exists for one
+            # situation, which is the one that matters: a new required column arriving in an
+            # existing registry. Header reconciliation adds it blank to every row, and
+            # without a fill every one of those rows becomes a NEEDS YOU on the next
+            # --check-all — in every skill, since they all run the guard first. A column
+            # only behaves this way when its schema says so, so nothing gains a default by
+            # accident, and the fill is reported rather than silent.
+            #
+            # Only ever declare a default where the value is genuinely the right reading of
+            # a blank. Never on an amount, a date, or anything a person is supposed to
+            # decide: turning missing information into an assertion is the failure mode
+            # this whole system is built against.
+            if not nv and c.get("default") is not None and t != "id":
+                nv = str(c["default"])
+                fixes.append(f"row {line} · {cname}: blank -> {nv!r} (schema default)")
             row[ci] = nv
             if ch:
                 fixes.append(f"row {line} · {cname}: {v!r} -> {nv!r}")
@@ -648,6 +664,42 @@ def process(path, schema, repair=False):
             # Blank ids are not a problem — the id pass below fills them in.
             if c.get("required") and not nv and t != "id":
                 problems.append(f"row {line} · {cname} is required but empty")
+
+    # --- conditional requirements, evaluated once the whole row is normalised
+    # Some fields are only required at a point in a record's life. `standing_ref` on a
+    # content idea is the case this was built for: a New idea has not been tested against
+    # anything yet and a Declined one never will be, but a drafted piece with no named
+    # justification is precisely the failure its schema exists to prevent.
+    #
+    # The alternative was to leave the rule in skill prose, which means it gets re-derived
+    # by every session from a paragraph, and a rule that depends on being remembered is a
+    # rule that is sometimes not applied. Declared here it is checked every run.
+    #
+    #   "required_when": {"column": "status", "in": ["Drafted", "Published"]}
+    #   "required_when": {"column": "status", "not_in": ["New", "Declined"]}
+    #
+    # Unknown or absent trigger column: no opinion. A gate that fires on a registry whose
+    # owner renamed the column it watches would be worse than one that stays quiet.
+    gated = [c for c in cols if c.get("required_when")]
+    if gated:
+        pos = {h: i for i, h in enumerate(new_header)}
+        for ri, row in enumerate(rebuilt):
+            line = ri + 2
+            for c in gated:
+                rw = c["required_when"]
+                ti, ci_ = pos.get(rw.get("column")), pos.get(c["name"])
+                if ti is None or ci_ is None or row[ci_]:
+                    continue
+                trig = row[ti]
+                if not trig:
+                    continue
+                if "in" in rw and trig not in rw["in"]:
+                    continue
+                if "not_in" in rw and trig in rw["not_in"]:
+                    continue
+                problems.append(
+                    f"row {line} · {c['name']} is required once {rw['column']} is "
+                    f"{trig!r} — {c.get('note', 'see the schema').split('.')[0]}")
 
     # --- ids: fill blanks, catch duplicates
     if "id" in new_header:

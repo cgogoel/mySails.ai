@@ -205,6 +205,59 @@ def opp_index(root):
     return by_crm, by_id, schema
 
 
+def parse_attendees(cell):
+    """'Jane Doe <jane@acme.com>; Bob Roe' -> [("Jane Doe","jane@acme.com"),("Bob Roe","")].
+
+    The email is what makes threading and engagement dedup exact; the name alone still
+    earns a contact row via the same name-keyed fallback the rest of the build uses."""
+    out = []
+    for part in (cell or "").split(";"):
+        part = part.strip()
+        if not part:
+            continue
+        m = re.match(r"^(.*?)\s*<([^<>@\s]+@[^<>\s]+)>\s*$", part)
+        if m:
+            out.append((m.group(1).strip(), m.group(2).strip().lower()))
+        elif "@" in part and " " not in part:
+            out.append(("", part.lower()))
+        else:
+            out.append((part, ""))
+    return out
+
+
+def local_meetings(root):
+    """Processed meetings from 13-Meetings/meetings.csv, opportunity-related rows only —
+    the contacts registry is opportunity-scoped. Missing registry or module never
+    enabled: an empty list, silently, because absence of the module is not a defect."""
+    schema = G.load_schemas(root).get("meetings")
+    if not schema:
+        return []
+    path = G.resolve_path(os.path.join(root, schema["path"]), root)
+    if not os.path.exists(path):
+        return []
+    try:
+        header, rows = G.read_table(path, schema)
+    except Exception:
+        return []
+    i = {h: k for k, h in enumerate(header)}
+    need = ("related_type", "related_id", "meeting_date", "attendees_external")
+    if any(n not in i for n in need):
+        return []
+    out = []
+    for r in rows:
+        def cell(n):
+            return r[i[n]] if i[n] < len(r) else ""
+        if cell("related_type") != "opportunity" or not cell("related_id"):
+            continue
+        att = parse_attendees(cell("attendees_external"))
+        if not att:
+            continue
+        out.append({"related_id": cell("related_id"),
+                    "date": cell("meeting_date"),
+                    "attendees": att})
+    return out
+
+
 def in_window(rec, when):
     """Was this dated inside the deal's life? Used only for account-linked evidence,
     where the activity names the customer but not which of their deals."""
@@ -263,7 +316,9 @@ class Contact:
         self.direction_seen = False
 
 
-RUNGS = ["opportunity-linked", "account-dated", "invite-accepted"]
+# Strongest first. "transcript" outranks everything: the person is on the record
+# speaking in the room, which settles attendance in a way no calendar inference can.
+RUNGS = ["transcript", "opportunity-linked", "account-dated", "invite-accepted"]
 
 
 def build(root, payload, dry_run=False):
@@ -438,6 +493,38 @@ def build(root, payload, dry_run=False):
             c.meeting_dates.append(when)
             if not c.meeting_rung or RUNGS.index(how) < RUNGS.index(c.meeting_rung):
                 c.meeting_rung = how
+
+    # --- the meetings registry: transcript evidence, folded in on every build
+    # The meeting-notes skill records processed transcripts in 13-Meetings/meetings.csv,
+    # attendees included. Reading it HERE — rather than having that skill write contact
+    # rows and hoping they survive — is what makes rebuilds idempotent: this build is an
+    # upsert that recomputes every derived column, so evidence living only in registry
+    # rows the build overwrites would quietly revert to "no meeting" on the next run.
+    # Evidence belongs in a source the build reads, and then no run can lose it.
+    #
+    # Deliberately NOT counted toward have_meeting_source below: that flag flips
+    # meeting_held from blank (nobody looked) to "no" (looked, none found) for every
+    # contact, and two processed transcripts prove attendance for their attendees without
+    # proving absence for anybody else.
+    folded = 0
+    for m in local_meetings(root):
+        opp = by_id.get(m["related_id"])
+        if not opp:
+            continue
+        for name, addr in m["attendees"]:
+            if addr and is_internal(addr):
+                continue
+            c = get(opp["id"], addr, name)
+            c.from_activity = True
+            c.dates.append(m["date"])
+            c.meetings += 1
+            c.meeting_dates.append(m["date"])
+            if not c.meeting_rung or RUNGS.index("transcript") < RUNGS.index(c.meeting_rung):
+                c.meeting_rung = "transcript"
+            folded += 1
+    if folded:
+        print(f"  {folded} attendance record(s) folded in from the meetings registry "
+              f"(transcript evidence — the strongest rung)")
 
     have_meeting_source = bool(block.get("meeting_object")) or bool(payload.get("meetings"))
     records = [as_record(c, by_id, semantics, have_meeting_source)
@@ -801,12 +888,136 @@ def plan(root):
     return 0
 
 
+def fold(root):
+    """Push transcript attendance from the meetings registry into the contacts registry
+    NOW, without waiting for the next full build.
+
+    Column-limited on purpose. A full build recomputes every derived column from its
+    payload, and running one with no payload would conclude "no replies, never contacted"
+    about people whose email simply wasn't looked at — a confident wrong answer written
+    over a correct one. This touches only the meeting columns, which are the only thing a
+    transcript is evidence of. Everything is recomputed from the registry rather than
+    incremented, so running it twice changes nothing.
+
+    New attendees get a minimal row: meeting evidence set, email columns left at their
+    honest defaults (`replied` blank, `engagement` undetermined — nobody has looked). The
+    next full build converges them with the email record."""
+    meetings = local_meetings(root)
+    if not meetings:
+        print("no opportunity-related meetings with attendees in the meetings registry "
+              "— nothing to fold")
+        return 0
+
+    schema = G.load_schemas(root).get(REGISTRY)
+    if not schema:
+        print("no opportunity_contacts schema in this folder — run update-system")
+        return 1
+    path = G.resolve_path(os.path.join(root, schema["path"]), root)
+    if not os.path.exists(path):
+        # The registry not existing yet is configure-project's business, not a reason to
+        # lose the evidence — it stays in the meetings registry and the next build folds it.
+        print(f"{os.path.basename(path)} does not exist yet — the meetings registry keeps "
+              f"the evidence, and the next contacts build will fold it in")
+        return 0
+
+    # Everything a transcript proves, per (opp, person): dates attended.
+    by_person = {}
+    for m in meetings:
+        for name, addr in m["attendees"]:
+            key = (m["related_id"], addr or f"name:{norm_person(name)}")
+            rec = by_person.setdefault(key, {"name": name, "email": addr, "dates": []})
+            if m["date"]:
+                rec["dates"].append(m["date"])
+
+    header, rows = G.read_table(path, schema)
+    i = {h: k for k, h in enumerate(header)}
+    need = ("opportunity_id", "email", "name", "meeting_held", "meeting_evidence",
+            "last_meeting_date", "meetings_count")
+    missing = [n for n in need if n not in i]
+    if missing:
+        print(f"contacts registry is missing column(s) {', '.join(missing)} — run "
+              f"csvguard --check-all to bring the header forward, then retry")
+        return 1
+
+    existing = {}
+    for r in rows:
+        opp = r[i["opportunity_id"]] if i["opportunity_id"] < len(r) else ""
+        addr = (r[i["email"]] or "").lower() if i["email"] < len(r) else ""
+        nm = r[i["name"]] if i["name"] < len(r) else ""
+        existing[(opp, addr or f"name:{norm_person(nm)}")] = r
+        # A transcript naming an email may match a row keyed by the same person's name
+        # (or vice versa); index both forms so evidence lands on the row that exists.
+        if addr and nm:
+            existing.setdefault((opp, f"name:{norm_person(nm)}"), r)
+
+    updated = added = 0
+    for (opp, pkey), rec in sorted(by_person.items()):
+        dates = sorted(d for d in rec["dates"] if d)
+        row = existing.get((opp, pkey))
+        if row is None and rec["email"] and rec["name"]:
+            row = existing.get((opp, f"name:{norm_person(rec['name'])}"))
+        if row is not None:
+            changed = False
+            if (row[i["meeting_held"]] or "").lower() not in ("yes", "true", "1"):
+                row[i["meeting_held"]] = "yes"
+                changed = True
+            cur = row[i["meeting_evidence"]] or "none"
+            if cur not in RUNGS or RUNGS.index("transcript") < RUNGS.index(cur):
+                row[i["meeting_evidence"]] = "transcript"
+                changed = True
+            if dates and dates[-1] > (row[i["last_meeting_date"]] or ""):
+                row[i["last_meeting_date"]] = dates[-1]
+                changed = True
+            try:
+                have = int(row[i["meetings_count"]] or 0)
+            except ValueError:
+                have = 0
+            if len(dates) > have:
+                row[i["meetings_count"]] = str(len(dates))
+                changed = True
+            if changed:
+                updated += 1
+            continue
+        new = [""] * len(header)
+        def put(col, val):
+            if col in i:
+                new[i[col]] = val
+        put("opportunity_id", opp)
+        put("name", rec["name"])
+        put("email", rec["email"])
+        put("source", "activity-only")
+        put("meeting_held", "yes")
+        put("meeting_evidence", "transcript")
+        put("last_meeting_date", dates[-1] if dates else "")
+        put("first_touch_date", dates[0] if dates else "")
+        put("meetings_count", str(len(dates)))
+        put("engagement", "undetermined")
+        put("reply_evidence", "none")
+        put("crm_id", f"{opp}|{rec['email'] or norm_person(rec['name'])}")
+        rows.append(new)
+        existing[(opp, pkey)] = new
+        added += 1
+
+    if not (updated or added):
+        print("contacts registry already reflects every transcript — nothing to change")
+        return 0
+    G.write_table(path, header, rows, schema=schema, root=root, backup=True)
+    print(f"{os.path.basename(path)}: {updated} contact(s) updated with transcript "
+          f"evidence, {added} added from attendance alone")
+    if added:
+        print("  added rows carry meeting evidence only — replied stays blank and "
+              "engagement reads undetermined until the next full contacts build looks at "
+              "their email. That is the honest state, not a failed import.")
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--plan")
     ap.add_argument("--build")
     ap.add_argument("--rollup")
     ap.add_argument("--flags")
+    ap.add_argument("--fold", help="Project root: push transcript attendance from the meetings registry into the contacts registry, meeting columns only")
     ap.add_argument("--input")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--all-stages", action="store_true",
@@ -814,7 +1025,7 @@ def main():
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
 
-    root = os.path.abspath(a.plan or a.build or a.rollup or a.flags or "")
+    root = os.path.abspath(a.plan or a.build or a.rollup or a.flags or a.fold or "")
     if not root or not os.path.isdir(os.path.join(root, G.SYSTEM_DIR)):
         print("error: pass a project root that contains .sales-system", file=sys.stderr)
         return 2
@@ -830,6 +1041,8 @@ def main():
             return build(root, json.load(f), dry_run=a.dry_run)
     if a.rollup:
         return rollup(root)
+    if a.fold:
+        return fold(root)
     if a.flags:
         return flags(root, as_json=a.json, open_only=not a.all_stages)
     ap.print_help()

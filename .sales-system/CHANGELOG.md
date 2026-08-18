@@ -6,6 +6,99 @@ gained — and, more importantly, what quietly means something different now.
 
 The format is one `## YYYY-MM-DD` heading per template version, matching `VERSION.json`.
 
+## 2026-08-19
+
+**The content half of demand gen used to work out what your company could credibly talk about on
+its own, from your website and your document titles. It doesn't any more — it asks you, once, at
+setup.**
+
+- **New file in your folder: `02-Context/Messaging/standing-profile.md`.** What your organisation
+  can credibly speak about publicly, the evidence behind each claim and where that evidence lives,
+  and — required, not optional — what's adjacent to you that you should stay out of. Written from
+  your answers. `configure-project` has a new phase (Track 5a) that captures it, and that phase
+  runs only when Demand Gen is enabled.
+- **`demand-gen` now stops the content half if that file is missing**, and offers to capture it
+  there and then. It will not infer standing in order to carry on. **Campaign measurement is
+  untouched** — part one has no standing dependency and a folder that never runs content behaves
+  exactly as before. If you have been running content sweeps without a standing profile, the
+  assessment behind them was an inference nobody confirmed, and the angles it *declined* are the
+  part worth re-reading.
+- **Why this is a hard stop rather than a warning.** Surface signals under-represent what an
+  organisation knows: research gets titled for its subject rather than its platform, and capability
+  is not always marketed. In one real setup the inference concluded a company had no standing on a
+  platform carrying roughly half its research, because the titles didn't name it — and wrote that
+  conclusion into three files. A wrong exclusion suppresses a whole category of content permanently
+  and silently, because nobody audits the pieces that were never suggested.
+- **New column: `lens` on `03-Market/watchlist`** — `deal`, `content` or `both`. Deal signals and
+  content topics are different questions with different tests, and they shared one registry with
+  nothing but the `why` prose to tell them apart. **Your existing rows become `deal`, which is what
+  they already meant** — every watchlist built before this column was deal-oriented, so there is
+  nothing to fix by hand. Content rows also carry `evidence_ref`, naming the standing-profile claim
+  behind them.
+- **New column: `standing_ref` on `05-Demand-Gen/content-opportunities`** — which named claim a
+  piece rests on. The guard requires it before a row can reach `Approved`, `Drafted`, `In Review`
+  or `Published`, and deliberately does **not** require it on `New`, `Declined` or `Expired`: an
+  untested idea has no answer yet and a passed-over one never will. A drafted piece with an empty
+  `standing_ref` is the exact failure this release exists to prevent.
+- **New file: `05-Demand-Gen/Content/README.md`**, carrying two rules that previously lived only in
+  skill prose and were therefore re-derived every session: never comment publicly on a competitor's
+  funding, win or bad news, and perishability is a deadline rather than a label.
+- **Two new schema keys, usable in your own columns, documented in CONVENTIONS §3.**
+  `"default": "x"` fills a blank cell and reports the fill — which is what lets a new *required*
+  column arrive in an existing registry without turning every row into a `NEEDS YOU`.
+  `"required_when": {"column": "status", "in": [...]}` makes a column required only at some point in
+  a record's life. Both are checked on every `--check-all`. Declare a `default` only where a blank
+  genuinely already meant that value; never on an amount, a date, or anything a person should decide.
+- **`setup_status` scores three new steps when Demand Gen is on**, so a folder with no standing
+  profile no longer reports 100%. It also now expects `content-opportunities` to exist alongside
+  `campaigns` — the content half had nowhere to write and setup was calling that finished.
+- **The weekly brief skips its content assessment rather than guessing** when no standing profile
+  exists, and says so in one line. `market-tracking` sets `lens` on rows it adds, and won't invent
+  content-lens rows against a profile that isn't there.
+
+**Also in this release: meetings stop evaporating.** A new fifteenth skill, `meeting-notes`,
+processes call transcripts and meeting notes into the record the rest of the system runs on.
+
+- **New module: Meeting Notes, at `13-Meetings/`.** Three ways in — paste a transcript or your
+  rough notes in conversation, drop exports (Otter, Teams, Gong, `.vtt`) into `13-Meetings/Inbox/`,
+  or pull from a connected transcript source such as Zoom. The verbatim original is kept in `Raw/`,
+  the processed note in `Notes/`, and both stay searchable — "what did they say about SSO" is now a
+  question the folder can answer, with the quote, the speaker, and the date.
+- **Two new registries.** `meetings` — one row per processed meeting: summary, outcome, key quote,
+  attendees, risks, positives, next step. `commitments` — who promised what by when, **in both
+  directions**. Yours become tasks and are verified like any task; an unmet customer commitment is
+  one of the earliest stall signals a deal gives off, and the weekly brief now sweeps for exactly
+  that.
+- **Extraction routes to the module that owns it**: action items become tasks at your configured
+  automation level; competitor mentions land on the battlecard as field intelligence; renewal-risk
+  and expansion phrases are offered to the renewal row; the agreed next step is offered to the
+  opportunity — and to the CRM under the usual rule: never automatic, field-by-field diff, explicit
+  yes.
+- **Attendance is now the strongest meeting evidence there is.** `meeting_evidence` on the contacts
+  registry gains a `transcript` rung, above `opportunity-linked`. The contacts build folds the
+  meetings registry in on every run, so transcript evidence survives rebuilds instead of being
+  silently reverted — and `contacts_sync.py --fold` pushes it immediately, touching meeting columns
+  only. Attendee rows discovered from a transcript arrive with email columns honestly blank rather
+  than confidently wrong.
+- **Sentiment, scored the way this system scores anything: with the receipts.** Each meeting
+  carries `sentiment` (Positive / Mixed / Neutral / Negative / Unclear) beside `outcome`, and the
+  guard requires `sentiment_evidence` — a quote or close paraphrase — for any non-neutral reading.
+  The two columns answer different questions, and their divergence is the signal: Positive/Neutral
+  is the pleasant-meetings-no-deal pattern, Negative/Advanced is a hard conversation that did its
+  job. Sentiment deliberately does NOT feed engagement scoring, which stays behavioral — a cheerful
+  transcript cannot inflate a number deals get ranked by.
+- **Engagement finally counts the meetings the calendar never saw.** An off-calendar call whose
+  only trace is the transcript is ingested into the activity cache; a scheduled meeting is marked
+  `already-on-calendar` and NOT re-ingested, because meetings are the highest-weighted event in the
+  score and double-counting them is the most expensive dedup mistake available.
+- **The briefs read it.** Daily-brief meeting prep now leads with what happened last time and any
+  unmet commitment of yours — walking in unaware of your own promise is the avoidable version of a
+  bad meeting. Content tailoring reads recent meeting notes so an asset answers the question they
+  asked in the room.
+- **Upgrading is one `update-system` run**: two schemas arrive, `meeting_evidence` gains its rung,
+  and nothing else in your folder is touched. The module stays off until you enable it, and every
+  skill treats its absence as "not enabled", never as an error.
+
 ## 2026-08-18
 
 **Money can be added up now. Before this release, on a mixed-currency book, it could not.**

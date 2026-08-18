@@ -42,10 +42,29 @@
       "owner": "local"
     },
     {
+      "name": "lens",
+      "type": "enum",
+      "required": true,
+      "default": "deal",
+      "values": [
+        "deal",
+        "content",
+        "both"
+      ],
+      "note": "Which test applies. 'deal' = does this change what to do about a named account, deal or renewal. 'content' = does this organisation have standing to say something publicly. A term commonly serves one and fails the other, and encoding that in the `why` prose means every skill has to re-read a sentence to find out. Existing rows default to 'deal', which is correct: every watchlist built before this column was deal-oriented.",
+      "owner": "local"
+    },
+    {
       "name": "why",
       "type": "text",
       "required": true,
       "note": "What you'd do differently if this moved. A watch item with no answer here is a news habit, not a sales tool.",
+      "owner": "local"
+    },
+    {
+      "name": "evidence_ref",
+      "type": "text",
+      "note": "Content and both rows only: which standing-profile claim justifies watching this. A content row with no evidence_ref has not passed the gate, and a sweep against it produces plausible commentary resting on nothing.",
       "owner": "local"
     },
     {

@@ -1,12 +1,12 @@
 {
   "name": "folder-sales-os",
-  "description": "An all-in-one sales management system that runs on files you can open — CSV or styled Excel registries, Markdown notes, and 14 skills covering leads, opportunities, renewals, partners, competitors, market signals, demand gen, content, quotes, briefs and forecasts. Guided, resumable setup with a completion tracker. Tracks who is actually on each deal and which of them reply, so single-threaded deals surface before the champion leaves. Detects when your folder and your CRM have drifted apart, and refuses writes that would revert live edits. CRM-agnostic: setup introspects whatever CRM you connect and builds a per-org profile.",
-  "version": "0.6.0",
+  "description": "An all-in-one sales management system that runs on files you can open — CSV or styled Excel registries, Markdown notes, and 15 skills covering leads, opportunities, renewals, partners, competitors, market signals, demand gen, content, quotes, meeting transcripts, briefs and forecasts. Guided, resumable setup with a completion tracker. Tracks who is actually on each deal and which of them reply, so single-threaded deals surface before the champion leaves. Detects when your folder and your CRM have drifted apart, and refuses writes that would revert live edits. CRM-agnostic: setup introspects whatever CRM you connect and builds a per-org profile.",
+  "version": "0.7.0",
   "author": {
     "name": "Chris Gogoel",
     "url": "https://github.com/cgogoel"
   },
   "repository": "https://github.com/cgogoel/mySails.ai",
-  "requires_template": "2026-08-18",
+  "requires_template": "2026-08-19",
   "_requires_template_note": "Minimum support-layer version these skills need in a project folder. The check is one-directional on purpose: skills newer than the layer call scripts that aren't there and break, while a layer newer than the skills is merely unused. So this is a floor, not a match. The update-system skill compares it against each folder's .sales-system/VERSION.json."
 }
