@@ -18,6 +18,7 @@
 99-Archive/
 .sales-system/backups/
 .sales-system/cache/
+.sales-system/locks/
 .sales-system/crm-profile/
 .sales-system/brand.json
 

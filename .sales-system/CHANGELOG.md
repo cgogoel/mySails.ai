@@ -6,6 +6,63 @@ gained — and, more importantly, what quietly means something different now.
 
 The format is one `## YYYY-MM-DD` heading per template version, matching `VERSION.json`.
 
+## 2026-08-25
+
+**The forecast dashboard is read by the whole sales team, not by the person who runs this folder —
+and it was written as though it weren't.** This release makes that the default: no record IDs, no
+sync plumbing, no invented next steps, and money printed in full.
+
+- **Money prints in full, everywhere.** `money()` no longer abbreviates: `$3,000,000` and
+  `$240,570`, never `$3M` or `$240.6K`. These numbers get read aloud on a call and compared against
+  figures people already hold, and `$1.2M` against `$1,165,674` is one number that reads as two.
+- **Headline and stat cards were never formatted at all.** `card()` rendered its value raw, so a
+  payload passing `5627000` printed `5627000` while the goal bars and renewal tracker beside it —
+  which do call `money()` — printed theirs correctly. Every dashboard built before today had some
+  figures formatted and some not. `card()` now formats numeric values as currency; **counts and
+  percentages must be passed as strings** (`"228"`, `"33%"`), which is the same contract they
+  already had in practice. If your skill or wrapper pre-formats card values or patches `money()`,
+  delete that — it is now double work.
+- **The deal table no longer prints opportunity IDs.** The account name identifies the deal. An
+  `OPP-` number means nothing to a rep who does not work in this folder and makes the page read as
+  tool output. Payloads may still carry `id`; it is simply not rendered.
+- **"Next step" is now the team's own text, verbatim**, and `(none recorded)` where the field is
+  empty. The forecast no longer writes next steps nobody wrote — a large deal with no next step
+  recorded is itself the finding, and inventing one hid it. **"Where it stands" is countable facts
+  only**: stage, days in stage, close-date pushes, days since last activity, dated events. The
+  ranking still calls a cold deal Cooling; the prose no longer grades anyone's work.
+- **Sync drift stays off the page.** Drift, `sync_status`, pending pushes and data-quality findings
+  are reported to you in chat and recorded in the snapshot `notes` — not printed on an artifact the
+  team reads. Removing something from the dashboard does not lose it: `notes` is what the next run
+  reads from. Same rule for every artifact other people read — see CONVENTIONS §8, *Artifacts other
+  people read*.
+- **Renewals with no prior-term win are excluded from the renewal track entirely** — denominator as
+  well as loss column. `08-Renewals` is built from contract end dates on opportunities, which
+  happily produces a full-value renewal for a deal that never closed. A contract that never existed
+  was never due, so counting one as lost overstates churn *and* drags coverage against a target
+  that was never real. Exclusions go in `notes`, and the prior period is restated on the same basis
+  before any movement is shown. `renewals-tracking` now applies the same test before creating a row.
+- **Engagement scoring reads the customer's fiscal year, not ours.** "Waiting for the new FY" in a
+  federal account approaching 30 September is a timing fact, not disengagement — and a scorer that
+  counts contact in a trailing window cannot see a calendar. Where the record shows a completed
+  evaluation plus a known procurement date, the date beats the activity window. This changes
+  rankings: deals parked as Cooling on a fiscal-year note may now read Heating, which is what they
+  were.
+
+**Two defects that affected every skill, not just the forecast:**
+
+- **A crashed write no longer locks a registry permanently.** `acquire_lock()` cleared a stale lock
+  by deleting it, and some mounts — the Cowork device bridge among them — permit writing a file but
+  not unlinking it, so the 10-minute staleness window never helped and the only way through was
+  copying the registry out and back. The lease is now taken over by overwriting the lock in place
+  where the delete is refused, and a clean release marks the file released rather than leaving a
+  fresh-looking lock behind. A live lock still blocks, exactly as before.
+- **`--partial` on `crm_sync.py` and `csvguard.py --verify-sync`.** `--refresh` only ever touched
+  the records handed to it, but verifying a subset reported every row you left out as `MISSING —
+  not in the CRM snapshot`, which buried the real findings and made accepting a handful of drifted
+  records unsafe to do unattended. `--partial` says the snapshot is a subset: absent rows are
+  counted as untouched, not missing. The `UNKNOWN` message now also names its own cure — an empty
+  `crm_last_modified` baseline, which one full refresh stamps.
+
 ## 2026-08-19
 
 **The content half of demand gen used to work out what your company could credibly talk about on

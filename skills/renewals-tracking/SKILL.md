@@ -110,6 +110,20 @@ Source contracts from closed-won deals per the profile's `source_of_contracts` �
 opportunities with a future contract end date. Match existing rows on `original_opp_id` first, then
 account plus end date.
 
+**Every row needs a prior-term win behind it.** A renewal exists because something was won before
+and is now due again. The source field is a contract end date on an *opportunity*, and an
+opportunity carries one whether or not it ever closed — so a deal that sat open for a year and was
+eventually lost will produce a renewal row that looks exactly like a real one, at full value, for a
+contract the customer never had.
+
+Before creating a row, confirm the prior term: `original_opp_id` resolving to a closed-won deal, or
+other evidence the customer actually bought. Where there is none, **do not create the row** — and
+where one already exists, remove it from the calendar rather than marking it lost. It was never
+due, so it is not leakage; carrying it as a loss overstates churn and drags renewal coverage down
+against a denominator that was never real. Record the exclusion and its reason in `notes` so a
+later import does not helpfully reinstate it, and say so to the user, since a phantom renewal
+usually means the source query or the opportunity's own status needs attention.
+
 Then link forward: find the renewal opportunity in `07-Opportunities/opportunities.csv` using the
 marker the profile names. Set `renewal_opp_id`, denormalise its stage into `renewal_opp_stage`, and
 record `renewal_opp_created_date`.

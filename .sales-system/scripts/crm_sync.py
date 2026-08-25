@@ -14,6 +14,10 @@ Hence three verbs that mean different things and refuse to be each other:
 
   --seed     First load only. Refuses to run against a registry that already has rows.
   --refresh  Field-level merge. Touches only columns the schema marks owner "crm";
+             only the records you hand it are touched — rows absent from the payload
+             are left exactly as they are, so a subset is safe. Pass --partial so
+             --dry-run and --verify judge it as a subset too, rather than reporting
+             every row you left out as missing from the CRM.
              local and derived columns survive untouched. Never renumbers an id.
   --verify   Read-only. Reports drift in both directions and changes nothing.
 
@@ -33,6 +37,7 @@ Usage:
   crm_sync.py --plan    <project> [--registry NAME]
   crm_sync.py --seed    <project> --registry NAME --json-file recs.json
   crm_sync.py --refresh <project> --registry NAME --json-file recs.json [--dry-run]
+                                                                 [--partial]
   crm_sync.py --verify  <project> --registry NAME --json-file snapshot.json
   crm_sync.py --ingest  <project> --registry NAME [--file export.csv] [--mode refresh]
 
@@ -370,7 +375,8 @@ def do_seed(root, registry, records, force=False, source=""):
     return 0
 
 
-def do_refresh(root, registry, records, dry_run=False, force=False, source=""):
+def do_refresh(root, registry, records, dry_run=False, force=False, source="",
+               partial=False):
     schema = G.schema_by_registry(root, registry)
     path = registry_path(root, schema)
     if not os.path.exists(path):
@@ -383,7 +389,7 @@ def do_refresh(root, registry, records, dry_run=False, force=False, source=""):
         # Show what would change without touching anything: run the same comparison
         # verify uses, since a refresh is exactly "accept every DRIFT".
         print(f"dry run — {registry}: {len(records)} incoming records")
-        return G.verify_sync(root, registry, records)
+        return G.verify_sync(root, registry, records, partial=partial)
 
     u, i, sk, changes = G.upsert(path, schema, records, key="crm_id", root=root,
                                  only_owner=["crm"], force=force)
@@ -422,6 +428,10 @@ def main():
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--verbose", action="store_true")
+    ap.add_argument("--partial", action="store_true",
+                    help="The record set is a subset of the registry, not the whole "
+                         "filter. Rows you did not hand over are left untouched and "
+                         "are not reported as missing from the CRM.")
     a = ap.parse_args()
 
     root = os.path.abspath(a.plan or a.seed or a.refresh or a.verify or a.ingest or "")
@@ -462,14 +472,15 @@ def main():
         return [G._to_local(r, fields, schema, d) for r in recs]
 
     if a.verify:
-        return G.verify_sync(root, a.registry, load_records(), verbose=a.verbose)
+        return G.verify_sync(root, a.registry, load_records(), verbose=a.verbose,
+                             partial=a.partial)
 
     if a.seed:
         return do_seed(root, a.registry, load_records(), force=a.force)
 
     if a.refresh:
         return do_refresh(root, a.registry, load_records(), dry_run=a.dry_run,
-                          force=a.force)
+                          force=a.force, partial=a.partial)
 
     if a.ingest:
         schema = G.schema_by_registry(root, a.registry)

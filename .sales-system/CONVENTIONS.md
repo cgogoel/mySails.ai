@@ -637,9 +637,19 @@ Three outcomes, and the distinction decides what to do:
 | **AHEAD** | Changed here and never pushed | A push failed or was skipped; the CRM is currently wrong |
 | **CONFLICT** | Both sides changed | Show both and ask. Never pick a winner |
 
-Lead with what it found. A forecast that opens with "16 opportunities changed owner in the
-CRM since your last sync" is doing its job; the same forecast reporting a quietly wrong
-by-rep split is worse than no forecast, because it will be believed.
+Lead with what it found — **to the user.** "16 opportunities changed owner in the CRM since your
+last sync" is exactly what they need; the same run reporting a quietly wrong by-rep split is worse
+than no report, because it will be believed. But sync state belongs in the conversation and in the
+snapshot row, **not on an artifact other people read** (§8, *Artifacts other people read*): resolve
+material drift before building, rather than printing it on the page.
+
+`--refresh` touches only the records handed to it — rows absent from the payload are left exactly
+as they are — so accepting a handful of drifted records is a narrow, safe operation. When the
+payload is a subset, pass `--partial` to `--verify` and `--dry-run` as well, or every row left out
+is reported as missing from the CRM and the real finding is lost in the noise. Where
+`crm_last_modified` is empty the direction of a change cannot be derived at all; one full refresh
+stamps the baseline and it resolves from then on. **Never accept drift unattended** — that is
+accepting someone else's edit on the user's behalf. Record it and ask.
 
 If a check can't run — no connector, no profile, the user in a hurry — say so in one line
 and label the numbers as unverified. Silence reads as confirmation.
@@ -741,6 +751,25 @@ The person using this is selling for a living and reading your output between me
   it into confident prose.
 - Don't invent pipeline. If the data isn't there, say the data isn't there.
 
+### Artifacts other people read
+
+Chat output has an audience of one — the person who runs this folder. Rendered artifacts often do
+not: a forecast dashboard goes to the sales team, a battlecard goes to reps, a one-pager goes to a
+customer. Before rendering anything, ask who reads it, and write for them.
+
+- **No internal plumbing on the page.** Record IDs (`OPP-`, `REN-`, `FCST-`), registry and file
+  names, script names, schema fields, sync state, drift counts, "since the last brief this system
+  produced". None of it means anything to the reader, and all of it makes the artifact read as tool
+  output rather than as the thing it claims to be.
+- **Absolute dates, not relative-to-this-system ones.** "Since Monday 17 August", never "since the
+  last run".
+- **Removing it from the page is not losing it.** It goes to the user in chat, and into the
+  snapshot or record row the next run reads from.
+- **Report, don't grade.** The bullet above — say what to do, not just what is true — is advice to
+  the user about their own book. It does not license telling a team what their deals are worth or
+  what to do about them in a document they all read. Verbatim is the default for anything a human
+  already wrote; where a field is empty, say `(none recorded)` rather than filling it in.
+
 ## 8a. Money and currency
 
 Amounts are bare numbers in the record's own currency; `currency` is a separate column, and orgs
@@ -803,6 +832,16 @@ percentage is a number nobody quoted.
 Run `fx.py --convert <project>` after any import, amount change or stage change, and before
 building anything that adds up.
 
+- **Money is printed in full, everywhere, with a symbol and thousands separators.** `$3,000,000`
+  and `$240,570`, never `$3M` or `$240.6K`. These figures get read aloud and compared against
+  numbers people already hold, and an abbreviation is a rounding nobody agreed to: `$1.2M` against
+  `$1,165,674` is one number that reads as two.
+- **Formatting belongs to the renderer, not the payload.** A skill that pre-formats some figures
+  and passes others through produces a page where half the numbers are formatted and half are not —
+  which is harder to spot, and worse, than none being formatted. Where a renderer takes a value that
+  might be money, a numeric value is money and a string is printed as written; counts and
+  percentages are passed as strings.
+
 ## 8b. Archiving — registries must not grow forever
 
 Rows accumulate; a tasks file gains rows daily, and a registry with thousands of rows gets slow to
@@ -825,7 +864,11 @@ sharing *safe*, not *simultaneous*. It's a small team taking turns cleanly, not 
 
 - **Write leases.** Every registry write acquires `.sales-system/locks/<file>.lock`. A locked file
   produces "locked by dana@laptop-2, retry shortly" instead of silent last-writer-wins. Stale locks
-  (10 min) are stolen automatically.
+  (10 min) are stolen automatically — and where the mount refuses to unlink the lock file (some
+  bridges and network shares permit writing a file but not deleting it), the lease is taken over by
+  overwriting it in place, and a clean release marks the file released rather than leaving a
+  fresh-looking lock behind. Without that fallback one crashed write locks a registry permanently
+  and no amount of waiting clears it.
 - **Excel-open detection.** A `~$` file next to a workbook means someone has it open in Excel;
   writes refuse rather than racing a live session.
 - **Sync-conflict copies.** `--check-all` finds `-Copy` / `(1)` / "conflicted copy" forks of

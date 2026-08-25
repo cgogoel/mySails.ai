@@ -29,6 +29,7 @@ Usage:
   csvguard.py --restyle <path.xlsx>       # reapply the Excel styling contract
   csvguard.py --sync-query <project_root> [--registry leads]
   csvguard.py --verify-sync <project_root> --registry leads --crm-json <snapshot.json>
+                                            [--partial]   # snapshot is a subset
 
 Paths are format-agnostic: pass leads.csv and it will find leads.xlsx if that's what
 exists.
@@ -209,12 +210,31 @@ def acquire_lock(path, root=None):
                 age = time.time() - float(info.get("ts", 0))
             except Exception:
                 info, age = {}, LOCK_STALE_SECONDS + 1
+            if info.get("released"):
+                age = LOCK_STALE_SECONDS + 1   # released, but the file could not be
+                                               # unlinked — see release_lock()
             if age > LOCK_STALE_SECONDS:
                 try:
                     os.remove(lp)   # stale — a crashed or abandoned session
                     continue
                 except OSError:
-                    pass
+                    # Some mounts permit writing a file but not unlinking it — the
+                    # Cowork device bridge raises EPERM on os.remove — so the
+                    # staleness window never helps: one crashed write leaves the
+                    # registry locked forever from this side, and the only way
+                    # through is copying the file out and back. Take the lease in
+                    # place instead. An overwrite is permitted where a delete is
+                    # not, and claiming a lease already judged stale is exactly
+                    # what the remove-and-recreate path did.
+                    try:
+                        with open(lp, "w", encoding="utf-8") as f:
+                            json.dump({"owner": getpass.getuser(),
+                                       "host": socket.gethostname(),
+                                       "ts": time.time(),
+                                       "took_over_from": info.get("owner", "")}, f)
+                        return lp
+                    except OSError:
+                        pass
             if attempt < 2:
                 time.sleep(2)
                 continue
@@ -226,9 +246,20 @@ def acquire_lock(path, root=None):
 
 
 def release_lock(lp):
+    """Drop the lease. Where the mount refuses the unlink, mark the file released in
+    place — otherwise a clean run leaves behind a lock with a fresh timestamp, which
+    blocks the next ten minutes of work on a registry nobody is holding."""
+    import time, json as _json
     try:
         if lp and os.path.exists(lp):
             os.remove(lp)
+            return
+    except OSError:
+        pass
+    try:
+        if lp and os.path.exists(lp):
+            with open(lp, "w", encoding="utf-8") as f:
+                _json.dump({"released": True, "ts": 0}, f)
     except OSError:
         pass
 
@@ -1120,9 +1151,16 @@ def _same(a, b, col):
     return a.strip().lower() == b.strip().lower()
 
 
-def verify_sync(root, registry, crm_records, verbose=False):
+def verify_sync(root, registry, crm_records, verbose=False, partial=False):
     """Compare a CRM snapshot against the local registry. Reports drift in both
-    directions, because both happen and they need opposite responses."""
+    directions, because both happen and they need opposite responses.
+
+    `partial=True` says the snapshot is a subset — a handful of records pulled to
+    re-check, not the whole filter. Local rows absent from a subset have not gone
+    anywhere, so they are counted as outside the set rather than reported MISSING.
+    Without this, re-checking eleven records against a registry of two hundred
+    reports the other one hundred and eighty-nine as missing from the CRM, and the
+    real finding is lost in the noise."""
     schema = schema_by_registry(root, registry)
     path = resolve_path(os.path.join(root, schema["path"]), root)
     if not os.path.exists(path):
@@ -1157,6 +1195,7 @@ def verify_sync(root, registry, crm_records, verbose=False):
     pol = schema.get("archive") or {}
     closed_col, closed_vals = pol.get("when_column"), set(pol.get("when_values") or [])
     closed_absent = 0
+    outside = 0
 
     for r in rows:
         cid = r[idx["crm_id"]] if idx["crm_id"] < len(r) else ""
@@ -1168,6 +1207,9 @@ def verify_sync(root, registry, crm_records, verbose=False):
         seen.add(k)
         crm = incoming.get(k)
         if crm is None:
+            if partial:
+                outside += 1     # not in this subset — not a claim about the CRM
+                continue
             state = (r[idx[closed_col]] if closed_col in idx
                      and idx[closed_col] < len(r) else "")
             if state and state in closed_vals:
@@ -1219,7 +1261,8 @@ def verify_sync(root, registry, crm_records, verbose=False):
 
     print(f"{registry}: {len(rows)} rows, {verified} verified"
           + (f", {local_only} local-only" if local_only else "")
-          + (f", {closed_absent} closed and outside the pull" if closed_absent else ""))
+          + (f", {closed_absent} closed and outside the pull" if closed_absent else "")
+          + (f", {outside} outside this partial set (untouched)" if outside else ""))
     for label, items in (("DRIFT", drift), ("AHEAD", ahead), ("CONFLICT", conflict),
                          ("UNKNOWN", unmatched), ("MISSING", gone)):
         cap = 200 if verbose else 25
@@ -1246,8 +1289,10 @@ def verify_sync(root, registry, crm_records, verbose=False):
         print(f"  CONFLICT ({len(conflict)}) — both sides changed. Per CONVENTIONS §7 "
               f"this needs you; don't let anything pick a winner.")
     if unmatched:
-        print(f"  UNKNOWN ({len(unmatched)}) — these rows predate sync timestamps, so "
-              f"the direction can't be derived. Treat as conflicts until refreshed.")
+        print(f"  UNKNOWN ({len(unmatched)}) — these rows carry no crm_last_modified "
+              f"baseline, so the direction can't be derived. Treat as conflicts until "
+              f"refreshed. One full (non-partial) refresh stamps the baseline on every "
+              f"row it touches, after which direction resolves by itself.")
     return 1
 
 
@@ -1329,6 +1374,9 @@ def main():
                     help="Project root: compare a CRM snapshot against local")
     ap.add_argument("--registry", help="Registry name for --sync-query / --verify-sync")
     ap.add_argument("--crm-json", dest="crm_json", help="CRM snapshot for --verify-sync")
+    ap.add_argument("--partial", action="store_true",
+                    help="The snapshot is a subset: local rows absent from it are "
+                         "untouched, not missing from the CRM")
     ap.add_argument("--verbose", action="store_true")
     ap.add_argument("--init")
     ap.add_argument("--schema")
@@ -1398,7 +1446,8 @@ def main():
         if isinstance(payload, dict):
             payload = (payload.get("records") or payload.get("rows")
                        or payload.get("data") or [])
-        return verify_sync(root, a.registry, payload, verbose=a.verbose)
+        return verify_sync(root, a.registry, payload, verbose=a.verbose,
+                           partial=a.partial)
 
     # ---- resolve schema for the remaining ops
     target = a.check or a.repair or a.next_id or a.append or a.upsert

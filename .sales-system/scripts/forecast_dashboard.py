@@ -59,15 +59,16 @@ def set_currency(code):
 
 
 def money(v, cur=None):
+    """Full figures, always — $3,000,000 and $240,570, never $3M or $240.6K.
+
+    This gets read aloud on a forecast call and compared against numbers people
+    already hold. An abbreviation is a rounding nobody agreed to: $1.2M against
+    $1,165,674 is one number written twice and reads as two."""
     cur = _SYMBOL if cur is None else cur
     try:
         v = float(v)
     except (TypeError, ValueError):
         return "—"
-    for div, suf in ((1e9, "B"), (1e6, "M"), (1e3, "K")):
-        if abs(v) >= div:
-            s = f"{v/div:.1f}".rstrip("0").rstrip(".")
-            return f"{cur}{s}{suf}"
     return f"{cur}{v:,.0f}"
 
 
@@ -130,13 +131,33 @@ def pace_note(g):
     return st, tone
 
 
+def card_value(v):
+    """Format a card's headline value: numbers are money, strings pass through.
+
+    card() used to render esc(value) directly, so a payload passing
+    {"value": 5627000} printed the bare integer while goal_block() and
+    renewal_tracker() — which do call money() — formatted theirs. Half a page
+    formatted and half not is worse than neither, and it is invisible to whoever
+    assembled the payload. Formatting therefore lives here, in the renderer, so no
+    caller has to remember.
+
+    The contract that follows: **a numeric value is money.** Counts, percentages
+    and anything else already written for the page go in the payload as strings —
+    "228", "33%", "12 deals" — and are printed exactly as given."""
+    if isinstance(v, bool):
+        return esc(v)
+    if isinstance(v, (int, float)):
+        return money(v)
+    return esc(v)
+
+
 def card(label, value, sub="", tone="neutral", pal=None):
     ink = {"good": "#1E6B34", "warn": "#8A5A00", "bad": "#A32C22"}.get(tone, "#1A1A1A")
     return f"""<div style="background:#fff;border:1px solid #{pal['rule']};border-radius:10px;
       padding:14px 16px;flex:1;min-width:150px">
       <div style="font-size:11px;letter-spacing:.05em;text-transform:uppercase;
         color:#7A828C;margin-bottom:6px">{esc(label)}</div>
-      <div style="font-size:24px;font-weight:700;color:{ink};line-height:1.1">{esc(value)}</div>
+      <div style="font-size:24px;font-weight:700;color:{ink};line-height:1.1">{card_value(value)}</div>
       <div style="font-size:11.5px;color:#7A828C;margin-top:5px">{esc(sub)}</div></div>"""
 
 
@@ -157,13 +178,16 @@ def goal_block(g, pal):
 
 
 def deal_rows(deals, pal):
+    """The account name identifies the deal. Internal record IDs are deliberately not
+    rendered: this dashboard is read by the whole sales team, none of whom work in the
+    folder these IDs belong to, and an OPP- number on the page makes a forecast read as
+    tool output. Payloads may still carry `id` — it is simply not printed."""
     out = []
     for d in deals:
         bg, ink, arrow = TREND_STYLE.get(d.get("trend", "Steady"), TREND_STYLE["Steady"])
         out.append(f"""<tr style="border-bottom:1px solid #{pal['rule']}">
   <td style="padding:11px 12px;vertical-align:top;white-space:nowrap">
-    <div style="font-weight:600;font-size:12.5px">{esc(d.get('account',''))}</div>
-    <div style="color:#7A828C;font-size:11px">{esc(d.get('id',''))}</div></td>
+    <div style="font-weight:600;font-size:12.5px">{esc(d.get('account',''))}</div></td>
   <td style="padding:11px 12px;vertical-align:top;white-space:nowrap">
     <span style="background:{bg};color:{ink};font-weight:700;font-size:11px;
       padding:3px 9px;border-radius:11px">{arrow} {esc(d.get('trend',''))}</span>
