@@ -6,6 +6,56 @@ gained — and, more importantly, what quietly means something different now.
 
 The format is one `## YYYY-MM-DD` heading per template version, matching `VERSION.json`.
 
+## 2026-08-26
+
+Skills only — no script or schema changed. The version moves so this entry reaches anyone who
+upgrades; `requires_template` stays at **2026-08-25**, so no existing folder is behind and nothing
+has to be upgraded to keep working. Plugin `0.9.0`.
+
+**The daily brief now clears work rather than describing it.** Four changes to `daily-brief`, all
+pulling the same way: it should leave someone with fewer things to do than it found them with.
+
+- **Tasks are listed, not counted.** "You have seven tasks due" meant opening a spreadsheet to find
+  out what it referred to, which is the thing the brief exists to save. Every task due today or
+  overdue now gets its own line — id, title, account, age, priority, `why` — overdue first and
+  oldest first. Snoozed rows stay out, blocked rows get their own line carrying `blocked_reason`,
+  and a task three weeks past its date is named as a decision nobody made rather than rolled
+  forward again. Long lists are ranked with their length stated, never silently truncated.
+- **A completion queue, gated on approval.** Where the system can actually finish a task — send a
+  draft already sitting at `Awaiting Approval`, set a CRM field whose value is already known, log
+  an activity — it now offers to, in one numbered block naming exactly what would happen and to
+  whom. The user replies with numbers or `all`. **Silence is not approval**, and a scheduled or
+  unattended run builds the queue and executes none of it.
+
+  The §3b fences are checked per item against the record rather than inferred from how the task was
+  raised: no first contact, nothing commercial, nobody whose `contactable` is no or who is mid
+  sequence, nothing a rule marks `manual` or that would breach its `daily_cap`, and nothing on a
+  colleague's record under `team` scope without being asked. Excluded items still appear in the
+  task list with the reason, so the difference is visible, and `all` cannot reach them — which is
+  what makes `all` safe to type. **A missing `task-rules.csv` is not permission**: with no rules the
+  queue holds only drafts already awaiting approval.
+- **Ambiguous completion evidence has somewhere to go.** Step 1 closed a task on strong evidence and
+  left everything else silently open, so a sent email to the right domain but the wrong person
+  closed nothing and told nobody. Suggestive-but-inconclusive evidence now surfaces in the same
+  queue as a *looks done, confirm?* item with the evidence and its date named.
+- **An overnight sweep, deliberately small.** Newsletters that landed since the last brief, read
+  against `03-Market/watchlist`, plus a bounded set of searches: accounts with a meeting today, the
+  largest deals closing this quarter, renewals inside the conversation window, and watch rows set to
+  `cadence = Daily`. An item survives only if it names something tracked, or matches an enabled
+  watch row with a `deal` or `both` lens and a concrete `so_what`. Everything kept is logged as a
+  signal through `market-tracking` — dated on the **event** rather than the issue, and deduplicated
+  against what is already there, since the same event arrives from three sources across four days.
+  This step consumes that module rather than keeping a second copy of it.
+
+  Five lines is the aim, eight the ceiling, and printing nothing on a quiet morning is a result
+  rather than a failure. Eight items a day for a week means the bar is too low, and the brief now
+  says so and offers to tighten the watchlist instead of carrying on.
+
+  **This is a deliberate exception to market content belonging in the weekly**, and it is fenced on
+  purpose: account-linked and actionable today. Aggregate trends and competitor positioning stay in
+  `weekly-brief`. A market section that outgrows the meeting prep has turned the daily into the
+  weekly printed seven times a week, and it will be skipped along with everything under it.
+
 ## 2026-08-25
 
 **The forecast dashboard is read by the whole sales team, not by the person who runs this folder —
