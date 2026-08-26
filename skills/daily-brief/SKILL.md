@@ -272,6 +272,10 @@ what the subject line is, and where the draft can be read before deciding:
 > Not offered: **TASK-00047** (first email to a new contact) and **TASK-00055** (discount approval) —
 > both yours to send.
 
+A draft already described under follow-ups appears here as a number and a one-line action, not a
+second retelling. The queue is the decision; the sections above are the context for it. Say a
+thing once and the brief stays the length of the day.
+
 Handling the reply:
 
 - **`all` means all of the above and nothing else.** Anything fenced was never in the list, so `all`
