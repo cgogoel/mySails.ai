@@ -1,15 +1,20 @@
 ---
 name: "daily-brief"
-description: "Produce the morning brief focused on today's execution — tasks due, the emails and calls owed on specific leads and opportunities, and every meeting today with who is attending, what their role likely wants, background research on the account, relevant competitor and market context, and an offer to build tailored content for the meeting. Closes tasks already done by checking email, calendar and CRM activity. Use when the user asks for their daily brief, morning brief, what's on their plate today, what they should focus on, what they missed, who they need to follow up with, or asks to prep or start their day. Also use when setting the brief to run each morning."
+description: "Produce the morning brief focused on today's execution — tasks due, the emails and calls owed on specific leads and opportunities, and every meeting today with who is attending, what their role likely wants, background research on the account, relevant competitor and market context, and an offer to build tailored content for the meeting. Lists every task due and overdue by name, closes the ones email, calendar and CRM activity show are already done, and offers to complete the ones the system can finish itself — waiting for approval before it acts. Also runs a light overnight sweep of the user's newsletter subscriptions and targeted searches for news at tracked accounts. Use when the user asks for their daily brief, morning brief, what's on their plate today, what they should focus on, what they missed, who they need to follow up with, what they missed overnight, what tasks are due or overdue, or asks to prep or start their day. Also use when setting the brief to run each morning."
 ---
 
 # Daily Brief
 
 The daily brief answers one question: **what do I need to do today, and am I ready for it.**
 
-It is not a status report. Trends, market movement, and competitor news belong in the weekly;
-pipeline against quota belongs in the forecast. Everything here should be actionable before this
-evening, and the test is whether someone could work the whole day from it.
+It is not a status report. Trends, aggregate market movement and competitor positioning belong in
+the weekly; pipeline against quota belongs in the forecast. Everything here should be actionable
+before this evening, and the test is whether someone could work the whole day from it.
+
+The one piece of market content that does belong is the overnight sweep in Step 6 — news that names
+an account someone here is actually working, tight enough to act on today. That is a different
+thing from the weekly's market section, and most of Step 6 is rules for keeping it from becoming
+one.
 
 The bar: after reading, they know what to do first, and they walk into every meeting prepared.
 
@@ -36,13 +41,18 @@ The bar: after reading, they know what to do first, and they walk into every mee
    not a rule.
 4. Read `00-Config/connections.md` so you don't retry tools that aren't there.
 5. Read `.sales-system/crm-profile/field-map.json` for activity query bounds and noise filters.
-6. Repair the registries:
+6. Read `01-Tasks/task-rules.csv` — it decides what may be offered for completion in Step 5 and
+   what may not. A missing rules file is not permission: with no rules, nothing is offered as
+   `auto` and the queue holds only drafts already sitting at `Awaiting Approval`.
+7. Read `03-Market/watchlist` for the Step 6 sweep — which newsletters are sources, and which
+   terms are worth a search. No watchlist means no sweep, not a free-range news scan.
+8. Repair the registries:
 
 ```bash
 python3 "$S/csvguard.py" --check-all <project>
 ```
 
-7. **Check whether anything moved in the CRM overnight** — for `opportunities` and `leads`:
+9. **Check whether anything moved in the CRM overnight** — for `opportunities` and `leads`:
 
 ```bash
 python3 "$S/csvguard.py" --sync-query <project> --registry opportunities
@@ -76,8 +86,13 @@ Bound every activity query per the profile, and filter auto-captured noise. Wher
 who made a change, say so — "Dana updated the next step on Acme yesterday" is often the most useful
 line in the brief.
 
-Be conservative. A false close hides real work; ambiguous evidence leaves the task open with the
-near-match mentioned.
+Be conservative, and give ambiguity somewhere to go. Evidence strong enough to be sure closes the
+task silently and earns one line in the summary. Evidence that is suggestive but not conclusive — a
+sent email to the right domain but the wrong person, a meeting that happened under a different
+title — does **not** close the task, and does not evaporate either: it goes to the approval queue in
+Step 5 as a *looks done, confirm?* item with the evidence and its date named. A false close hides
+real work; a task left silently open because the evidence was only 80% is how the list fills with
+rows the user finished last week.
 
 ---
 
@@ -153,13 +168,211 @@ are waiting. A morning's drafts reviewable in one folder is most of the value of
 
 ---
 
-## Step 4: Tasks due
+## Step 4: Tasks due and overdue — listed, not counted
 
-From `01-Tasks/tasks`: due today and overdue, honouring the rules file. Note anything auto-closed in
-one line — "closed 2 tasks I could see you'd already done."
+From `01-Tasks/tasks`, honouring `01-Tasks/task-rules.csv`. **Every task due today or overdue gets
+its own line.** "You have seven tasks due" is not a task list, it is a number — and the user now has
+to open a spreadsheet to find out what it means, which is the one thing this brief exists to save
+them.
+
+Overdue first, oldest first, then today's. One line each, every field on it taken from the row:
+
+> **TASK-00042** · Send pricing follow-up to Jane Doe (Acme Corp) — **4 days overdue** · High
+> *They asked for tiered pricing on the 18th and haven't been answered.*
+
+Carry the id, the title, the account, the age, the priority and the `why`. Not the whole row. The
+`why` is the field that makes someone act, and it is also the one most often left blank by whatever
+raised the task — a blank one is worth noticing out loud rather than printing an empty line under.
+
+Three things stay out of this list, each deliberately:
+
+- **Snoozed**, where `snooze_until` is still in the future. That is what snoozing is for, and
+  re-showing it teaches people that snooze does nothing.
+- **Blocked** — out of the main list and into one line of its own carrying `blocked_reason`. A
+  blocked task nobody revisits never happens; naming the blocker is the only thing that moves it.
+- **Awaiting Approval** — those are Step 5's. Printing them twice makes the day look longer than it
+  is.
+
+And two things to say rather than let the list imply:
+
+- **Long lists.** Past about fifteen items, ranking them is the useful act. Say how many there are,
+  show the ones that matter, offer the rest — but never quietly truncate. A list that silently stops
+  at ten teaches the user the brief is lossy, and after that they open the spreadsheet anyway.
+- **Deep overdue.** A task three weeks past its date is not late, it is a decision nobody has made.
+  Say so and offer the two honest options: a real new date, or cancel it. Rolling it forward one more
+  day is how a task list turns into wallpaper.
+
+Note anything Step 1 auto-closed in one line — "closed 2 tasks I could see you'd already done."
 
 Anything the system did automatically since the last brief goes at the **top of the brief**, not
 here. Per `CONVENTIONS.md`, the user should never learn about a sent email from the recipient.
+
+---
+
+## Step 5: Offer to complete what can be completed
+
+Some of what is on that list, the system can simply do. The distance between a brief that reports
+work and one that removes it is this section — and **nothing in it happens without the user saying
+yes.**
+
+### What qualifies
+
+Two kinds of candidate, presented as one queue because the user's decision has the same shape for
+both: yes or no, item by item.
+
+| Kind | Looks like | What a yes means |
+|---|---|---|
+| **Ready to run** | A drafted email at `draft_path` sitting at `Awaiting Approval`; a `CRM Update` task where the field and the new value are both already known; logging an activity; filing a note | The system performs the action, then closes the task |
+| **Looks done** | Step 1 found evidence that was suggestive but not conclusive | The system closes the task and records the evidence. It performs nothing |
+
+Something is **ready to run** only when the action is fully determined — recipient, text, field and
+value all either exist already or follow from the record without a judgement call. If producing the
+action means deciding what to say, it is not a completion candidate. It is a drafting job, and it
+belongs in Step 3, where it gets drafted and waits.
+
+### What never enters the queue
+
+These stay in the ordinary task list and stay the user's to do. The fences are `CONVENTIONS.md` §3b
+and they are not re-decided per run:
+
+- **First contact.** Any first email to a person, and all cold outreach. A bad first impression
+  cannot be retracted.
+- **Commercial substance.** Pricing, terms, discounts, commitments, dates a customer could hold
+  someone to. The user's send, whatever the rule says.
+- **A contact who should not be contacted** — `contactable` is no, or they are in an active
+  sequence. Two messages from two systems in one week is exactly what that check exists to stop.
+- **Anything a rule marks `manual`**, or whose rule is `enabled = no`, or that would breach the
+  rule's `daily_cap`. A rule wanting to fire twenty times means something upstream is wrong — say
+  that, rather than presenting twenty approvals.
+- **Someone else's record** under `team` scope, unless the user asks for it. Then name whose it is
+  in the offer and again in `notes`.
+
+Where something is excluded, say so in a clause where it appears in the task list — "first email to
+this person, so yours to send" — rather than dropping it without explanation. A user who cannot tell
+why one task got an offer and another didn't stops trusting both.
+
+Downgrading is silent and fine; upgrading never is. A task marked `auto` that meets any fence above
+becomes `review`, with the reason in `notes`.
+
+### How to ask
+
+One numbered block, placed after the task list, near the end of the brief where a decision belongs.
+Each entry says in concrete terms what will happen — not "send the follow-up" but who it goes to,
+what the subject line is, and where the draft can be read before deciding:
+
+> **Ready when you are** — reply with the numbers you want run, or `all`.
+>
+> 1. **TASK-00042** — send the pricing follow-up to jane@acme.com, subject "Tiered pricing, as
+>    promised". Draft: `01-Tasks/Drafts/TASK-00042-followup-acme.md`
+> 2. **TASK-00051** — set Next Step on Northwind to "Security review, 9 Sept" in the CRM (it is
+>    currently blank)
+> 3. **TASK-00038** — looks done: you emailed rob@northwind.com on the 24th, two days after this was
+>    raised. Close it?
+>
+> Not offered: **TASK-00047** (first email to a new contact) and **TASK-00055** (discount approval) —
+> both yours to send.
+
+Handling the reply:
+
+- **`all` means all of the above and nothing else.** Anything fenced was never in the list, so `all`
+  cannot reach it. That is what makes `all` safe to type without reading carefully, and it only stays
+  true if the fences hold every time.
+- **Silence is not approval.** No reply, or a reply about something else, leaves every item where it
+  was.
+- **A scheduled or unattended run executes nothing.** Build the queue, leave the tasks at
+  `Awaiting Approval`, say how many are waiting. Approving on someone's behalf because they were not
+  there to answer is the precise failure this whole model exists to prevent.
+- **Read the numbers literally.** "1 and 3" is two items, not the first three. If the reply is
+  ambiguous, ask — do not resolve it generously.
+
+### After running
+
+One line per item on what actually happened, then write it down. On success: `status = Done`,
+`completed_date`, `completed_how = user-approved`, and `completion_evidence` carrying real proof —
+"email to jane@acme.com sent 2026-08-26 09:12", not "completed via brief".
+
+On failure — connector down, CRM refused the write, draft gone — name the item and the reason and
+**leave the task open**. Closing a task on an attempt is worse than never having offered, because it
+converts a job that still needs doing into a row claiming it is done.
+
+Approved but not yet executed is `Awaiting Approval`, not `Done`. Where a send can be scheduled with
+a short delay instead of fired instantly, prefer that: a few minutes is a cheap window in which to
+catch a mistake.
+
+---
+
+## Step 6: The overnight sweep — what you may have missed
+
+A light pass, run last and kept short: newsletters that landed since the previous brief, plus a
+small number of targeted searches. The Market Tracking module owns the watchlist, the signal
+registry, and the rules for both — **this step is a consumer of that module, not a second copy of
+it.** Everything kept here is logged there as a signal, through the guard, with
+`source_type = Newsletter` (and `newsletter_name`) or `Web Search`.
+
+If there is no watchlist, do not invent one. Say the sweep has no sources configured, point at
+`market-tracking`, and do the one thing still worth doing without it: a search on each account with a
+meeting today.
+
+### Newsletters
+
+Sweep the enabled `03-Market/watchlist` rows whose `kind` is `Newsletter` or `Feed`, matching on the
+sender address or URL in `sources`, across messages that arrived since the last brief. Read them
+**against the watchlist**, not for general interest.
+
+Two mechanics from `market-tracking` matter more here than anywhere else, because a daily cadence
+collides with a weekly publication schedule:
+
+- **Date the event, not the issue.** Newsletters report things days after they happen, and a signal
+  dated on the send date sorts wrongly forever after.
+- **Deduplicate hard.** The same funding round arrives from three sources across four days. If it is
+  already in `03-Market/signals` it is not news and it gets no line — including when this is the
+  first time you personally saw it.
+
+### Searches
+
+Bounded, and chosen rather than swept. Search:
+
+- each account with a meeting today — though what turns up belongs in that meeting's prep in Step 2,
+  not down here;
+- the few deals where a change would actually move something: the largest live opportunities closing
+  this quarter, and renewals inside the conversation window;
+- watchlist rows with `cadence = Daily`.
+
+That is a budget, not a starting point. If the list of things worth searching is longer than the
+budget, say which you picked and leave the rest to the weekly.
+
+### The bar
+
+An item survives if it does one of two things:
+
+1. **Names something tracked** — an account, prospect, opportunity, renewal, customer or competitor.
+   Fuzzy-match on name and domain; CRM account names and press coverage rarely spell things the same
+   way.
+2. **Matches an enabled watchlist row** whose `lens` is `deal` or `both`, *and* carries a concrete
+   `so_what` naming what changes.
+
+A watched theme with nothing to do about it is dropped without comment. `lens = content` rows are not
+the daily's business — standing and thought leadership belong to `demand-gen` and the weekly.
+
+Each surviving line reads: what happened, what it changes, for whom. Three sentences at most, and the
+middle one is the only one earning its space.
+
+> **Acme discloses a mobile data-exposure incident** (reported, *Risk Weekly*, event 24 Aug) — their
+> security team now has board attention and a deadline. The evaluation that stalled in May is live
+> again, and Priya is the way back in. → OPP-0031
+
+### Size, and the honest empty case
+
+Aim at five lines. Eight is the ceiling. **Print nothing at all on a quiet morning** — "nothing
+overnight worth your attention" is a real result, and it is what makes the section believable on the
+day it does have something.
+
+If it produces eight items a day for a week, the bar is too low or the watchlist too broad. Say so
+and offer to tighten it. Quietly carrying on is how a decision aid becomes a digest.
+
+Raise a task off a signal only where `relevance = High` and there is a specific person to contact,
+and count it against the day's caps like any other. Two signals becoming two tasks is this step
+working. Ten is it competing with the rest of the brief.
 
 ---
 
@@ -176,7 +389,13 @@ this is what the brief is for.
 
 **Follow-ups owed** — ranked by age and value, with drafts noted.
 
-**Tasks** — due and overdue, plus what was auto-closed.
+**Tasks** — every item due or overdue, by name, oldest first, plus what was auto-closed. Blocked
+items on a line of their own.
+
+**Ready when you are** — the numbered approval queue. Omitted entirely when there is nothing to
+approve.
+
+**Worth knowing** — the overnight sweep. Five lines at most, and omitted when the morning is quiet.
 
 Under `team` scope, keep the focus on the user's own day but flag where a colleague's account needs
 them — an unowned meeting, a rep out today with a deal needing cover.
@@ -193,22 +412,36 @@ builds more trust than three invented priorities.
 
 ## Scheduling
 
-Offer to run it on weekday mornings, early enough to act on. A brief that requires remembering to
-ask for it is a brief nobody reads.
+Offer to run it on weekday mornings, early enough to act on. A brief that has to be remembered
+about is a brief nobody reads.
+
+The sweep in Step 6 narrows the window: late enough that the morning's newsletters have landed,
+early enough to still change the day. For most people that is a specific half hour rather than a
+guess — ask rather than assume. A scheduled run builds the approval queue and executes none of it;
+the user approves when they read it.
 
 ---
 
 ## Judgement
 
-Two failure modes.
+Three failure modes.
 
-**Breadth.** Pulling in trends, market news, and pipeline analysis because they're available. That's
-the weekly's and the forecast's job, and including them here means the meeting prep — the part only
-this brief does — gets skimmed.
+**Breadth.** Pulling in trends and pipeline analysis because they are available. That is the
+weekly's job and the forecast's, and including them here means the meeting prep — the part only
+this brief does — gets skimmed. Step 6 is the deliberate exception and it is fenced for exactly
+this reason: account-linked, actionable today, five lines. The moment it starts carrying industry
+trends or competitor positioning it has become the weekly printed daily, and it will be skipped
+along with everything under it.
 
 **Shallow prep.** Listing a meeting with the account name and calling it preparation. If the brief
 doesn't tell the user something they didn't already know about who they're meeting and what those
 people want, it hasn't earned its place in their morning.
+
+**Approval creep.** Offering to complete something the system should not touch. The value of the
+queue is that a user can type `all` without reading it closely, and that holds only while every
+item in it deserves a yes. One fenced item slipping through once costs more trust than a hundred
+correct offers earn — which is why the fences in Step 5 are checked against the record each time
+rather than inferred from how the task was raised.
 
 Where you couldn't research something properly, say so and name what would help. "Two attendees I
 couldn't find anything on — worth asking your champion who they are" is more useful than silence.
