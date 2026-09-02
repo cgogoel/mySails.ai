@@ -285,6 +285,15 @@ because three things about it are wrong more often than not:
   records and eighteen linked to a deal needs the account-linked fallback, and that number is
   usually a surprise worth showing.
 
+**Check `on_hold_reason` against the loss-reason picklist.** Orgs that added an on-hold field by
+cloning the lost-reason list are common, and the result is a picklist of reasons a deal *died*
+governing a field that means *paused and expected to resume*. Every real reason then collapses to
+`Other` — and once the rules branch on `on_hold`, the reason stops being a note and becomes data.
+Where the two lists match, say so, show the generic enum the schema ships (procurement, fiscal year
+boundary, customer unavailable, pilot running, awaiting partner, legal or security review), and let
+them choose: keep the org's values, or have the field's picklist changed in the CRM and refresh the
+profile. Do not silently substitute the generic list — the CRM would reject it on push.
+
 Record the org's own auto-reply subject patterns too. An out-of-office counted as a reply marks a
 departed contact's still-running mailbox as an engaged human, and that error compounds quietly.
 
@@ -696,7 +705,74 @@ mkdir -p <project>/01-Tasks/Drafts <project>/.sales-system/cache
 ```
 
 Populate starter rules matched to the modules enabled, wording triggers with the org's own
-picklist values — a rule referencing a status the CRM doesn't have never fires.
+picklist values — a rule referencing a status the CRM doesn't have never fires. Start from this
+table and drop the rows whose module is off. The guard assigns ids; the skills find rules by
+`rule_name`, so keep the names as written.
+
+| `rule_name` | Trigger | Task type | Automation | Cap | Enabled | Raised by |
+|---|---|---|---|---|---|---|
+| Reply owed | Inbound email from a lead or customer unanswered for 2 business days | Email Follow-up | review | 10 | yes | daily-brief |
+| Sequence reply | Lead reached the org's *replied to sequence* status with no human touch since | Email Follow-up | review | 10 | yes | daily-brief, lead-tracking |
+| Meeting prep | Meeting today with a tracked account | Meeting Prep | auto | — | yes | daily-brief |
+| Deal gone quiet | Open opportunity with no **outbound touch from us** for 14 days | Email Follow-up | review | 10 | yes | daily-brief, opportunity-tracking |
+| Close date pushed | `close_date_pushes` reaches 3 | CRM Update | manual | 5 | yes | opportunity-tracking |
+| Single-threaded | One replying contact past the early stages | Call | manual | 5 | yes | opportunity-tracking |
+| Renewal conversation due | Contract end inside the conversation lead time with no renewal opportunity | Call | manual | 5 | if renewals | renewals-tracking |
+| Stale battlecard | Competitor with a logged signal newer than its card | Research | auto | 3 | if competitors | competitor-tracking |
+| Follow-up guarantee | Open opportunity the user owns with no outbound touch from us for the window (30 days unless they choose otherwise) | Email Follow-up | review | 10 | **no** | daily-brief |
+| New lead untouched | Lead in the org's *new* status with no outbound touch for 2 days | Email Follow-up | review | 10 | yes | daily-brief, lead-tracking |
+| Lead going cold | Lead the user owns, not in sequence, not on hold, no outbound touch for 14 days | Email Follow-up | review | 10, shared with the lead guarantee | yes | daily-brief, lead-tracking |
+| Lead contact guarantee | Lead the user owns with no outbound touch for the window (30 days unless chosen otherwise), not in sequence, not on hold, not passed to a partner | Email Follow-up | review | 10, shared, floor first | **no** | daily-brief |
+| Disqualify on opt-out or refusal | Opt-out or unsubscribe flag set `contactable = no`, or an inbound reply reads as not interested | CRM Update | review | 10 | yes | daily-brief, lead-tracking |
+| Bounced address | Bounce flag set on a lead | Research | manual | 5 | yes | lead-tracking |
+
+Two rows need their reasoning written into the rule's own `notes`, so the person who opens the
+CSV a month later finds it next to the setting.
+
+**Every no-activity trigger is worded as *outbound touch from us*, never as `last_activity_date`.**
+That column looks authoritative because the CRM owns it, and it is not usable for this: it carries
+import and seeding stamps, it is blank on untouched rows, and it stops moving when the CRM stops
+logging. `opportunity-tracking` says how the touch is actually computed, and carries the sanity
+check that reports a broken signal rather than a list when a rule matches more than about a third
+of the open book — a cap truncates that list, it does not explain it.
+
+**The two guarantees ship disabled, and turning either on is a conversation, not a flag.**
+*Follow-up guarantee* covers deals; *Lead contact guarantee* covers leads, on its own budget, with
+its own pair of keys (`lead_followup_baseline:` / `lead_followup_backlog_at_enable:`) and the
+same four steps. Each is a floor — a breach is a system failure, not a ranking call — which is
+exactly why a fresh folder must not start with one: on day one every record has "never been
+touched", and the rule would try to raise a follow-up for the whole book. That would be the
+user's first impression of it. Offer each, and when they want it:
+
+1. **Ask for the window and the cap** rather than assuming. One folder chose 30 days and a cap of
+   10; neither is a universal default. Keep the cap where they set it even when the backlog is
+   large — clearing a backlog by flooding produces a book that has been mailed, not worked.
+2. **Stamp the baseline.** Write `followup_baseline: YYYY-MM-DD` (today) into `config.md`. Deals
+   with no recorded touch before that date are unbaselined, not breaching: the brief surfaces
+   them once as a data-quality finding and holds them to the floor only after their first touch.
+3. **Compute the backlog and say the number out loud.** Count the open deals they own whose last
+   outbound touch is older than the window, tell them — "46 of your 74 open deals are already
+   past 30 days; at a cap of 10 that is about a week of drafts" — and write it as
+   `followup_backlog_at_enable: N` so the brief can report progress as a fraction of the original.
+   A person told that upfront understands the next week; one who is not discovers it as a wall of
+   drafts.
+4. Set `enabled = yes` only after all three. The brief drafts and stages every follow-up the floor
+   raises rather than naming it, so the cap is the number of drafts they will find each morning.
+
+**Say what `on_hold` and `hold_until` are for.** Some deals are supposed to be silent — a live
+award, a customer on leave, a pilot running, a budget cycle not yet open. `on_hold = yes` exempts
+a deal from *Deal gone quiet* and *Follow-up guarantee* both, with `on_hold_reason` recording
+why. A lead's valve is `hold_until` with a `hold_reason`: the clock is silent until that date and
+restarts the day after, and the brief may propose one from a reply ("back in Q1") but writes it
+only when the user confirms. A lead in an active sequence or passed to a partner is paused
+without any of that. A user who does not know the valves exist disables the rules instead, so
+mention them here and put them in each rule's `notes`.
+
+**The lead clock needs the lead cache.** `activity_sync.py --lead-touch` writes
+`last_outbound_date` from events matched to leads by email address, and a cache built before this
+release holds no lead events. On a folder that already has an activity cache, ingest a full
+history window (90 days) once, then `--lead-touch`, before enabling any lead rule — otherwise
+every lead reads as untouched and the first brief is a wall of first-contact drafts.
 
 **Briefs.** Three outputs with different jobs, and the split between them follows each org's
 business rhythm — so ask rather than assuming.
@@ -758,6 +834,8 @@ Common asks and where they land:
 | "Update my sales system" | `upgrade.py --check` then `--apply`; the plugin manager updates the skills, this updates the folder |
 | "Turn on renewals too" | Add to `enabled-modules.md`, `--init`, run Track 4 for that module only |
 | "My quota changed" | Track 6; supersede the old goal row, don't overwrite it |
+| "Turn on the follow-up guarantee" / "no deal goes 30 days untouched" | Track 7's four steps: window and cap, baseline stamp, backlog count said aloud, then `enabled = yes` |
+| "No lead should go 30 days uncontacted" | Same four steps on *Lead contact guarantee*, with the `lead_followup_*` keys — after a full-window ingest and `--lead-touch` |
 | "Move to Excel" | `csvguard.py --convert-all <project> --to xlsx` |
 | "The stages are wrong" | Re-run Track 3 for that object, then re-confirm against real records |
 | "We can talk about X now too" | Track 5a; add the row with its evidence, and seed the content-lens watchlist row |

@@ -1,6 +1,6 @@
 ---
 name: "daily-brief"
-description: "Produce the morning brief focused on today's execution — tasks due, the emails and calls owed on specific leads and opportunities, and every meeting today with who is attending, what their role likely wants, background research on the account, relevant competitor and market context, and an offer to build tailored content for the meeting. Lists every task due and overdue by name, closes the ones email, calendar and CRM activity show are already done, and offers to complete the ones the system can finish itself — waiting for approval before it acts. Also runs a light overnight sweep of the user's newsletter subscriptions and targeted searches for news at tracked accounts. Use when the user asks for their daily brief, morning brief, what's on their plate today, what they should focus on, what they missed, who they need to follow up with, what they missed overnight, what tasks are due or overdue, or asks to prep or start their day. Also use when setting the brief to run each morning."
+description: "Produce the morning brief focused on today's execution — tasks due, the emails and calls owed on specific leads and opportunities, and every meeting today with who is attending, what their role likely wants, background research on the account, relevant competitor and market context, and an offer to build tailored content for the meeting. Enforces the follow-up guarantee where it is enabled — no open deal the user owns goes past the window without an outbound touch — by drafting and staging every follow-up it raises, burning down any backlog at the cap. Lists every task due and overdue by name, closes the ones email, calendar and CRM activity show are already done, and offers to complete the ones the system can finish itself — waiting for approval before it acts. Also runs a light overnight sweep of the user's newsletter subscriptions and targeted searches for news at tracked accounts. Use when the user asks for their daily brief, morning brief, what's on their plate today, what they should focus on, what they missed, who they need to follow up with, what they missed overnight, what tasks are due or overdue, or asks to prep or start their day. Also use when setting the brief to run each morning."
 ---
 
 # Daily Brief
@@ -38,7 +38,9 @@ The bar: after reading, they know what to do first, and they walk into every mee
 2. Read `$S/../CONVENTIONS.md`.
 3. Read `00-Config/config.md` — `scope`, `default_automation`, and **`brief_content`**, which
    records what this user wants in daily versus weekly. Honour it; the split below is the default,
-   not a rule.
+   not a rule. Also `followup_baseline` / `followup_backlog_at_enable` and their lead twins
+   `lead_followup_baseline` / `lead_followup_backlog_at_enable`, which Step 3 needs where the
+   *Follow-up guarantee* and *Lead contact guarantee* rules are enabled.
 4. Read `00-Config/connections.md` so you don't retry tools that aren't there.
 5. Read `.sales-system/crm-profile/field-map.json` for activity query bounds and noise filters.
 6. Read `01-Tasks/task-rules.csv` — it decides what may be offered for completion in Step 5 and
@@ -68,6 +70,18 @@ argument for putting them in a brief rather than waiting for them to be noticed.
 
 Keep it proportionate. Two drifted rows is a line; forty is the headline. If the check can't
 run, don't stall the brief — note it in one line and carry on.
+
+10. **Refresh the touch dates** the follow-up rules read. Ingest the window's email, calendar and
+    CRM activity events per `CONVENTIONS.md` §7a, then write the lead dates:
+
+```bash
+python3 "$S/activity_sync.py" --ingest <project> --input events.json
+python3 "$S/activity_sync.py" --lead-touch <project>
+```
+
+    A cache that has never seen the lead registry (`--status` says so) reads every lead as never
+    touched; re-ingest a full window before evaluating any lead rule against it, or every lead is
+    a breach and the rule looks broken — because it is.
 
 Briefs are written to `09-Briefs/Daily/YYYY-MM-DD-daily-brief.md`.
 
@@ -153,8 +167,65 @@ whole point — "3 days" makes it real in a way "pending" doesn't.
 **Leads who replied to a sequence.** Someone answered an automated cadence and is waiting on a
 human. Highest-value state in the lead registry; surface it above everything else in this section.
 
-**Deals gone quiet.** From `07-Opportunities/`, where engagement has cooled and the next step date
-has passed. Say what to send, not just that contact is due.
+**Deals gone quiet.** From `07-Opportunities/`, where the last **outbound touch from us** is past
+the window in the *Deal gone quiet* rule (14 days in the starter rules) or the next step date has
+passed. Say what to send, not just that contact is due. The touch is measured the way
+`opportunity-tracking` measures it — from `opportunity-contacts.last_outbound_date`, the activity
+cache, and a CRM activity table that is actually populated — never from `last_activity_date`,
+which carries import stamps and goes stale the moment the CRM stops logging. Apply the same two
+checks before naming a deal: if the rule matches more than about a third of the open book, report
+a broken signal instead of a list; and where `11-Partners/` exists, look for traffic with the
+partner's domain before calling a partner-worked deal quiet. `on_hold = yes` exempts a deal. This
+rule is discretionary — rank by value and stage, take the top `daily_cap`, and say how many more
+there were.
+
+**The follow-up guarantee.** Where `task-rules` holds an enabled *Follow-up guarantee* rule — *no
+open opportunity the user owns goes without an outbound touch for longer than the window* — the
+brief evaluates it separately from the discretionary list above, because a breach here is a system
+failure rather than a ranking decision. It runs on the same outbound-touch signal, the same
+broken-signal check, the same partner check and the same `on_hold` exemption. What differs:
+
+- **Baseline.** `00-Config/config.md` carries `followup_baseline:` — the date the rule was turned
+  on. A deal with no recorded touch at all before that date is *unbaselined*, not breaching: name
+  those once, as a data-quality finding with the count — "17 deals have no contact history" — and
+  hold them to the floor only once they have a touch, or the user dismisses them. With no baseline
+  in `config.md` the rule is not evaluated; say so in one line and point at `configure-project`.
+- **Backlog, recomputed every run.** Where the book already breaches the floor, run a burn-down at
+  the cap, not a flood: oldest and largest first, at `daily_cap` and never above it, and report
+  progress as a fraction of the count taken on the day the rule was enabled
+  (`followup_backlog_at_enable:` in `config.md`) — "12 of 46 cleared" — so the end is visible.
+  Never store the running count; it drifts the moment a deal closes, goes on hold, or is answered
+  outside the system.
+- **Draft and stage every one raised.** Under `review`, each follow-up the floor raises gets a
+  draft in `01-Tasks/Drafts/`, `draft_path` set, `status = Awaiting Approval`, and a line in the
+  Step 5 queue. A brief that says "five deals need a follow-up" has moved the work to the person;
+  a brief that stages five drafts has done the expensive part — the blank page — and left the
+  cheap part, the send, where it belongs.
+
+The fences do not move under volume. A floor creates pressure to relax them, and the pressure is
+strongest exactly when the backlog is largest. The answer is the same each time: first contact is
+drafted and handed over, never staged as ready to run; a deal with no contactable person is
+reported as a gap in its own line, not skipped — silence caused by having nobody to write to is a
+data problem and must read as one; nothing commercial is staged; and other reps' relationships
+under `team` scope are named, not written to. Clearing a backlog by flooding produces a book that
+has been mailed, not worked.
+
+**Leads going cold, and the lead contact guarantee.** The same two-rule shape, on `06-Leads/`,
+reading `last_outbound_date` — the clock `lead-tracking` describes, never `last_activity_date`.
+*Lead going cold* (14 days, discretionary) and *Lead contact guarantee* (30 days, a floor, shipped
+disabled, keyed on `lead_followup_baseline:` and `lead_followup_backlog_at_enable:` in
+`config.md` exactly as the deal floor is keyed on its own pair) share **one budget of 10 lead
+drafts a day, floor first** — separate from the deal budget. Skip a lead whose clock is paused:
+in an active sequence, passed to a partner, or `hold_until` in the future. Apply the broken-signal
+check here too — more than about a third of the owned lead book matching means the touch dates
+have not been refreshed, not that the book is dead. Nearly every lead follow-up is first contact:
+draft it, set `Awaiting Approval`, and keep it out of the ready-to-run queue.
+
+Two things the lead sweep offers in Step 5 rather than doing: **disqualify** where an opt-out flag
+flipped `contactable` to no or a reply reads as *not interested* — quote the reply, name the
+reason it would set — and **hold** where a reply implies a wait ("circle back after Q1", an
+out-of-office with a return date) — quote the line, propose `hold_until` and `hold_reason`. Both
+are the user's call by number; inference never writes on its own.
 
 **Renewal conversations due or overdue.** From `08-Renewals/`, using the org's conversation lead
 time. Name the number of days.

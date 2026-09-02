@@ -453,6 +453,18 @@ what it says, including when it says don't.
 If the user asks for behaviour that isn't in the rules, add a rule rather than hard-coding the
 behaviour into a one-off — that's what makes it inspectable and reversible later.
 
+Skills refer to rules by `rule_name`, never by id — ids are whatever the guard assigned in that
+folder. Four names the daily brief, `opportunity-tracking` and `lead-tracking` look for: *Deal
+gone quiet* and *Lead going cold* (the discretionary 14-day lists, ranked and capped) and
+*Follow-up guarantee* and *Lead contact guarantee* (floors, shipped disabled, evaluated against
+`followup_baseline:` and `lead_followup_baseline:` in `config.md`). The two lead rules share one
+budget of 10 drafts a day, floor first; the deal rules have their own. Any rule whose trigger is
+"no activity" is worded as **no outbound touch from us** and computed from contacts, the activity
+cache (`activity_sync.py --lead-touch` for leads) and a populated CRM activity table — not from
+`last_activity_date` — and reports a broken signal rather than a list when it matches more than
+about a third of the book. `on_hold = yes` exempts a deal; a future `hold_until`, an active
+sequence, or a partner-held status exempts a lead.
+
 ## 3c. Seeding is not refreshing
 
 These are different operations and confusing them is the single most expensive mistake

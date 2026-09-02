@@ -168,6 +168,18 @@
       "owner": "crm"
     },
     {
+      "name": "last_outbound_date",
+      "type": "date",
+      "owner": "derived",
+      "note": "DERIVED by activity_sync.py --lead-touch: the last email, meeting or call FROM US to this person. The column the lead follow-up rules read. Blank, never a guess, when the cache holds nothing for the lead."
+    },
+    {
+      "name": "last_inbound_date",
+      "type": "date",
+      "owner": "derived",
+      "note": "DERIVED: the last email from this person to us. A reply after our last outbound means the ball is in our court."
+    },
+    {
       "name": "total_activities",
       "type": "number",
       "owner": "crm"
@@ -211,6 +223,24 @@
       "name": "next_step_date",
       "type": "date",
       "owner": "crm"
+    },
+    {
+      "name": "hold_until",
+      "type": "date",
+      "owner": "local",
+      "note": "The lead's pressure valve, like on_hold on a deal. While this date is in the future the follow-up rules leave the lead alone; the clock restarts the day after. Set explicitly by the user, or inferred from a reply (\"come back in Q1\") — in which case the brief quotes the line and asks before writing it."
+    },
+    {
+      "name": "hold_reason",
+      "type": "enum",
+      "values": [
+        "Asked to wait",
+        "Budget cycle",
+        "Out of office",
+        "Evaluating",
+        "Other"
+      ],
+      "owner": "local"
     },
     {
       "name": "converted_opp_id",

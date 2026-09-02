@@ -283,7 +283,17 @@
     },
     {
       "name": "on_hold_reason",
-      "type": "text",
+      "type": "enum",
+      "values": [
+        "Procurement in progress",
+        "Fiscal year boundary",
+        "Customer unavailable",
+        "POC or pilot running",
+        "Awaiting partner",
+        "Legal or security review",
+        "Other"
+      ],
+      "note": "Why a paused deal is expected to resume. Not the loss-reason list: those are reasons a deal died. on_hold = yes exempts the deal from every no-activity rule, so this is a flag rules branch on, not a note a person reads. Overridable by the CRM profile; where the org's own picklist is a copy of its loss reasons, say so during setup.",
       "owner": "local"
     },
     {

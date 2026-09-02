@@ -13,7 +13,10 @@ hard parts that must be consistent run to run:
 - **Direction.** email_in vs email_out is decided here, from the user's address, not
   guessed downstream.
 - **Attribution.** Events arrive tagged with an opp id where the source knew it, or
-  with an account/domain hint for matching against the opportunity registry.
+  with an account/domain hint for matching against the opportunity registry. An event
+  that matches no deal is then tried against the lead registry by the counterpart's
+  email address, and lands in a separate lead cache — separate because engagement.py
+  scores every key of the deal cache, and a lead is not a deal.
 - **Watermarks.** Each source records how far it has synced, so the next run fetches a
   bounded window instead of re-reading history.
 
@@ -27,6 +30,7 @@ Input format (what a skill hands to --ingest):
    "events": [
      {"date": "2026-08-05", "kind": "meeting|call|note|stage_change|quote|email",
       "opp_id": "OPP-0031",                # if the source knew it
+      "lead_id": "LEAD-0107",              # or this, if it knew the lead
       "account": "Acme Corp",              # else, hints for matching
       "counterpart_email": "jane@acme.com",
       "from": "jane@acme.com",             # email only; direction derived
@@ -35,6 +39,7 @@ Input format (what a skill hands to --ingest):
 Usage:
   activity_sync.py --ingest <project> --input events.json
   activity_sync.py --status <project>
+  activity_sync.py --lead-touch <project>  # write last_outbound/inbound_date onto leads
   activity_sync.py --rebuild <project>     # wipe cache; skills re-ingest history
   activity_sync.py --selftest              # dedup regression cover, no project needed
 """
@@ -69,6 +74,13 @@ def cache_dir(root):
 def cache_paths(root):
     d = cache_dir(root)
     return os.path.join(d, "activity.json"), os.path.join(d, "activity-meta.json")
+
+
+def lead_cache_path(root):
+    """Lead events live beside the deal cache, not inside it. engagement.py scores and
+    prints every key of activity.json and --apply writes them onto the opportunity
+    registry; a LEAD key in there would be scored as a deal and reported as one."""
+    return os.path.join(cache_dir(root), "activity-leads.json")
 
 
 def load_json(p, default):
@@ -121,6 +133,64 @@ def load_opp_index(root):
         if key and better(by_name.get(key), rec):
             by_name[key] = rec
     return by_name, by_domain
+
+
+LEAD_TERMINAL = {"disqualified", "do not contact", "junk", "qualified",
+                 "customer or partner"}
+
+
+def load_lead_index(root):
+    """email -> lead id. Leads are matched on the person's address, never on the
+    company: a lead is one person, and two leads at one company are two clocks. Where
+    one address appears on several rows, a lead still being worked wins over one that
+    has ended; among those, the newest wins."""
+    try:
+        import csvguard as G
+        p = G.resolve_path(os.path.join(root, "06-Leads/leads.csv"), root)
+        s, _ = G.schema_for_file(p, root)
+        if not s or not os.path.exists(p):
+            return {}
+        h, rows = G.read_table(p, s)
+    except Exception:
+        return {}
+    i = {n: k for k, n in enumerate(h)}
+    if "email" not in i or "id" not in i:
+        return {}
+    out = {}
+    for r in rows:
+        em = (r[i["email"]] or "").strip().lower()
+        if not em:
+            continue
+        rec = {"id": r[i["id"]],
+               "open": (r[i["status"]] if "status" in i else "").strip().lower()
+               not in LEAD_TERMINAL,
+               "created": r[i["created_date"]] if "created_date" in i else ""}
+        old = out.get(em)
+        if old is None or (rec["open"] and not old["open"]) or \
+                (rec["open"] == old["open"] and rec["created"] > old["created"]):
+            out[em] = rec
+    return {em: rec["id"] for em, rec in out.items()}
+
+
+def attribute(e, by_name, lead_by_email, norm_name):
+    """Which record an event belongs to: ("opp", id), ("lead", id) or (None, None).
+    Deals win — a converted lead's traffic belongs to the deal it became."""
+    opp = (e.get("opp_id") or "").strip()
+    if not opp:
+        hit = by_name.get(norm_name(e.get("account", "")))
+        if hit:
+            opp = hit["id"]
+    if opp:
+        return "opp", opp
+    lead = (e.get("lead_id") or "").strip()
+    if not lead:
+        for addr in (e.get("counterpart_email"), e.get("from")):
+            lead = lead_by_email.get((addr or "").strip().lower(), "")
+            if lead:
+                break
+    if lead:
+        return "lead", lead
+    return None, None
 
 
 _EMAIL_IN = {"email_in", "reply"}
@@ -186,50 +256,108 @@ def ingest(root, payload):
 
     user_emails = [u.strip().lower() for u in payload.get("user_emails", [])]
     by_name, _ = load_opp_index(root)
+    lead_by_email = load_lead_index(root)
+    lead_p = lead_cache_path(root)
+    leads = load_json(lead_p, {})
     from partner_conflict import norm_name
 
-    seen = {event_key(e.get("date"), e.get("kind"), e.get("who"), opp)
-            for opp, events in cache.items() for e in events}
-    added = dup = unattributed = 0
+    seen = {event_key(e.get("date"), e.get("kind"), e.get("who"), key)
+            for store in (cache, leads) for key, events in store.items() for e in events}
+    added = lead_added = dup = unattributed = 0
 
     for e in payload.get("events", []):
         kind = (e.get("kind") or "").lower()
         if kind in ("email", "email_in", "email_out", "reply"):
             e["kind"] = classify_email(e, user_emails)
 
-        opp = (e.get("opp_id") or "").strip()
-        if not opp:
-            hit = by_name.get(norm_name(e.get("account", "")))
-            if hit:
-                opp = hit["id"]
-        if not opp:
+        what, rid = attribute(e, by_name, lead_by_email, norm_name)
+        if not rid:
             unattributed += 1
             continue
-        e["opp_id"] = opp
 
         who = (e.get("counterpart_email") or e.get("from") or "")
-        k = event_key(e.get("date"), e["kind"], who, opp)
+        k = event_key(e.get("date"), e["kind"], who, rid)
         if k in seen:
             dup += 1
             continue
         seen.add(k)
-        cache.setdefault(opp, []).append(
-            {"date": e.get("date", "")[:10], "kind": e["kind"],
-             "who": who.strip().lower(), "detail": (e.get("detail") or "")[:120]})
-        added += 1
+        rec = {"date": e.get("date", "")[:10], "kind": e["kind"],
+               "who": who.strip().lower(), "detail": (e.get("detail") or "")[:120]}
+        if what == "opp":
+            cache.setdefault(rid, []).append(rec)
+            added += 1
+        else:
+            leads.setdefault(rid, []).append(rec)
+            lead_added += 1
 
     src = payload.get("source", "unknown")
     meta["cache_format"] = CACHE_FORMAT
     meta["sources"][src] = {"last_sync": date.today().isoformat(),
-                            "last_added": added, "last_dupes": dup}
+                            "last_added": added, "last_lead_added": lead_added,
+                            "last_dupes": dup}
     meta["unattributed"] = meta.get("unattributed", 0) + unattributed
+    if lead_by_email:
+        meta["leads_indexed"] = date.today().isoformat()
     save_json(cache_p, cache)
+    save_json(lead_p, leads)
     save_json(meta_p, meta)
-    print(f"{src}: +{added} events, {dup} duplicates collapsed, "
-          f"{unattributed} unattributable (no matching deal)")
+    print(f"{src}: +{added} deal events, +{lead_added} lead events, {dup} duplicates "
+          f"collapsed, {unattributed} unattributable (no matching deal or lead)")
     if unattributed:
         print("  unattributable events are dropped — if that number is large, account "
-              "names in the source don't match the registry and matching needs a look")
+              "names or lead addresses in the source don't match the registry and "
+              "matching needs a look")
+    return 0
+
+
+def lead_touch(root, as_json=False):
+    """Write last_outbound_date and last_inbound_date onto the lead registry from the
+    lead cache. These are the columns the lead follow-up rules read; nothing else in
+    the folder can say when *we* last wrote to a lead. last_activity_date cannot — it
+    is CRM-calculated, carries import stamps, and stops moving when the CRM stops
+    logging, which is why the rules were moved off it.
+
+    Blank, never a fabricated date, where the cache holds nothing for a lead. A lead
+    with both columns blank after a full-window ingest has genuinely never been
+    touched in that window, and the brief reports it as unbaselined, not breaching."""
+    import csvguard as G
+    leads = load_json(lead_cache_path(root), {})
+    meta = load_json(cache_paths(root)[1], {})
+    schema = G.schema_by_registry(root, "leads")
+    path = G.resolve_path(os.path.join(root, schema["path"]), root)
+    if not os.path.exists(path):
+        print("no lead registry to write to")
+        return 1
+    header, rows = G.read_table(path, schema)
+    i = {h: k for k, h in enumerate(header)}
+    for col in ("last_outbound_date", "last_inbound_date"):
+        if col not in i:
+            print(f"the lead registry predates {col} — run `csvguard.py --repair` on it "
+                  "first so the column exists, then re-run")
+            return 1
+    if not meta.get("leads_indexed"):
+        print("no ingest has run with a lead registry present — the cache holds no lead "
+              "events. Re-ingest a full history window (90 days) before trusting these "
+              "columns; until then every lead reads as never touched.")
+    out_kinds = {"email_out", "meeting", "call"}
+    touched = 0
+    summary = {"leads_with_events": len(leads), "written": 0}
+    for r in rows:
+        ev = leads.get(r[i["id"]], [])
+        out = max((e["date"] for e in ev if e.get("kind") in out_kinds), default="")
+        inn = max((e["date"] for e in ev if e.get("kind") == "email_in"), default="")
+        if r[i["last_outbound_date"]] != out or r[i["last_inbound_date"]] != inn:
+            r[i["last_outbound_date"]], r[i["last_inbound_date"]] = out, inn
+            touched += 1
+    if touched:
+        G.write_table(path, header, rows, schema=schema, root=root, backup=True)
+    summary["written"] = touched
+    if as_json:
+        print(json.dumps(summary))
+    else:
+        print(f"lead touch dates: {touched} row(s) updated from {len(leads)} lead(s) "
+              f"with cached events" if touched else
+              f"lead touch dates already current ({len(leads)} lead(s) with events)")
     return 0
 
 
@@ -237,9 +365,14 @@ def status(root):
     cache_p, meta_p = cache_paths(root)
     cache = load_json(cache_p, {})
     meta = load_json(meta_p, {"sources": {}})
+    leads = load_json(lead_cache_path(root), {})
     n = sum(len(v) for v in cache.values())
+    ln = sum(len(v) for v in leads.values())
     print(f"cache: {cache_p}")
-    print(f"{n} events across {len(cache)} deals")
+    print(f"{n} events across {len(cache)} deals; {ln} events across {len(leads)} leads")
+    if cache and not meta.get("leads_indexed"):
+        print("  lead events: none — this cache predates lead attribution. Re-ingest a "
+              "full history window so the lead follow-up rules have a touch date to read.")
     for s, m in meta.get("sources", {}).items():
         print(f"  {s:12} last sync {m.get('last_sync','never')} "
               f"(+{m.get('last_added',0)}, {m.get('last_dupes',0)} dupes)")
@@ -287,9 +420,23 @@ def selftest():
     check("outbound classified", classify_email({"from": "rep@example.com"}, ["@example.com"]),
           "email_out")
 
+    # Attribution: deals win, then leads by the person's address, then nothing.
+    by_name = {"acme": {"id": "OPP-1"}}
+    leads = {"jane@acme.com": "LEAD-7", "bob@other.com": "LEAD-9"}
+    ident = lambda s: (s or "").strip().lower()
+    check("deal wins over lead",
+          attribute({"account": "Acme", "from": "jane@acme.com"}, by_name, leads, ident),
+          ("opp", "OPP-1"))
+    check("lead by counterpart email",
+          attribute({"account": "Nobody Inc", "counterpart_email": "Bob@Other.com"},
+                    by_name, leads, ident), ("lead", "LEAD-9"))
+    check("unattributed stays unattributed",
+          attribute({"account": "Nobody Inc", "from": "x@y.com"}, by_name, leads, ident),
+          (None, None))
+
     for f in fails:
         print(f"FAIL {f}", file=sys.stderr)
-    print(f"activity_sync selftest: {7 - len(fails)}/7 passed")
+    print(f"activity_sync selftest: {10 - len(fails)}/10 passed")
     return 1 if fails else 0
 
 
@@ -297,10 +444,13 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--ingest"); ap.add_argument("--input")
     ap.add_argument("--status"); ap.add_argument("--rebuild")
+    ap.add_argument("--lead-touch"); ap.add_argument("--json", action="store_true")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
     if a.selftest:
         return selftest()
+    if a.lead_touch:
+        return lead_touch(os.path.abspath(a.lead_touch), a.json)
     if a.ingest:
         with open(a.input, encoding="utf-8") as f:
             return ingest(os.path.abspath(a.ingest), json.load(f))
@@ -308,7 +458,7 @@ def main():
         return status(os.path.abspath(a.status))
     if a.rebuild:
         cache_p, meta_p = cache_paths(os.path.abspath(a.rebuild))
-        for p in (cache_p, meta_p):
+        for p in (cache_p, meta_p, lead_cache_path(os.path.abspath(a.rebuild))):
             if os.path.exists(p):
                 os.remove(p)
         print("cache cleared — skills should re-ingest a full history window")

@@ -125,9 +125,39 @@ predict a deal not closing, roughly in order of how much they should worry someo
 is normal. Two is a pattern. Three or more means the date is fictional and the deal should be
 re-baselined or moved out of the forecast. Say that plainly.
 
-**Stalled.** No activity in 14+ days on an open deal, or `days_in_stage` well past the median for
-that stage. Late-stage stalls are worse than early ones — a deal that sits in Negotiation is usually
-losing, not marinating.
+**Stalled.** No **outbound touch from us** in 14+ days on an open deal, or `days_in_stage` well past
+the median for that stage. Late-stage stalls are worse than early ones — a deal that sits in
+Negotiation is usually losing, not marinating.
+
+"Outbound touch" is deliberately not `last_activity_date`. That column is `owner: crm`, which makes
+it look authoritative, and in most orgs it is not usable for this: it carries import and seeding
+stamps that are not events, it is blank on deals nobody has edited, and it stops moving the moment
+the CRM stops logging — which, since the activity table in a typical org is almost entirely
+auto-captured email noise that every query filters out, is most of the time. A no-activity test
+built on it fired on 95% of one live book on a day when four of those deals had email threads
+running. Compute the last touch from evidence the system actually holds — the most recent of:
+
+- `last_outbound_date` across the deal's rows in `07-Opportunities/opportunity-contacts`;
+- the latest `email_out` or `meeting` event for the deal in `.sales-system/cache/activity.json`;
+- the CRM activity table, only where `field-map.json` says it is populated for real.
+
+Two checks before any deal is called quiet:
+
+- **Sanity-check the signal, not just the list.** If the test matches more than about a third of
+  the open book in one run, the finding is "this signal looks broken" — said in those words, with
+  the likely cause (no outbound history captured yet, an import stamp, a cache that hasn't synced)
+  — and the list is not presented. A rule that fires on everything is a rule nobody can act on. A
+  `daily_cap` truncates such a list, but it says nothing about why the list was so long, so a cap
+  hides this defect rather than surfacing it.
+- **Check the partner channel first** where `11-Partners/` exists. A deal with a `partner_id`
+  being worked through a distributor or reseller shows no direct customer touch and is not quiet.
+  Look for traffic with the partner's domain — the `website` on the partner row, or
+  `partner_contact_email` — before flagging it. This is the single most common false positive in
+  a channel-heavy book.
+
+`on_hold = yes` exempts a deal from the stalled flag entirely, and from every no-activity rule in
+`task-rules`; `on_hold_reason` records why it is supposed to be silent. Report held deals in their
+own line, not inside the stalled list.
 
 **Single-threaded.** One contact *replying* past the early stages. The most common way good deals
 die is the champion leaving, and it's entirely preventable with enough notice. This one is computed

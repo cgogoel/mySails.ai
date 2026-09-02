@@ -107,6 +107,61 @@ days is an emergency, not a task.
 
 ---
 
+## The clock — how long since we wrote to this person
+
+Every lead the user owns is on a clock, and the clock measures one thing: **the last outbound
+touch from us** — `last_outbound_date`, written by `activity_sync.py --lead-touch` from the
+email, meeting and call events the briefs ingest, matched to the lead by the person's address.
+Never `last_activity_date` or `days_since_active`: both are CRM-calculated, both carry import
+stamps that are not events, and both stop moving when the CRM stops logging. A lead with
+`last_outbound_date` blank after a full-window ingest has not been written to in that window;
+say so rather than inventing a date.
+
+```bash
+python3 "$S/activity_sync.py" --lead-touch <project>
+```
+
+Two rules read the clock, found by `rule_name` in `task-rules`, and they are different jobs:
+
+| | *Lead going cold* | *Lead contact guarantee* |
+|---|---|---|
+| Trigger | No outbound touch in **14 days** | No outbound touch in **30 days** |
+| Nature | Discretionary — the target. Ranked, capped | A floor. A breach is a system failure |
+| Ranking | Sequence replies, then inbound with a reply owed, then source quality, then age | Oldest first |
+| Ships | `enabled = yes` | `enabled = no` — enabling is `configure-project`'s four steps |
+
+Both share **one daily budget of 10 drafts**, floor first: guarantee breaches fill the budget,
+going-cold leads take what is left. That is on top of the deal follow-ups, not shared with them.
+Both are `review`, both `Email Follow-up`, both drafted and staged by the daily brief — never
+merely named.
+
+**The clock stops** when the lead converts (`converted_opp_id` set, or the org's qualified
+status — the deal rules take over) or is disqualified. Two disqualifications the system can see
+for itself and raises as *Disqualify on opt-out or refusal*: an opt-out or unsubscribe flag that
+flipped `contactable` to no, or an inbound reply that reads as *not interested*. That rule is
+`review` on purpose — the brief quotes the reply and offers "set Disqualified · Not Interested"
+in its approval queue. "Not now" and "not interested" are one word apart, and one of them is a
+hold, not a death. A bounce is neither: it raises the find-new-address task, per the profile.
+
+**The clock pauses** in three cases, and the rules say nothing while it does:
+
+- `in_sequence = yes` with a future `sequence_next_step_date` — the sequence is the touch. A
+  sequence that ended without a reply restarts the clock from the day it ended, not from zero.
+- Status *passed to partner* or *customer or partner*, whatever the org calls them — the lead's
+  partner check. Someone else is writing to this person.
+- **`hold_until` is in the future.** This is the lead's pressure valve, the equivalent of
+  `on_hold` on a deal: "come back in Q1", an out-of-office until the 14th, a budget cycle. The
+  user can set it directly with a `hold_reason`. The system may **infer** it from a reply — in
+  which case it quotes the line that implied it, proposes the date, and writes nothing until the
+  user confirms in the brief's queue. The clock restarts the day after `hold_until`. A user who
+  does not know this valve exists disables the rule instead, so say it exists.
+
+Whatever the rule, **first contact stays first contact**: most lead follow-ups are first emails,
+and a first email is drafted and handed to the user, never staged as ready to run. Volume does
+not move that fence — see `CONVENTIONS.md` §3b.
+
+---
+
 ## CRM sync
 
 ### Pulling
@@ -176,7 +231,7 @@ not certain show both rows and ask rather than merging. Duplicates are the most 
 registries rot.
 
 Report the *shape* of what arrived, not just the count: how many are contactable, how many are in
-sequence, how many have no email, how many are untouched in 30 days. That's the sentence that tells
+sequence, how many have no email, how many are past 30 days since our last outbound touch. That's the sentence that tells
 someone whether the list is worth working.
 
 Expect sparse data. Many CRMs require almost nothing on a lead record, so blanks are normal. A
@@ -189,8 +244,10 @@ order of what actually converts:
 
 1. **Replied to a sequence** — a human answered. Nothing else comes close.
 2. **Inbound with recent activity** — high-intent sources, activity inside a week.
-3. **Working and going cold** — roughly 5 to 21 days quiet, not in sequence. Still recoverable.
-4. **New and unrouted** — never touched, sitting more than a day or two.
+3. **Working and going cold** — 14 days or more since our last outbound touch, not in sequence,
+   not on hold. Still recoverable. Past 30 days it is a guarantee breach, if that rule is on.
+4. **New and unrouted** — never touched, sitting more than a day or two. The *New lead untouched*
+   rule; its drafts are first contact and go to the user, never to the ready-to-run queue.
 5. **Everything else** — give the count, don't list them.
 
 Cut ruthlessly at the top. Ten prioritized leads with a reason each beats two hundred rows. If the

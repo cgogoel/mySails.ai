@@ -6,6 +6,75 @@ gained — and, more importantly, what quietly means something different now.
 
 The format is one `## YYYY-MM-DD` heading per template version, matching `VERSION.json`.
 
+## 2026-09-02
+
+Plugin `0.10.0`. `activity_sync.py` gained lead attribution and `--lead-touch`, and the lead and
+opportunity schemas changed, so **`requires_template` moves to 2026-09-02**: every folder is
+behind until `upgrade.py --apply` runs. After upgrading, ingest a full history window once — the
+existing cache holds no lead events, and until it does every lead reads as never touched.
+
+**No-activity rules stop reading `last_activity_date`.** Every "deal gone quiet" test used to reach
+for that column because the CRM owns it and it looks authoritative. It is not usable for the job:
+it carries import and seeding stamps that are not events, it is blank on untouched rows, and it
+stops moving the moment the CRM stops logging — which, in an org whose activity table is
+auto-captured email noise that every query filters out, is most of the time. On one live book the
+rule reported 71 of 75 open deals inactive on a day four of them had email threads running. The
+failure is silent: the rule does not error, it fires on everything, and a rule that fires on
+everything is one nobody can act on. Three changes, all in `opportunity-tracking` and `daily-brief`:
+
+- The trigger is now **the last outbound touch from us** — the most recent of
+  `opportunity-contacts.last_outbound_date`, an `email_out` or `meeting` event in the activity
+  cache, and the CRM activity table only where the profile says it is populated.
+- **A sanity check on the rule itself.** Matching more than about a third of the open book in one
+  run is reported as "this signal looks broken", with the likely cause, instead of a list. A
+  `daily_cap` truncated that list before; it never said why the list was long.
+- **Partner-worked deals are checked before being called quiet** where `11-Partners/` exists. A
+  deal moving through a distributor shows no direct customer touch, and this was the most common
+  false positive in a channel-heavy book.
+
+**The follow-up guarantee**, a second rule rather than a tighter first one. *Deal gone quiet* is
+discretionary — ranked, capped, take the top N. *Follow-up guarantee* is a floor: no open deal the
+user owns goes longer than the window (30 days is the suggested default) without an outbound touch,
+and a breach is a system failure to report, not a judgement call. The brief drafts and stages every
+follow-up the floor raises rather than naming it. It ships **disabled**, because on day one a fresh
+folder has never touched anything and the rule would try to write to the whole book:
+`configure-project` turns it on in four steps — ask the window and cap, stamp `followup_baseline:`
+in `config.md` so untouched deals surface once as a data-quality finding rather than as breaches,
+count the existing backlog and say it aloud (recorded as `followup_backlog_at_enable:` so the brief
+reports "12 of 46 cleared"), then enable. The backlog is burned down at the cap, oldest and largest
+first, recomputed every run and never stored. The §3b fences are restated in the rule: volume does
+not relax them.
+
+**`configure-project` now ships a starter-rules table** instead of asking each setup to improvise
+one. Skills find rules by `rule_name`, never by id, since ids are whatever the guard assigned in
+that folder — CONVENTIONS §3b says so.
+
+**`on_hold = yes` is the pressure valve**, and it now exempts a deal from both rules explicitly. A
+live award, a customer on leave, a pilot in flight are supposed to be silent; without the exemption
+they breach every day and the whole mechanism gets ignored. `on_hold_reason` gains its own enum in
+the generic schema — procurement in progress, fiscal year boundary, customer unavailable, POC or
+pilot running, awaiting partner, legal or security review, other — because a folder without a CRM
+picklist for it had free text, and once a rule branches on the flag the reason is data. The CRM
+profile still overrides it; setup now checks whether an org's on-hold picklist is a clone of its
+loss reasons and says so, rather than silently substituting values the CRM would reject on push.
+
+**Leads get the same clock.** Nothing in the folder could say when *we* last wrote to a lead —
+`last_activity_date` and `days_since_active` are CRM-calculated and carry the same defect as on
+deals, and the activity cache was deal-only. Now `activity_sync.py` attributes an event that
+matches no deal to a lead by the person's email address, into a sibling cache
+(`activity-leads.json` — separate because `engagement.py` scores every key of the deal cache), and
+`--lead-touch` writes `last_outbound_date` / `last_inbound_date` onto the lead registry. Two rules
+read them, mirroring the deal pair: *Lead going cold* (14 days, the target, discretionary) and
+*Lead contact guarantee* (30 days, a floor, shipped disabled, enabled by the same four steps with
+`lead_followup_baseline:` / `lead_followup_backlog_at_enable:`). They share **one budget of 10
+lead drafts a day, floor first**, on top of the deal drafts. The clock stops when a lead converts
+or is disqualified — and *Disqualify on opt-out or refusal* now raises the disqualification itself
+at `review`, quoting the opt-out flag or the reply, because "not now" and "not interested" are one
+word apart. It pauses while a lead is in an active sequence, passed to a partner, or has a
+`hold_until` in the future — the lead's valve, new on the schema with a `hold_reason` enum, which
+the brief may propose from a reply but writes only when confirmed. First contact stays first
+contact: drafted, handed over, never in the ready-to-run queue, whatever the backlog.
+
 ## 2026-08-26
 
 Skills only — no script or schema changed. The version moves so this entry reaches anyone who
