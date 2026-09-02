@@ -1,6 +1,6 @@
 ---
 name: "daily-brief"
-description: "Produce the morning brief focused on today's execution — tasks due, the emails and calls owed on specific leads and opportunities, and every meeting today with who is attending, what their role likely wants, background research on the account, relevant competitor and market context, and an offer to build tailored content for the meeting. Enforces the follow-up guarantee where it is enabled — no open deal the user owns goes past the window without an outbound touch — by drafting and staging every follow-up it raises, burning down any backlog at the cap. Lists every task due and overdue by name, closes the ones email, calendar and CRM activity show are already done, and offers to complete the ones the system can finish itself — waiting for approval before it acts. Also runs a light overnight sweep of the user's newsletter subscriptions and targeted searches for news at tracked accounts. Use when the user asks for their daily brief, morning brief, what's on their plate today, what they should focus on, what they missed, who they need to follow up with, what they missed overnight, what tasks are due or overdue, or asks to prep or start their day. Also use when setting the brief to run each morning."
+description: "Produce the morning brief focused on today's execution — tasks due, the emails and calls owed on specific leads and opportunities, and every meeting today with who is attending, what their role likely wants, background research on the account, relevant competitor and market context, and an offer to build tailored content for the meeting. Enforces the follow-up guarantee where it is enabled — no open deal the user owns goes past the window without an outbound touch — by drafting and staging every follow-up it raises, burning down any backlog at the cap. Reads every email thread since the last brief on the user's deals and leads and catches the records up — notes, next steps, a lead moved to engaged — while pausing for the user's edit on any close date, amount, stage or negative sentiment a thread implies. Lists every task due and overdue by name, closes the ones email, calendar and CRM activity show are already done, and offers to complete the ones the system can finish itself — waiting for approval before it acts. Also runs a light overnight sweep of the user's newsletter subscriptions and targeted searches for news at tracked accounts. Use when the user asks for their daily brief, morning brief, what's on their plate today, what they should focus on, what they missed, who they need to follow up with, what they missed overnight, what tasks are due or overdue, or asks to prep or start their day. Also use when setting the brief to run each morning."
 ---
 
 # Daily Brief
@@ -107,6 +107,85 @@ title — does **not** close the task, and does not evaporate either: it goes to
 Step 5 as a *looks done, confirm?* item with the evidence and its date named. A false close hides
 real work; a task left silently open because the evidence was only 80% is how the list fills with
 rows the user finished last week.
+
+---
+
+## Step 1a: What yesterday's email changed on the records
+
+Step 10 of the setup ingested the email traffic since the last brief. Step 1 used it to close
+tasks. This step uses it for what a rep would otherwise type in by hand at the end of the day and
+usually does not: **the record catches up with the conversation.** Every open opportunity and
+every lead the user owns that had email traffic in the window gets read — the thread, not just
+the event — and updated, on two tiers that differ in exactly one way: whether the write waits.
+
+The window is *since the last daily brief*, capped at seven days, not "yesterday": a brief that
+was skipped on Tuesday must not lose Monday's traffic. Bound the mail query per the profile and
+drop the auto-captured noise, auto-replies and bounces the same way Step 1 does.
+
+**What to extract from each thread**, the way `meeting-notes` extracts from a transcript: the
+current state in one or two sentences; a next step and its date where the thread states one;
+commitments in either direction; any close date, amount, or stage the thread implies; competitor
+mentions; and a sentiment reading, evidence-gated — `Negative` only with the line that supports
+it, `Neutral` or `Unclear` when that is the truth. A thread that changes nothing produces nothing.
+
+### Tier 1 — applied, then reported
+
+Writes that catch the record up without deciding anything the person would want to decide:
+
+- **Notes.** Append a dated entry to the deal's notes file (`07-Opportunities/Accounts/<Account>/
+  OPP-nnnn-notes.md`) or the lead's, with the thread's subject and the one-line state. Append,
+  never rewrite — the notes file is a log.
+- **`next_step` / `next_step_date`** where the thread states one plainly ("send the revised SOW by
+  Friday"). Where the current `next_step` was typed deliberately and the thread does not supersede
+  it, leave it. Where the profile marks the field as shared and append-only, append.
+- **On a lead**: status to the org's *engaged* value when the person replied and the lead sits in
+  *new* or *working*; `last_inbound_date` is already written by `--lead-touch`.
+- **Commitments** into `13-Meetings/commitments` where that module is on, either direction, with
+  the source set to the thread.
+- **Competitor mentions** routed to `competitor-tracking` as it already expects them.
+
+All of these are folder writes with `sync_status = pending-push`. **Nothing here reaches the CRM
+on its own**: the brief offers "push *N* record updates to the CRM" as **one** numbered item in the
+Step 5 queue, and §7 governs the push — field-by-field diff, explicit yes. Everything Tier 1 did is
+listed under *Did automatically* at the top of the brief, per deal, one line each, so the user
+never learns about a changed next step by finding it.
+
+### Tier 2 — paused for the user's edit
+
+Four things a thread can imply that the system must not apply on its own reading, because each
+one moves the forecast or a relationship and each is easy to misread from prose:
+
+| Signal | Why it waits |
+|---|---|
+| **Close date** | "We'll pick this up next quarter" is a slip, a pause, or a polite no, and only the person knows which |
+| **Amount** | "We're thinking 150 seats now, not 250" changes the number the forecast runs on; the quote may not agree |
+| **Stage** | The third forecast input. A backward move triggers an approval flow in some orgs |
+| **Negative sentiment** | Evidence-gated: the quote is required. What to *do* about it is the rep's call |
+
+Each becomes an **edit before applying** item in the Step 5 queue, showing the record's current
+value against the proposed one, the line from the thread that implies it, and the thread date.
+The user approves as proposed, edits the value, or declines — by number. Until they do, the record
+holds its current value and the item holds the proposal; a proposal never expires silently, it
+re-appears tomorrow marked *still waiting*. A declined proposal is recorded in the notes file as
+"proposed from email, declined", so the same thread does not propose it again.
+
+Negative sentiment carries no field of its own on the deal row; the item offers what follows from
+it — a `health` change, a risk flag, a task — with the quote, and the user picks.
+
+### The rule that governs it
+
+*Update records from email* in `task-rules`, `auto` for Tier 1, and it is the one place `auto` is
+the shipped default, because Tier 1 writes only to the folder and every write is a dated append
+or a field the thread states in words. It respects the ordinary fences: nothing under `team`
+scope on a colleague's record unless asked (their traffic is reported, not written); nothing on a
+record whose thread is with someone `contactable = no`. Flip it to `review` and every Tier 1
+write joins the queue instead; flip it to `manual` and the step only reports. Tier 2 is not
+configurable downward — it is `review` by construction.
+
+The matching of a thread to a record is the ingest's attribution — deal by account, lead by the
+person's address — and where a thread matches nothing it is not updated and not invented. Say
+how many threads went unmatched; a large number is the account-name mismatch the ingest warns
+about, and it is fixable.
 
 ---
 
@@ -295,6 +374,8 @@ both: yes or no, item by item.
 |---|---|---|
 | **Ready to run** | A drafted email at `draft_path` sitting at `Awaiting Approval`; a `CRM Update` task where the field and the new value are both already known; logging an activity; filing a note | The system performs the action, then closes the task |
 | **Looks done** | Step 1 found evidence that was suggestive but not conclusive | The system closes the task and records the evidence. It performs nothing |
+| **Edit before applying** | Step 1a read a close date, amount, stage or negative sentiment in a thread | The system writes the value the user confirmed or edited, locally, `pending-push` |
+| **Push to CRM** | Tier 1 writes waiting as `pending-push` | One item for the batch; §7's field-by-field diff runs before anything is sent |
 
 Something is **ready to run** only when the action is fully determined — recipient, text, field and
 value all either exist already or follow from the record without a judgement call. If producing the
@@ -455,7 +536,8 @@ working. Ten is it competing with the rest of the brief.
 
 Structure, skipping empty sections rather than printing "None":
 
-**Did automatically** — only if something did. Always first.
+**Did automatically** — only if something did. Always first. Includes every Tier 1 record update
+from Step 1a, one line per deal or lead: what changed, from which thread.
 
 **Today** — meetings in order, each with the preparation from Step 2. Long is acceptable here;
 this is what the brief is for.

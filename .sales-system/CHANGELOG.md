@@ -6,6 +6,25 @@ gained — and, more importantly, what quietly means something different now.
 
 The format is one `## YYYY-MM-DD` heading per template version, matching `VERSION.json`.
 
+## 2026-09-03
+
+Skills only — no script or schema changed. The version moves so this entry reaches anyone who
+upgrades; `requires_template` stays at **2026-09-02**. Plugin `0.11.0`.
+
+**The daily brief catches the records up with yesterday's email.** Step 1a reads every thread
+since the last brief (capped at seven days, so a skipped day is not lost) on the user's open deals
+and leads, and updates the record the way a rep would at the end of the day and usually does not.
+Two tiers. Tier 1 is applied and reported: a dated append to the notes file, `next_step` /
+`next_step_date` where the thread states one, a lead moved to the org's engaged status on a reply,
+commitments and competitor mentions routed where they already go — all folder writes at
+`pending-push`, listed under *Did automatically*, with the CRM push offered as one queue item and
+never automatic. Tier 2 waits: a close date, an amount, a stage, or a Negative sentiment reading
+(quote required, as with meetings) implied by a thread becomes an *edit before applying* item in
+the approval queue showing current against proposed and the line that implied it; the user
+approves, edits, or declines by number, and a declined proposal is noted so the same thread does
+not raise it again. Governed by a new starter rule, *Update records from email* — the one rule
+that ships `auto`, because its `auto` reaches only the folder. Tier 2 cannot be configured down.
+
 ## 2026-09-02
 
 Plugin `0.10.0`. `activity_sync.py` gained lead attribution and `--lead-touch`, and the lead and

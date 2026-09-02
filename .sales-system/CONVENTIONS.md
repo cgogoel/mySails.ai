@@ -465,6 +465,13 @@ cache (`activity_sync.py --lead-touch` for leads) and a populated CRM activity t
 about a third of the book. `on_hold = yes` exempts a deal; a future `hold_until`, an active
 sequence, or a partner-held status exempts a lead.
 
+*Update records from email* is the one rule that ships `auto`, and its `auto` means folder writes
+only — a dated notes append, a stated next step, a lead to engaged — reported at the top of the
+brief with the CRM push offered as a single queue item. Close date, amount, stage and negative
+sentiment read from a thread are never applied on the system's reading: they wait as
+*edit before applying* items with current, proposed, and the quote. That tier cannot be
+configured down.
+
 ## 3c. Seeding is not refreshing
 
 These are different operations and confusing them is the single most expensive mistake

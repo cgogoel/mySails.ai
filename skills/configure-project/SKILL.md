@@ -725,9 +725,20 @@ table and drop the rows whose module is off. The guard assigns ids; the skills f
 | Lead contact guarantee | Lead the user owns with no outbound touch for the window (30 days unless chosen otherwise), not in sequence, not on hold, not passed to a partner | Email Follow-up | review | 10, shared, floor first | **no** | daily-brief |
 | Disqualify on opt-out or refusal | Opt-out or unsubscribe flag set `contactable = no`, or an inbound reply reads as not interested | CRM Update | review | 10 | yes | daily-brief, lead-tracking |
 | Bounced address | Bounce flag set on a lead | Research | manual | 5 | yes | lead-tracking |
+| Update records from email | Email traffic since the last brief on an owned deal or lead | CRM Update | auto | — | yes | daily-brief |
 
-Two rows need their reasoning written into the rule's own `notes`, so the person who opens the
+Three rows need their reasoning written into the rule's own `notes`, so the person who opens the
 CSV a month later finds it next to the setting.
+
+**`Update records from email` is the one shipped `auto`, and it writes only to the folder.** The
+daily brief reads every thread since the last run on an owned deal or lead and catches the record
+up — a dated note, a next step the thread states, a lead moved to engaged — with everything
+listed at the top of the brief and the CRM push offered as one queue item, never automatic. A
+close date, an amount, a stage, or a negative reading in a thread is never applied on the
+system's own reading: those pause as *edit before applying* items showing current against
+proposed with the line that implied it. Say this at setup, because "auto" alarms people until
+they hear what it is allowed to touch; `review` makes every write wait, `manual` makes it only
+report.
 
 **Every no-activity trigger is worded as *outbound touch from us*, never as `last_activity_date`.**
 That column looks authoritative because the CRM owns it, and it is not usable for this: it carries
