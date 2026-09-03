@@ -114,8 +114,11 @@ touch from us** — `last_outbound_date`, written by `activity_sync.py --lead-to
 email, meeting and call events the briefs ingest, matched to the lead by the person's address.
 Never `last_activity_date` or `days_since_active`: both are CRM-calculated, both carry import
 stamps that are not events, and both stop moving when the CRM stops logging. A lead with
-`last_outbound_date` blank after a full-window ingest has not been written to in that window;
-say so rather than inventing a date.
+`last_outbound_date` blank after a full-window ingest has not been written to in that window —
+**treat it as past the window and due**, marked *no recorded touch*, rather than inventing a date
+or leaving it out. And make sure the blank is real before trusting it: if the cache is empty or
+has never seen the lead registry (`activity_sync.py --status`), ingest a full 90-day window and
+run `--lead-touch` first. A blank produced by an empty cache is not evidence of anything.
 
 ```bash
 python3 "$S/activity_sync.py" --lead-touch <project>
@@ -128,7 +131,7 @@ Two rules read the clock, found by `rule_name` in `task-rules`, and they are dif
 | Trigger | No outbound touch in **14 days** | No outbound touch in **30 days** |
 | Nature | Discretionary — the target. Ranked, capped | A floor. A breach is a system failure |
 | Ranking | Sequence replies, then inbound with a reply owed, then source quality, then age | Oldest first |
-| Ships | `enabled = yes` | `enabled = no` — enabling is `configure-project`'s four steps |
+| Ships | `enabled = yes` | `enabled = yes` — `configure-project` confirms window and cap, and says the backlog aloud |
 
 Both share **one daily budget of 10 drafts**, floor first: guarantee breaches fill the budget,
 going-cold leads take what is left. That is on top of the deal follow-ups, not shared with them.

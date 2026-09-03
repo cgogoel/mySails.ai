@@ -143,12 +143,21 @@ running. Compute the last touch from evidence the system actually holds — the 
 
 Two checks before any deal is called quiet:
 
-- **Sanity-check the signal, not just the list.** If the test matches more than about a third of
-  the open book in one run, the finding is "this signal looks broken" — said in those words, with
-  the likely cause (no outbound history captured yet, an import stamp, a cache that hasn't synced)
-  — and the list is not presented. A rule that fires on everything is a rule nobody can act on. A
-  `daily_cap` truncates such a list, but it says nothing about why the list was so long, so a cap
-  hides this defect rather than surfacing it.
+- **No data is not no work.** A record with no recorded outbound touch at all is treated as
+  **untouched for longer than the window** — it is in the list, marked *no recorded touch*, never
+  silently excluded. The one thing that must happen first is making sure the absence is real: if
+  the activity cache is empty, has never seen the lead registry, or holds nothing for most of the
+  book (`activity_sync.py --status` says which), **run a full-window ingest now** — 90 days of
+  email, calendar and CRM activity through `--ingest`, then `--lead-touch` — before evaluating
+  anything. That is the brief's job, not a suggestion for the user; "the cache is empty, so I
+  drafted nothing" is the failure this rule exists to prevent.
+- **Sanity-check the signal, and say so — but still produce the list.** If, *after* that ingest,
+  the test still matches more than about a third of the open book, lead with one line saying the
+  signal may be broken and the likely cause (an import stamp, a source that failed to sync, a
+  book that really has not been worked), then present the list anyway, ranked, at the cap. A rule
+  that fires on everything is hard to act on; a rule that fires on nothing because it distrusted
+  itself is worse, because nothing gets sent and nobody is told. The cap keeps a broad match
+  survivable; the warning keeps it honest.
 - **Check the partner channel first** where `11-Partners/` exists. A deal with a `partner_id`
   being worked through a distributor or reseller shows no direct customer touch and is not quiet.
   Look for traffic with the partner's domain — the `website` on the partner row, or

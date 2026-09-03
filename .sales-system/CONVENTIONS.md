@@ -456,14 +456,18 @@ behaviour into a one-off — that's what makes it inspectable and reversible lat
 Skills refer to rules by `rule_name`, never by id — ids are whatever the guard assigned in that
 folder. Four names the daily brief, `opportunity-tracking` and `lead-tracking` look for: *Deal
 gone quiet* and *Lead going cold* (the discretionary 14-day lists, ranked and capped) and
-*Follow-up guarantee* and *Lead contact guarantee* (floors, shipped disabled, evaluated against
-`followup_baseline:` and `lead_followup_baseline:` in `config.md`). The two lead rules share one
-budget of 10 drafts a day, floor first; the deal rules have their own. Any rule whose trigger is
-"no activity" is worded as **no outbound touch from us** and computed from contacts, the activity
+*Follow-up guarantee* and *Lead contact guarantee* (floors, **shipped enabled**, reporting
+progress against `followup_backlog_at_enable:` / `lead_followup_backlog_at_enable:` in
+`config.md`, which the brief stamps itself if setup did not). The two lead rules share one budget
+of 10 drafts a day, floor first; the deal rules have their own. Any rule whose trigger is "no
+activity" is worded as **no outbound touch from us** and computed from contacts, the activity
 cache (`activity_sync.py --lead-touch` for leads) and a populated CRM activity table — not from
-`last_activity_date` — and reports a broken signal rather than a list when it matches more than
-about a third of the book. `on_hold = yes` exempts a deal; a future `hold_until`, an active
-sequence, or a partner-held status exempts a lead.
+`last_activity_date`. Three things such a rule must never do: trust a blank on an empty cache
+(force a full-window ingest first), exclude a record because it has no recorded touch (that
+record is overdue by definition, and is listed as *no recorded touch*), or withhold the list
+because it matched too much (warn in one line, then list at the cap). Silence is the one output
+a follow-up rule is not allowed to produce. `on_hold = yes` exempts a deal; a future
+`hold_until`, an active sequence, or a partner-held status exempts a lead.
 
 *Update records from email* is the one rule that ships `auto`, and its `auto` means folder writes
 only — a dated notes append, a stated next step, a lead to engaged — reported at the top of the
@@ -892,8 +896,12 @@ sharing *safe*, not *simultaneous*. It's a small team taking turns cleanly, not 
   writes refuse rather than racing a live session.
 - **Sync-conflict copies.** `--check-all` finds `-Copy` / `(1)` / "conflicted copy" forks of
   registries and demands a merge — nothing reads a fork, so edits in one are otherwise lost.
-- **The activity cache is per-machine** (in local temp, keyed by project path), never synced, and
-  cheap to rebuild via `activity_sync.py --rebuild`.
+- **The activity cache lives in the folder** (`.sales-system/cache/`), since 2026-09-04. It was
+  per-machine temp before that, which was fine on a laptop and fatal in a sandbox whose temp
+  directory is discarded with the session — every scheduled brief started empty and drafted
+  nothing. Two users ingesting into one cache is safe: ingest merges and dedups by event
+  identity, so the result is the union of their evidence. Still cheap to rebuild via
+  `activity_sync.py --rebuild` if it ever looks wrong.
 - **Quotes that were sent are immutable.** `quote.py --freeze-check <project>` recomputes every
   Sent/Accepted quote from its lines and flags mismatches. Changes go in a new version, never an
   edit.

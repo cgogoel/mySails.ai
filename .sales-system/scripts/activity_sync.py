@@ -20,9 +20,18 @@ hard parts that must be consistent run to run:
 - **Watermarks.** Each source records how far it has synced, so the next run fetches a
   bounded window instead of re-reading history.
 
-The cache lives OUTSIDE the project folder (per-machine temp), because on a shared
-drive a synced cache means two users constantly overwriting each other's, and the cache
-is cheap to rebuild.
+The cache lives INSIDE the project folder, at .sales-system/cache/. It used to live in
+the machine's temp directory, to keep a shared drive from syncing two users' caches
+over each other — and that reasoning was sound until the scripts started running in
+sandboxes whose temp directory is created per session and discarded after it. Every
+scheduled brief then began from an empty cache, read every deal and lead as never
+touched, and drafted nothing. A cache that does not survive the night is not a cache.
+
+Inside the folder it persists, and the shared-drive case is handled by the shape of
+the data rather than by hiding it: ingest merges into what is there and dedups by
+event identity, so two users' ingests produce the union of their evidence — which,
+on a team folder, is the right answer — and writes are atomic replaces. A cache that
+was left in temp by an older version is migrated in on first use.
 
 Input format (what a skill hands to --ingest):
   {"source": "salesforce|gmail|calendar",
@@ -40,6 +49,7 @@ Usage:
   activity_sync.py --ingest <project> --input events.json
   activity_sync.py --status <project>
   activity_sync.py --lead-touch <project>  # write last_outbound/inbound_date onto leads
+  activity_sync.py --status <project> --json   # machine-readable: sources, counts, needs_full_window
   activity_sync.py --rebuild <project>     # wipe cache; skills re-ingest history
   activity_sync.py --selftest              # dedup regression cover, no project needed
 """
@@ -61,13 +71,30 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 CACHE_FORMAT = 2
 
 
-def cache_dir(root):
-    """Per-machine, per-project cache. Deliberately NOT inside the project folder:
-    on a shared drive, a synced cache means users overwrite each other's, and it is
-    cheap to rebuild locally."""
+def _legacy_cache_dir(root):
+    """Where versions before 2026-09-04 kept the cache: the machine's temp directory,
+    keyed by project path. Read once for migration, never written."""
     key = hashlib.sha1(os.path.abspath(root).encode()).hexdigest()[:12]
-    d = os.path.join(tempfile.gettempdir(), f"sales-system-{key}")
+    return os.path.join(tempfile.gettempdir(), f"sales-system-{key}")
+
+
+def cache_dir(root):
+    """The project's own cache directory. In the folder, so it survives the session —
+    see the module docstring for why it moved. Migrates a temp-directory cache from an
+    older version the first time it is asked for, so nothing already ingested is lost."""
+    d = os.path.join(root, ".sales-system", "cache")
     os.makedirs(d, exist_ok=True)
+    legacy = _legacy_cache_dir(root)
+    if os.path.isdir(legacy):
+        for fn in ("activity.json", "activity-meta.json", "activity-leads.json"):
+            src, dst = os.path.join(legacy, fn), os.path.join(d, fn)
+            if os.path.exists(src) and not os.path.exists(dst):
+                try:
+                    import shutil
+                    shutil.copyfile(src, dst)
+                    print(f"migrated {fn} from the temp-directory cache into the project")
+                except OSError:
+                    pass
     return d
 
 
@@ -170,6 +197,15 @@ def load_lead_index(root):
                 (rec["open"] == old["open"] and rec["created"] > old["created"]):
             out[em] = rec
     return {em: rec["id"] for em, rec in out.items()}
+
+
+def _lead_registry_exists(root):
+    try:
+        import csvguard as G
+        p = G.resolve_path(os.path.join(root, "06-Leads/leads.csv"), root)
+        return os.path.exists(p)
+    except Exception:
+        return False
 
 
 def attribute(e, by_name, lead_by_email, norm_name):
@@ -296,7 +332,9 @@ def ingest(root, payload):
                             "last_added": added, "last_lead_added": lead_added,
                             "last_dupes": dup}
     meta["unattributed"] = meta.get("unattributed", 0) + unattributed
-    if lead_by_email:
+    if _lead_registry_exists(root):
+        # Indexed means "the lead registry was consulted", not "leads had addresses":
+        # a registry with no emails yet must not leave needs_full_window stuck on true.
         meta["leads_indexed"] = date.today().isoformat()
     save_json(cache_p, cache)
     save_json(lead_p, leads)
@@ -361,13 +399,25 @@ def lead_touch(root, as_json=False):
     return 0
 
 
-def status(root):
+def status(root, as_json=False):
     cache_p, meta_p = cache_paths(root)
     cache = load_json(cache_p, {})
     meta = load_json(meta_p, {"sources": {}})
     leads = load_json(lead_cache_path(root), {})
     n = sum(len(v) for v in cache.values())
     ln = sum(len(v) for v in leads.values())
+    if as_json:
+        # needs_full_window is the one bit the brief must act on: no source has ever
+        # synced, or the lead registry has never been indexed. A brief that sees True and
+        # proceeds to evaluate follow-up rules will read the whole book as untouched.
+        print(json.dumps({"cache": cache_p, "deal_events": n, "deals": len(cache),
+                          "lead_events": ln, "leads": len(leads),
+                          "sources": meta.get("sources", {}),
+                          "leads_indexed": meta.get("leads_indexed"),
+                          "cache_format": meta.get("cache_format", 1 if cache else None),
+                          "needs_full_window": not meta.get("sources")
+                                               or not meta.get("leads_indexed")}))
+        return 0
     print(f"cache: {cache_p}")
     print(f"{n} events across {len(cache)} deals; {ln} events across {len(leads)} leads")
     if cache and not meta.get("leads_indexed"):
@@ -455,7 +505,7 @@ def main():
         with open(a.input, encoding="utf-8") as f:
             return ingest(os.path.abspath(a.ingest), json.load(f))
     if a.status:
-        return status(os.path.abspath(a.status))
+        return status(os.path.abspath(a.status), a.json)
     if a.rebuild:
         cache_p, meta_p = cache_paths(os.path.abspath(a.rebuild))
         for p in (cache_p, meta_p, lead_cache_path(os.path.abspath(a.rebuild))):

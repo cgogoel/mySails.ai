@@ -6,6 +6,32 @@ gained — and, more importantly, what quietly means something different now.
 
 The format is one `## YYYY-MM-DD` heading per template version, matching `VERSION.json`.
 
+## 2026-09-04
+
+Plugin `0.12.0`. `activity_sync.py` changed, so **`requires_template` moves to 2026-09-04**; run
+`upgrade.py --apply`. Two defects from the first live morning with the follow-up rules, both of
+the silent kind.
+
+**The activity cache now lives in the folder.** It was kept in the machine's temp directory — a
+shared-drive precaution — and in a sandbox whose temp directory is created per session and
+discarded after it, every scheduled brief started from an empty cache, read every deal and lead
+as never touched, and drafted nothing. It is now `.sales-system/cache/`, which persists; a cache
+left in temp by an older version is migrated in on first use. Two users ingesting into one cache
+is safe because ingest merges and dedups by event identity. `--status --json` reports
+`needs_full_window`, the one bit the brief must act on.
+
+**The follow-up floors ship enabled, and no follow-up rule may go silent.** *Follow-up guarantee*
+and *Lead contact guarantee* were `enabled = no` with a four-step enable; that was the wrong
+default, because a fresh folder's first week is exactly when the floor earns its keep and the
+daily cap already makes it survivable. Both are on. Three rules now bind every no-activity rule:
+a blank touch date on an empty or thin cache is not evidence — the brief forces a 90-day ingest
+and `--lead-touch` before evaluating; a record with no recorded touch after that is **overdue by
+definition** and enters the list marked *no recorded touch*, never held back as "unbaselined";
+and matching more than a third of the book is a one-line warning on top of the list at the cap,
+not a reason to withhold it. `followup_baseline:` / `followup_backlog_at_enable:` and their
+`lead_` twins are stamped by the brief on first run if setup did not write them. Silence is the
+one output a follow-up rule is not allowed to produce.
+
 ## 2026-09-03
 
 Skills only — no script or schema changed. The version moves so this entry reaches anyone who

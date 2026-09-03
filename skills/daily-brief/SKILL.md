@@ -79,9 +79,14 @@ python3 "$S/activity_sync.py" --ingest <project> --input events.json
 python3 "$S/activity_sync.py" --lead-touch <project>
 ```
 
-    A cache that has never seen the lead registry (`--status` says so) reads every lead as never
-    touched; re-ingest a full window before evaluating any lead rule against it, or every lead is
-    a breach and the rule looks broken — because it is.
+    **Check `--status` first, and force a full window when the cache cannot be trusted.** Run
+    `activity_sync.py --status <project> --json`; if `needs_full_window` is true, or most of the
+    owned book has no events at all, ingest **90 days** from every connected
+    source — mail, calendar, CRM activity — rather than the incremental window, then run
+    `--lead-touch`. This is not optional and not a question for the user: an empty cache makes
+    every deal and lead read as never touched, and a brief that responds by drafting nothing has
+    failed silently in exactly the way the follow-up rules exist to prevent. Say in one line that
+    the full ingest ran and how many events it found.
 
 Briefs are written to `09-Briefs/Daily/YYYY-MM-DD-daily-brief.md`.
 
@@ -251,30 +256,36 @@ the window in the *Deal gone quiet* rule (14 days in the starter rules) or the n
 passed. Say what to send, not just that contact is due. The touch is measured the way
 `opportunity-tracking` measures it — from `opportunity-contacts.last_outbound_date`, the activity
 cache, and a CRM activity table that is actually populated — never from `last_activity_date`,
-which carries import stamps and goes stale the moment the CRM stops logging. Apply the same two
-checks before naming a deal: if the rule matches more than about a third of the open book, report
-a broken signal instead of a list; and where `11-Partners/` exists, look for traffic with the
-partner's domain before calling a partner-worked deal quiet. `on_hold = yes` exempts a deal. This
-rule is discretionary — rank by value and stage, take the top `daily_cap`, and say how many more
-there were.
+which carries import stamps and goes stale the moment the CRM stops logging. Two rules from
+`opportunity-tracking` apply before naming a deal: **a record with no recorded touch is overdue,
+not excluded** — if the cache is empty or thin, run the full-window ingest first (Step 10), then
+treat what is still blank as untouched beyond the window and put it in the list marked *no
+recorded touch*; and if the rule matches more than a third of the book even after the ingest,
+say in one line that the signal may be broken, then list at the cap anyway. Where `11-Partners/`
+exists, look for traffic with the partner's domain before calling a partner-worked deal quiet.
+`on_hold = yes` exempts a deal. This rule is discretionary — rank by value and stage, take the
+top `daily_cap`, and say how many more there were.
 
 **The follow-up guarantee.** Where `task-rules` holds an enabled *Follow-up guarantee* rule — *no
 open opportunity the user owns goes without an outbound touch for longer than the window* — the
 brief evaluates it separately from the discretionary list above, because a breach here is a system
 failure rather than a ranking decision. It runs on the same outbound-touch signal, the same
-broken-signal check, the same partner check and the same `on_hold` exemption. What differs:
+forced-ingest-then-list rule, the same partner check and the same `on_hold` exemption. **It ships
+enabled**, and it never waits for configuration: a missing key is stamped, not a reason to skip.
+What differs:
 
-- **Baseline.** `00-Config/config.md` carries `followup_baseline:` — the date the rule was turned
-  on. A deal with no recorded touch at all before that date is *unbaselined*, not breaching: name
-  those once, as a data-quality finding with the count — "17 deals have no contact history" — and
-  hold them to the floor only once they have a touch, or the user dismisses them. With no baseline
-  in `config.md` the rule is not evaluated; say so in one line and point at `configure-project`.
+- **No recorded touch means overdue.** A deal with no outbound touch in the cache after the
+  full-window ingest is past the window by definition and enters the burn-down like any other
+  breach, marked *no recorded touch* so the user can see which are genuinely cold and which may
+  be data. Nothing is held back as "unbaselined": the cap is what keeps the first week sane, and
+  a record that was never written to is exactly what the floor exists to catch.
 - **Backlog, recomputed every run.** Where the book already breaches the floor, run a burn-down at
   the cap, not a flood: oldest and largest first, at `daily_cap` and never above it, and report
-  progress as a fraction of the count taken on the day the rule was enabled
-  (`followup_backlog_at_enable:` in `config.md`) — "12 of 46 cleared" — so the end is visible.
-  Never store the running count; it drifts the moment a deal closes, goes on hold, or is answered
-  outside the system.
+  progress as a fraction of the original — "12 of 46 cleared" — so the end is visible. The
+  original is `followup_backlog_at_enable:` in `00-Config/config.md`, with `followup_baseline:`
+  beside it as the date; **if either is missing, the brief writes both on this run** from the
+  count it just made and says so in one line. Never store the running count; it drifts the moment
+  a deal closes, goes on hold, or is answered outside the system.
 - **Draft and stage every one raised.** Under `review`, each follow-up the floor raises gets a
   draft in `01-Tasks/Drafts/`, `draft_path` set, `status = Awaiting Approval`, and a line in the
   Step 5 queue. A brief that says "five deals need a follow-up" has moved the work to the person;
@@ -292,13 +303,17 @@ has been mailed, not worked.
 **Leads going cold, and the lead contact guarantee.** The same two-rule shape, on `06-Leads/`,
 reading `last_outbound_date` — the clock `lead-tracking` describes, never `last_activity_date`.
 *Lead going cold* (14 days, discretionary) and *Lead contact guarantee* (30 days, a floor, shipped
-disabled, keyed on `lead_followup_baseline:` and `lead_followup_backlog_at_enable:` in
-`config.md` exactly as the deal floor is keyed on its own pair) share **one budget of 10 lead
+enabled, stamping `lead_followup_baseline:` and `lead_followup_backlog_at_enable:` in `config.md`
+on its first run exactly as the deal floor stamps its own pair) share **one budget of 10 lead
 drafts a day, floor first** — separate from the deal budget. Skip a lead whose clock is paused:
-in an active sequence, passed to a partner, or `hold_until` in the future. Apply the broken-signal
-check here too — more than about a third of the owned lead book matching means the touch dates
-have not been refreshed, not that the book is dead. Nearly every lead follow-up is first contact:
-draft it, set `Awaiting Approval`, and keep it out of the ready-to-run queue.
+in an active sequence, passed to a partner, or `hold_until` in the future. **A lead with a blank
+`last_outbound_date` is overdue, not excluded** — but blank across the whole book means the touch
+dates have never been written, so Step 10's forced full-window ingest and `--lead-touch` must have
+run this morning before the list is built; after that, what is still blank is genuinely
+untouched and goes in the list marked *no recorded touch*. If more than a third of the owned lead
+book still matches, say the signal may be off in one line and list at the cap regardless. Nearly
+every lead follow-up is first contact: draft it, set `Awaiting Approval`, and keep it out of the
+ready-to-run queue.
 
 Two things the lead sweep offers in Step 5 rather than doing: **disqualify** where an opt-out flag
 flipped `contactable` to no or a reply reads as *not interested* — quote the reply, name the
