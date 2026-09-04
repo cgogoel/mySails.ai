@@ -340,14 +340,20 @@ treat what is still blank as untouched beyond the window and put it in the list 
 recorded touch*; and if the rule matches more than a third of the book even after the ingest,
 say in one line that the signal may be broken, then list at the cap anyway. Where `11-Partners/`
 exists, look for traffic with the partner's domain before calling a partner-worked deal quiet.
-`on_hold = yes` exempts a deal. This rule is discretionary — rank by value and stage, take the
-top `daily_cap`, and say how many more there were.
+`on_hold = yes` exempts a deal, and **a renewal opportunity is never in this list** — `type`
+equal to the org's renewal marker (profile `renewals.renewal_identification`), or an id that is a
+`renewal_opp_id` in `08-Renewals/renewals`, takes it out before the touch is computed; renewals
+are worked to the contract date under *Renewal conversations due* below. Say how many were
+exempt in one line. This rule is discretionary — rank by value and stage, take the top
+`daily_cap`, and say how many more there were.
 
 **The follow-up guarantee.** Where `task-rules` holds an enabled *Follow-up guarantee* rule — *no
 open opportunity the user owns goes without an outbound touch for longer than the window* — the
 brief evaluates it separately from the discretionary list above, because a breach here is a system
 failure rather than a ranking decision. It runs on the same outbound-touch signal, the same
-forced-ingest-then-list rule, the same partner check and the same `on_hold` exemption. **It ships
+forced-ingest-then-list rule, the same partner check, the same `on_hold` exemption and the same
+renewal exclusion — the floor covers new business; renewals have their own floor in the renewal
+calendar, and they do not count toward `followup_backlog_at_enable`. **It ships
 enabled**, and it never waits for configuration: a missing key is stamped, not a reason to skip.
 What differs:
 
@@ -399,7 +405,9 @@ out-of-office with a return date) — quote the line, propose `hold_until` and `
 are the user's call in the prompt; inference never writes on its own.
 
 **Renewal conversations due or overdue.** From `08-Renewals/`, using the org's conversation lead
-time. Name the number of days.
+time. Name the number of days. This is the only outreach rule that reaches a renewal
+opportunity: the 14- and 30-day rules above skip renewals by construction, so a renewal whose
+customer has gone quiet shows up here, against its contract date, or nowhere.
 
 Both lead gates apply throughout: check `contactable`, and never suggest outreach to someone in an
 active sequence — that produces two messages from two systems in one week.

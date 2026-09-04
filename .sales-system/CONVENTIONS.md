@@ -504,7 +504,18 @@ cache (`activity_sync.py --lead-touch` for leads) and a populated CRM activity t
 record is overdue by definition, and is listed as *no recorded touch*), or withhold the list
 because it matched too much (warn in one line, then list at the cap). Silence is the one output
 a follow-up rule is not allowed to produce. `on_hold = yes` exempts a deal; a future
-`hold_until`, an active sequence, or a partner-held status exempts a lead.
+`hold_until`, an active sequence, or a partner-held status exempts a lead. **A renewal
+opportunity is exempt from both deal rules by construction** — *Deal gone quiet* and *Follow-up
+guarantee* are new-business rules. A renewal's clock is the renewal conversation window
+(`renewals-tracking`, `renewal_conversation_lead_days` against the contract end), which is a
+different question from "has anyone written to them lately", and drafting a 14-day nudge to a
+customer whose contract runs eight more months is noise that trains people to ignore the queue.
+A deal is a renewal when its `type` is the org's renewal marker (the profile's
+`renewals.renewal_identification.type_value`, with `also_check` fields corroborating; `Renewal`
+or `Existing Business` in the generic enum) **or** its id appears as `renewal_opp_id` in
+`08-Renewals/renewals`. Either is sufficient. Exempt renewals are counted and named in one line
+("6 renewal opportunities exempt — tracked by the renewal calendar"), never silently dropped, and
+they stay out of `followup_backlog_at_enable`.
 
 *Update records from email* is the one rule that ships `auto`, and its `auto` means folder writes
 only — a dated notes append, a lead to engaged — reported at the top of the brief with the CRM

@@ -63,6 +63,17 @@ traffic — not an earlier CRM push, not a Tier 1 write, not a proposal approved
 the system's own view that the current value still looks right (that case prints as a one-line
 "unchanged" so the record is visibly read). `next_step` leaves the auto tier for good.
 
+**Renewal opportunities are out of the 14- and 30-day rules.** *Deal gone quiet* and *Follow-up
+guarantee* now skip any opportunity whose `type` is the org's renewal marker (the profile's
+`renewals.renewal_identification.type_value`, corroborated by its `also_check` fields; `Renewal`
+or `Existing Business` in the generic enum) or whose id is a `renewal_opp_id` in the renewals
+registry. A renewal's clock is the contract end date and the conversation lead time in
+`renewals-tracking`, and a 14-day nudge to a customer eight months from renewal is the kind of
+draft that teaches people to ignore the queue. Exempt renewals are counted and named in one
+line, never silently dropped, and they no longer count toward `followup_backlog_at_enable` — a
+folder that stamped that number under 0.12.0 will see it fall on the next run, and the brief says
+why. *Renewal conversations due* is the one outreach rule that reaches a renewal.
+
 **A staged draft is not unsent until sent mail says so.** A follow-up drafted by the brief and
 then sent by the user from their mail client stayed at *Awaiting Approval*, was re-offered the
 next morning, and its deal was still counted as untouched. Before the brief calls any staged draft

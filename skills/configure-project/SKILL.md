@@ -726,12 +726,12 @@ table and drop the rows whose module is off. The guard assigns ids; the skills f
 | Reply owed | Inbound email from a lead or customer unanswered for 2 business days | Email Follow-up | review | 10 | yes | daily-brief |
 | Sequence reply | Lead reached the org's *replied to sequence* status with no human touch since | Email Follow-up | review | 10 | yes | daily-brief, lead-tracking |
 | Meeting prep | Meeting today with a tracked account | Meeting Prep | auto | — | yes | daily-brief |
-| Deal gone quiet | Open opportunity with no **outbound touch from us** for 14 days | Email Follow-up | review | 10 | yes | daily-brief, opportunity-tracking |
+| Deal gone quiet | Open **new-business** opportunity with no **outbound touch from us** for 14 days; renewal opportunities excluded | Email Follow-up | review | 10 | yes | daily-brief, opportunity-tracking |
 | Close date pushed | `close_date_pushes` reaches 3 | CRM Update | manual | 5 | yes | opportunity-tracking |
 | Single-threaded | One replying contact past the early stages | Call | manual | 5 | yes | opportunity-tracking |
 | Renewal conversation due | Contract end inside the conversation lead time with no renewal opportunity | Call | manual | 5 | if renewals | renewals-tracking |
 | Stale battlecard | Competitor with a logged signal newer than its card | Research | auto | 3 | if competitors | competitor-tracking |
-| Follow-up guarantee | Open opportunity the user owns with no outbound touch from us for the window (30 days unless they choose otherwise); no recorded touch counts as overdue | Email Follow-up | review | 10 | yes | daily-brief |
+| Follow-up guarantee | Open **new-business** opportunity the user owns with no outbound touch from us for the window (30 days unless they choose otherwise); no recorded touch counts as overdue; renewal opportunities excluded | Email Follow-up | review | 10 | yes | daily-brief |
 | New lead untouched | Lead in the org's *new* status with no outbound touch for 2 days | Email Follow-up | review | 10 | yes | daily-brief, lead-tracking |
 | Lead going cold | Lead the user owns, not in sequence, not on hold, no outbound touch for 14 days | Email Follow-up | review | 10, shared with the lead guarantee | yes | daily-brief, lead-tracking |
 | Lead contact guarantee | Lead the user owns with no outbound touch for the window (30 days unless chosen otherwise), not in sequence, not on hold, not passed to a partner; no recorded touch counts as overdue | Email Follow-up | review | 10, shared, floor first | yes | daily-brief |
@@ -780,7 +780,8 @@ week legible rather than surprising:
    itself if setup did not, but doing it here means the number in the next step is real.
 3. **Compute the backlog and say the number out loud.** Count the open deals and leads they own
    whose last outbound touch is older than the window — including those with no recorded touch,
-   named as such — and tell them: "46 of your 74 open deals are already past 30 days, 17 with no
+   named as such, and **excluding renewal opportunities**, which the renewal calendar works to the
+   contract date and which never enter either deal rule — and tell them: "46 of your 74 open deals are already past 30 days, 17 with no
    contact on record; at a cap of 10 that is about a week of drafts." Write
    `followup_baseline:` (today) and `followup_backlog_at_enable: N`, and the `lead_` pair, so the
    brief can report progress as a fraction of the original. A person told that upfront

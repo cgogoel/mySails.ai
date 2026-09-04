@@ -177,6 +177,16 @@ Two checks before any deal is called quiet:
 `task-rules`; `on_hold_reason` records why it is supposed to be silent. Report held deals in their
 own line, not inside the stalled list.
 
+**Renewal opportunities are not in this test at all.** *Deal gone quiet* and *Follow-up
+guarantee* are new-business rules; a renewal is worked to the contract end date on the renewal
+calendar, and `renewals-tracking` raises *Renewal conversation due* when that clock says so. A
+deal is a renewal when `type` equals the org's renewal marker — the profile's
+`renewals.renewal_identification.type_value` (`Existing Business` in one org, `Renewal` in
+another; `also_check` fields corroborate) — or when its id is a `renewal_opp_id` in
+`08-Renewals/renewals`. Filter them out before computing the touch, count them, and say the
+number in its own line beside the held deals. A renewal that is also genuinely cold is the
+renewal calendar's finding, reported there with the contract date, not a 14-day nudge.
+
 **Single-threaded.** One contact *replying* past the early stages. The most common way good deals
 die is the champion leaving, and it's entirely preventable with enough notice. This one is computed
 from `07-Opportunities/opportunity-contacts.csv`, not from the deal row — see **Threading** below,
