@@ -9,8 +9,19 @@ The format is one `## YYYY-MM-DD` heading per template version, matching `VERSIO
 ## 2026-09-05
 
 Skills and `CONVENTIONS.md` only — no script or schema changed. Plugin `0.13.0`;
-`requires_template` stays at **2026-09-04**. Two rules from the second live morning, both about
-the brief deciding on its own that something did not need doing.
+`requires_template` stays at **2026-09-04**. Three rules from the second live morning, all about
+the brief deciding on its own that something did not need reading or doing.
+
+**The brief reads the whole inbox and the whole sent folder, every run.** The ingest step said
+"ingest the window's email" and left the fetch to the run, and a run that searched mail per
+account found only the traffic it already knew to look for — no sent follow-ups, no replies on
+threads whose subject named nothing tracked. The fetch is now fixed: two queries, `in:inbox` and
+`in:sent` since the last brief (seven-day cap; 90 days when the cache cannot be trusted), paged
+to exhaustion, handed to the ingest as one set so direction can be derived for both sides.
+Attribution stays the script's job. The brief reports what it read — in, out, attributed,
+unmatched — and a run that read nothing, or read no sent mail across a working window, says so
+as a failure rather than a quiet morning. Step 1's draft check, Step 1a's thread reads and Step
+3's replies-owed list all run on this read and may not substitute a narrower search of their own.
 
 **The next step is proposed for every touched record, one diff each.** In 0.11.0 the brief wrote
 `next_step` automatically where a thread stated one plainly and otherwise left it alone, and a

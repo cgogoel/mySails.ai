@@ -71,13 +71,35 @@ argument for putting them in a brief rather than waiting for them to be noticed.
 Keep it proportionate. Two drifted rows is a line; forty is the headline. If the check can't
 run, don't stall the brief — note it in one line and carry on.
 
-10. **Refresh the touch dates** the follow-up rules read. Ingest the window's email, calendar and
-    CRM activity events per `CONVENTIONS.md` §7a, then write the lead dates:
+10. **Read the mail, all of it, then refresh the touch dates** the follow-up rules read. This
+    runs on every brief, scheduled or not, and it is not a question for the user or a step to skip
+    because the cache looks current. The read is **exhaustive over the window, both directions**:
+
+    - **Inbox and sent, whole window.** Two queries against the connected mailbox — everything
+      received and everything sent since the last brief (capped at seven days; 90 days when the
+      cache cannot be trusted, below). Page through **every** result until the connector reports
+      no more; a first page is not the window. Where the connector searches by query, that is
+      `in:inbox after:<since>` and `in:sent after:<since>` (or the equivalent), not a search per
+      account, per deal, or per contact — a targeted search finds only what you already knew to
+      look for, and the first live mornings missed sent follow-ups and replies on threads whose
+      subject named nothing tracked for exactly that reason. Include threads that look
+      irrelevant; attribution is the ingest's job, not the fetch's.
+    - **Every message becomes an event.** Hand the whole set to `--ingest` as one `gmail`-source
+      file — date, from, to, subject, counterpart address, account hint where the domain gives
+      one. Direction is derived by the script from the user's address, so sent and received must
+      both be present or the outbound clocks stay blank. Then calendar and CRM activity per
+      `CONVENTIONS.md` §7a, then the lead dates:
 
 ```bash
 python3 "$S/activity_sync.py" --ingest <project> --input events.json
 python3 "$S/activity_sync.py" --lead-touch <project>
 ```
+
+    - **Say what was read.** One line: "read 212 inbox and 87 sent messages since Tue 2 Sep; 41
+      attributed to 19 deals and 6 leads, 258 unmatched." A brief that read nothing must say it
+      read nothing and why — connector missing, query refused — never imply the clocks were
+      refreshed. Zero sent messages over a window in which the user was working is a signal the
+      sent query failed, not that they sent nothing; say so.
 
     **Check `--status` first, and force a full window when the cache cannot be trusted.** Run
     `activity_sync.py --status <project> --json`; if `needs_full_window` is true, or most of the
@@ -87,6 +109,11 @@ python3 "$S/activity_sync.py" --lead-touch <project>
     every deal and lead read as never touched, and a brief that responds by drafting nothing has
     failed silently in exactly the way the follow-up rules exist to prevent. Say in one line that
     the full ingest ran and how many events it found.
+
+    The same read feeds three later steps, so it is done once here and reused: Step 1's
+    sent-mail check on staged drafts (the per-address search there confirms against the mailbox;
+    the sent set read here is what makes a miss visible), Step 1a's thread reads, and Step 3's
+    replies-owed list. None of those may substitute their own narrower search for this read.
 
 Briefs are written to `09-Briefs/Daily/YYYY-MM-DD-daily-brief.md`.
 

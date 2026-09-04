@@ -40,9 +40,9 @@
     "schemas/task_rules.json": "474784de219c91079d6e57eb20ca3bb42f956bd3f4a1bdb87a63f23708840358",
     "schemas/tasks.json": "92392a011f61c9efac300bdb62084e37c68f2dd95ed72f3660606927b00dfbee",
     "schemas/team.json": "666d4e841ca2a7c65fccfa59fac8dbc95a46220e173a93430afff9c1b9b22982",
-    "CONVENTIONS.md": "217d3fc76e51e4c0ccc71844f5d87f997bc35260bef01147c8d66722633c1a8c",
+    "CONVENTIONS.md": "69a7d4f68d4178fa6e06f53a43881ebe0884fb7e621f570f5e6dff97f3cb95b7",
     "VERSION.json": "8352639c2cbecda8ffe157f19baf9625dba211865306ca92065e1a043b0234d5",
     "find_scripts.py": "e8df00c12628f11166d2bba93c1dff1c32fad4c52ce4bc5ebc16ca923b628056",
-    "CHANGELOG.md": "42ec102ae2d4460e9d3d18fd184a92bc0447bcc638a5c02d63a484adac1e1697"
+    "CHANGELOG.md": "0e84b5264be305326469fa72cd44f25a16a7b9cc8007aa2846e78499606caad4"
   }
 }

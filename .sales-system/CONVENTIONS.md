@@ -737,6 +737,21 @@ disagreeing.
 `email_direction_semantics` is the load-bearing one. It is the difference between a reliable
 answer and a guess, and **whatever consumes it must say which one it is giving.**
 
+### The mailbox read is exhaustive, every run
+
+The activity cache is only as good as what the briefs hand it, and the fetch is the one part
+the script cannot check. So the rule for the fetch is fixed: **every run of a brief reads the
+whole inbox and the whole sent folder for its window** — two queries, `in:inbox` and `in:sent`
+since the last run (capped at seven days; 90 days when `--status` says the cache cannot be
+trusted), paged until the connector has no more. Never a search per account, deal or contact
+as the primary read: that finds only what was already known to look for, and it misses the
+sent follow-up whose task still says *Awaiting Approval* and the reply on a thread whose subject
+names nothing tracked. Both directions must be present in the same ingest, because direction is
+derived from the user's address and an inbox-only read leaves every outbound clock blank. The
+brief says what it read — counts in, counts out, how many attributed, how many unmatched — and
+a run that read nothing says so rather than implying the clocks moved. Zero sent messages over
+a working week is a failed query, not a quiet user.
+
 ### Three states, not two
 
 `replied` and `meeting_held` are nullable bools and mean **yes, no, and not determinable**.
