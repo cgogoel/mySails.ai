@@ -212,7 +212,7 @@ a step in words ("send the revised SOW by Friday"), propose that, with its date;
 propose the step that follows from what was said — a reply owed, a meeting to book, a document
 promised — and say it is inferred, not quoted. The item shows the record's current `next_step` and
 `next_step_date` against the proposed pair and the line from the thread that led to it. The user
-approves as proposed, edits, or declines by number; until then the record holds its current value.
+approves as proposed, edits, or declines in the prompt; until then the record holds its current value.
 
 Three things that do not exempt a record, because each one already caused a missed proposal:
 
@@ -245,7 +245,7 @@ one moves the forecast or a relationship and each is easy to misread from prose:
 
 Each becomes an **edit before applying** item in the Step 5 queue, showing the record's current
 value against the proposed one, the line from the thread that implies it, and the thread date.
-The user approves as proposed, edits the value, or declines — by number. Until they do, the record
+The user approves as proposed, edits the value, or declines — in the prompt. Until they do, the record
 holds its current value and the item holds the proposal; a proposal never expires silently, it
 re-appears tomorrow marked *still waiting*. A declined proposal is recorded in the notes file as
 "proposed from email, declined", so the same thread does not propose it again.
@@ -395,7 +395,7 @@ Two things the lead sweep offers in Step 5 rather than doing: **disqualify** whe
 flipped `contactable` to no or a reply reads as *not interested* — quote the reply, name the
 reason it would set — and **hold** where a reply implies a wait ("circle back after Q1", an
 out-of-office with a return date) — quote the line, propose `hold_until` and `hold_reason`. Both
-are the user's call by number; inference never writes on its own.
+are the user's call in the prompt; inference never writes on its own.
 
 **Renewal conversations due or overdue.** From `08-Renewals/`, using the org's conversation lead
 time. Name the number of days.
@@ -509,21 +509,24 @@ becomes `review`, with the reason in `notes`.
 
 ### How to ask
 
-One numbered block, placed after the task list, near the end of the brief where a decision belongs.
+Two forms, and the difference is the surface the user is on. The written brief carries a
+numbered block so the file is a complete record of what was offered; the decision itself is
+taken **through prompts**, not by typing numbers back.
+
+**In the file.** One numbered block after the task list, near the end where a decision belongs.
 Each entry says in concrete terms what will happen — not "send the follow-up" but who it goes to,
 what the subject line is, and where the draft can be read before deciding:
 
-> **Ready when you are** — reply with the numbers you want run, or `all`.
+> **Ready when you are**
 >
 > 1. **TASK-00042** — send the pricing follow-up to jane@acme.com, subject "Tiered pricing, as
 >    promised". Draft: `01-Tasks/Drafts/TASK-00042-followup-acme.md`
 > 2. **TASK-00051** — set Next Step on Northwind to "Security review, 9 Sept" in the CRM (it is
 >    currently blank)
 > 3. **OPP-0031 Acme** — next step: current *"Send pricing"* (28 Aug) → proposed *"Book the
->    security review Priya asked for"* by 11 Sept, from her reply of the 3rd. Approve, edit, or
->    decline
+>    security review Priya asked for"* by 11 Sept, from her reply of the 3rd
 > 4. **TASK-00038** — looks done: you emailed rob@northwind.com on the 24th, two days after this was
->    raised. Close it?
+>    raised
 >
 > Not offered: **TASK-00047** (first email to a new contact) and **TASK-00055** (discount approval) —
 > both yours to send.
@@ -532,18 +535,61 @@ A draft already described under follow-ups appears here as a number and a one-li
 second retelling. The queue is the decision; the sections above are the context for it. Say a
 thing once and the brief stays the length of the day.
 
-Handling the reply:
+**In the session.** When the user is present and the host offers a structured question prompt
+(in Cowork and Claude Code that is the `AskUserQuestion` tool — a card with selectable options
+and a free-text *Other*), the brief asks through it, immediately after the brief is written, and
+performs nothing until the answers come back. Nobody should have to read a list, hold the numbers
+in their head, and type "1, 3 and 4" — that is a form pretending to be a conversation. The
+prompt is the form.
 
-- **`all` means all of the above and nothing else.** Anything fenced was never in the list, so `all`
-  cannot reach it. That is what makes `all` safe to type without reading carefully, and it only stays
-  true if the fences hold every time.
-- **Silence is not approval.** No reply, or a reply about something else, leaves every item where it
-  was.
-- **A scheduled or unattended run executes nothing.** Build the queue, leave the tasks at
-  `Awaiting Approval`, say how many are waiting. Approving on someone's behalf because they were not
-  there to answer is the precise failure this whole model exists to prevent.
-- **Read the numbers literally.** "1 and 3" is two items, not the first three. If the reply is
-  ambiguous, ask — do not resolve it generously.
+How the prompts are built:
+
+- **One question per item, a short header naming the record.** Every question carries the same
+  concrete sentence as the file entry — recipient, subject, current → proposed — because the card
+  is what the user reads, not the file. The first option is the recommended action and is
+  marked so.
+- **Options by kind.** *Ready to run*: **Send as drafted** / **Edit first** / **Skip today**.
+  *Looks done*: **Close it** / **Leave open**. *Edit before applying* (a next step, close date,
+  amount, stage or sentiment): **Apply as proposed** / **Decline** — with the proposed value quoted
+  in the option text so approving it is a read, not a recall; an edited value comes in through
+  *Other*. *Push to CRM*: one question, **Push all N** / **Show me the diff first** / **Not now**.
+  Every question also has *Other* by construction — that is where "send it, but drop the second
+  paragraph" and "make the next step 15 Sept, not the 11th" arrive, and any text there is a
+  customisation of that item, applied before the action runs and echoed back in the result line.
+- **Batches of four, ordered by consequence.** The tool takes four questions per call; the queue
+  goes out in rounds of four — ready-to-run first, then looks-done, then edit-before-applying,
+  then the push — and each round says where it is: "4 of 11; 7 more after this." Never more than
+  four rounds without pausing to run what has been approved so far, so a long queue does not
+  become a wall of unanswered cards.
+- **No "run all" as a first question.** A single yes covering a dozen sends is the number-typing
+  problem in a different coat, and the fences are enforced per item. Where the queue holds more
+  than eight ready-to-run drafts, the first question may ask **Go through them one by one** /
+  **Send every draft as written** — and the second option, if chosen, still runs only the items
+  that passed the fences, still lists each one in the result, and is never offered to a queue
+  containing anything under `team` scope or anything the draft check left *unverified*.
+- **Edit first opens the draft in the conversation** — the subject and body, not the path — and
+  takes the change as free text; the revised draft is written back to `draft_path`, and the
+  send is asked again as its own question. An edit never runs on the same answer that requested
+  it.
+
+Where there is **no structured prompt** — a plain chat surface, a headless run, a host without the
+tool — fall back to the numbered block and take the reply by number, read literally: "1 and 3" is
+two items, not the first three, and an ambiguous reply is asked about rather than resolved
+generously.
+
+Handling the answers, in either form:
+
+- **Only an answered item moves.** A dismissed card, an unanswered round, a reply about something
+  else — every item not explicitly chosen stays where it was, `Awaiting Approval`, and appears
+  again tomorrow marked *still waiting*.
+- **A scheduled or unattended run asks nothing and executes nothing.** Build the queue, write the
+  numbered block into the brief, leave the tasks at `Awaiting Approval`, say how many are waiting
+  and that they will be asked when the user next opens the session. Approving on someone's behalf
+  because they were not there to answer is the precise failure this whole model exists to prevent.
+  A run that cannot tell whether someone is present treats itself as unattended.
+- **Skip is a decision, decline is a record.** *Skip today* leaves the item to re-appear tomorrow;
+  *Decline* on an edit-before-applying item writes "proposed from email, declined" to the notes
+  file so the same evidence does not propose it again.
 
 ### After running
 
@@ -654,8 +700,8 @@ this is what the brief is for.
 **Tasks** — every item due or overdue, by name, oldest first, plus what was auto-closed. Blocked
 items on a line of their own.
 
-**Ready when you are** — the numbered approval queue. Omitted entirely when there is nothing to
-approve.
+**Ready when you are** — the numbered approval queue, as the record; the asking happens through
+prompts in the session. Omitted entirely when there is nothing to approve.
 
 **Worth knowing** — the overnight sweep. Five lines at most, and omitted when the morning is quiet.
 
@@ -680,7 +726,8 @@ about is a brief nobody reads.
 The sweep in Step 6 narrows the window: late enough that the morning's newsletters have landed,
 early enough to still change the day. For most people that is a specific half hour rather than a
 guess — ask rather than assume. A scheduled run builds the approval queue and executes none of it;
-the user approves when they read it.
+when the user next opens the session and asks for the queue — or asks for the brief again — the
+items still at `Awaiting Approval` are put to them as prompts, not re-derived.
 
 ---
 
@@ -700,8 +747,8 @@ doesn't tell the user something they didn't already know about who they're meeti
 people want, it hasn't earned its place in their morning.
 
 **Approval creep.** Offering to complete something the system should not touch. The value of the
-queue is that a user can type `all` without reading it closely, and that holds only while every
-item in it deserves a yes. One fenced item slipping through once costs more trust than a hundred
+queue is that a user can answer each card in a second without re-reading the record, and that
+holds only while every item in it deserves a yes. One fenced item slipping through once costs more trust than a hundred
 correct offers earn — which is why the fences in Step 5 are checked against the record each time
 rather than inferred from how the task was raised.
 

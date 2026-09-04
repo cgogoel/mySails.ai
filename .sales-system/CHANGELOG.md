@@ -10,7 +10,21 @@ The format is one `## YYYY-MM-DD` heading per template version, matching `VERSIO
 
 Skills and `CONVENTIONS.md` only — no script or schema changed. Plugin `0.13.0`;
 `requires_template` stays at **2026-09-04**. Three rules from the second live morning, all about
-the brief deciding on its own that something did not need reading or doing.
+the brief deciding on its own that something did not need reading or doing — and one change to
+how the approval queue is answered.
+
+**The approval queue is answered through prompts, not by typing numbers.** The brief used to end
+with a numbered block and "reply with the numbers you want run, or `all`". Where the host offers
+a structured question prompt (the `AskUserQuestion` card in Cowork and Claude Code), the queue
+now goes out as cards, one question per item, in rounds of four ordered by consequence: *Send as
+drafted / Edit first / Skip today* for a draft, *Close it / Leave open* for a looks-done, *Apply
+as proposed / Decline* with the value quoted for a next step, close date, amount, stage or
+sentiment, and a single *Push all / Show the diff / Not now* for the CRM push. *Other* on any card
+is where an edit arrives — a changed date, a dropped paragraph — and is applied to that item before
+it runs. There is no "run all" first question; the one bulk option, offered only past eight
+ready-to-run drafts, still runs item by item behind the fences. The numbered block stays in the
+brief file as the record, and is the fallback where no prompt exists. Unattended runs ask nothing
+and execute nothing, as before; the items are asked when the user next opens the session.
 
 **The brief reads the whole inbox and the whole sent folder, every run.** The ingest step said
 "ingest the window's email" and left the fetch to the run, and a run that searched mail per
