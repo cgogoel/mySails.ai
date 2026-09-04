@@ -251,6 +251,12 @@ nothing, so the roster grows and the active-to-nominal ratio quietly falls. "For
 with a deal this year, two with more than one" is more useful than a total, and it's the version
 that leads to a decision.
 
+The registration decision is a card (`CONVENTIONS.md` §3b): the checker's finding in the text —
+which partner, which tier, what it collides with — and **Approve the registration** / **Decline —
+conflict** / **Approve as teaming with <partner>** where a two-tier reading is possible, *Other*
+for a different protection window or a note to the partner. A BLOCK finding puts **Decline** first.
+Under `approval_style: numbered`, the same choices as a short block.
+
 On conflict: the temptation is to approve and sort it out later, because declining is an unpleasant
 conversation with a partner who has done work. Later is worse — the conversation at registration is
 about a rule; the conversation after both partners have quoted is about money.

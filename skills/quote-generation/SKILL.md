@@ -89,6 +89,12 @@ customer — that's true and it's the kind of caveat that matters more than it c
 
 Q&A, not assumption. Work through:
 
+The clarifying questions below are cards where the host has them (`CONVENTIONS.md` §3b, *How the
+system asks*): one per term, the value pulled from the deal record as the first option so
+confirming is a read rather than a recall, *Other* for the real answer when it differs. Four terms
+per round. A discount or a floor breach is always its own card with the consequence in the text —
+who approves, what it triggers — never an option inside another question.
+
 **Which opportunity.** A quote should almost always belong to a deal. If there isn't one, ask
 whether to create it — an untethered quote is invisible to the forecast.
 

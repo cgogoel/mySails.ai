@@ -38,7 +38,8 @@ The bar: after reading, they know what to do first, and they walk into every mee
 2. Read `$S/../CONVENTIONS.md`.
 3. Read `00-Config/config.md` — `scope`, `default_automation`, and **`brief_content`**, which
    records what this user wants in daily versus weekly. Honour it; the split below is the default,
-   not a rule. Also `followup_baseline` / `followup_backlog_at_enable` and their lead twins
+   not a rule. And `approval_style` — `prompts` (the default, and what a missing key means) or
+   `numbered` — which decides how Step 5 asks. Also `followup_baseline` / `followup_backlog_at_enable` and their lead twins
    `lead_followup_baseline` / `lead_followup_backlog_at_enable`, which Step 3 needs where the
    *Follow-up guarantee* and *Lead contact guarantee* rules are enabled.
 4. Read `00-Config/connections.md` so you don't retry tools that aren't there.
@@ -535,12 +536,13 @@ A draft already described under follow-ups appears here as a number and a one-li
 second retelling. The queue is the decision; the sections above are the context for it. Say a
 thing once and the brief stays the length of the day.
 
-**In the session.** When the user is present and the host offers a structured question prompt
-(in Cowork and Claude Code that is the `AskUserQuestion` tool — a card with selectable options
-and a free-text *Other*), the brief asks through it, immediately after the brief is written, and
-performs nothing until the answers come back. Nobody should have to read a list, hold the numbers
-in their head, and type "1, 3 and 4" — that is a form pretending to be a conversation. The
-prompt is the form.
+**In the session.** The shared rule is `CONVENTIONS.md` §3b, *How the system asks*; this is
+how it lands here. With `approval_style: prompts` (the default), when the user is present and the
+host offers a structured question prompt (in Cowork and Claude Code that is the `AskUserQuestion`
+tool — a card with selectable options and a free-text *Other*), the brief asks through it,
+immediately after the brief is written, and performs nothing until the answers come back. Nobody
+should have to read a list, hold the numbers in their head, and type "1, 3 and 4" — that is a
+form pretending to be a conversation. The prompt is the form.
 
 How the prompts are built:
 
@@ -572,10 +574,11 @@ How the prompts are built:
   send is asked again as its own question. An edit never runs on the same answer that requested
   it.
 
-Where there is **no structured prompt** — a plain chat surface, a headless run, a host without the
-tool — fall back to the numbered block and take the reply by number, read literally: "1 and 3" is
-two items, not the first three, and an ambiguous reply is asked about rather than resolved
-generously.
+With **`approval_style: numbered`**, or where there is no structured prompt — a plain chat
+surface, a headless run, a host without the tool — the numbered block is the ask: take the reply
+by number, read literally ("1 and 3" is two items, not the first three), and ask about an
+ambiguous reply rather than resolving it generously. The block is written into the brief file in
+both styles, as the record.
 
 Handling the answers, in either form:
 

@@ -103,12 +103,21 @@ from any batch approval:
 > Moving Acme from Negotiate back to Validate will start the backward-stage-movement approval
 > flow — your manager gets notified. Still want to push it?
 
+Ask it the way `CONVENTIONS.md` §3b *How the system asks* prescribes: under `approval_style:
+prompts` that is a card of its own — header naming the deal, the consequence in the question text,
+options **Push and start the approval flow** / **Push everything except this field** / **Leave
+it** — never an option inside the batch card. Under `numbered`, or with no card available, the
+same three choices as a short numbered block, answered by number.
+
 This isn't excessive caution. A rep who wanted to fix a data-entry mistake and instead triggered a
 management review will not use the system again.
 
 Everything else from `CONVENTIONS.md` applies: pushes are never automatic, show a field-by-field
 diff, honour `never_push` and explain refusals using the reason the profile records, and append
-rather than overwrite anything listed in `shared_fields`.
+rather than overwrite anything listed in `shared_fields`. The ordinary push is one card — **Push
+all N fields** / **Show me the diff first** / **Not now** — with the diff table in the text so the
+first option is an informed yes; a stage, amount or close-date change the user is editing in the
+session is a card per field, current → proposed, with *Other* taking a different value.
 
 Watch for `deprecated_do_not_write` in the profile. Orgs migrate qualification frameworks and leave
 the old fields in place, sometimes with labels that no longer match their contents. Read them for
@@ -333,7 +342,8 @@ once, briefly, and record the answer in the note. That history is what makes the
 
 **Won:** set stage, fill contract dates and term, and offer to create the customer row in
 `02-Context/Customers/customers.csv` and a renewal row in `08-Renewals/renewals.csv` if that module
-is on. A closed-won deal with no renewal tracked is future revenue nobody owns.
+is on — one card each, values shown, **Create it** / **Skip**. A closed-won deal with no renewal
+tracked is future revenue nobody owns.
 
 **Lost:** require a reason from the org's picklist and capture what actually happened in
 `loss_notes`. Loss reasons are the highest-value data in the whole system and the most likely to be

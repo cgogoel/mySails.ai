@@ -26,6 +26,20 @@ ready-to-run drafts, still runs item by item behind the fences. The numbered blo
 brief file as the record, and is the fallback where no prompt exists. Unattended runs ask nothing
 and execute nothing, as before; the items are asked when the user next opens the session.
 
+**Every skill asks the same way, and the written form is a setting.** The rule is now
+`CONVENTIONS.md` §3b, *How the system asks*, and each skill's own asks are converted to it:
+the approval-flow push and the won-deal customer and renewal rows in `opportunity-tracking`;
+disqualify, hold, duplicate merge, the push and CRM conversion in `lead-tracking`; the champion,
+renewal fields, next step, sentiment, push and activity log in `meeting-notes`; every clarified
+term and discount in `quote-generation`; the registration decision in `partner-tracking`; the
+renewal opportunity in `renewals-tracking`; the inbox-scan watchlist in `market-tracking`;
+angle and type in `demand-gen`; the existing-asset offer in `content-tailoring`; goal
+confirmation in `forecast-update`; and the update offer in `update-system`. A new
+`approval_style:` key in `config.md` — `prompts` by default, `numbered` to have every skill ask
+in prose and take the reply by number — is set in `configure-project` Track 7 and changed with one
+line later; a missing key means `prompts`, and the numbered form is also the automatic fallback
+on any surface without cards.
+
 **The brief reads the whole inbox and the whole sent folder, every run.** The ingest step said
 "ingest the window's email" and left the fetch to the run, and a run that searched mail per
 account found only the traffic it already knew to look for — no sent follow-ups, no replies on

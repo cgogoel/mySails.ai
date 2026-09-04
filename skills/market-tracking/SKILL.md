@@ -82,8 +82,10 @@ Present what you find as a list to confirm, not as a decision already made:
 > - FedScoop Daily (daily@example.com) — daily
 > - A vendor newsletter that looks like marketing rather than news
 
-Mark confirmed ones `discovered_how = inbox-scan`. Don't add unconfirmed guesses; a watchlist the
-user didn't agree to is one they won't trust or maintain.
+Ask it as a multi-select card where the host has one (`CONVENTIONS.md` §3b) — each publication an
+option with its cadence and count, four per round, nothing pre-selected — and as the list above
+under `approval_style: numbered`. Mark confirmed ones `discovered_how = inbox-scan`. Don't add
+unconfirmed guesses; a watchlist the user didn't agree to is one they won't trust or maintain.
 
 Distinguish real publications from vendor marketing. Both arrive on a schedule; only one is worth
 sweeping.

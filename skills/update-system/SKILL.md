@@ -147,7 +147,8 @@ They're copied to `backups/retired-scripts-<stamp>/` first, not destroyed.
 the plugin's, and every skill runs that before touching data. So a user may arrive
 mid-brief having been told their folder is behind.
 
-**Don't hijack what they were doing.** Offer the update, and if they'd rather finish the
+**Don't hijack what they were doing.** Offer the update as one card — what moves, that no data
+is touched, **Update now** / **After the brief** / **Not today** — and if they'd rather finish the
 brief first, say fine and be specific about what's unavailable meanwhile — a folder that's
 behind still works, it just can't do the newest things.
 

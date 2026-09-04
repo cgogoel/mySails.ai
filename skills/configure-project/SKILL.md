@@ -698,6 +698,18 @@ relationship cost that can't be undone — then if they still want it, apply the
 `CONVENTIONS.md`: never first contact, never pricing or commitments, `daily_cap` on every rule,
 everything reported at the top of the next brief, delayed send where possible.
 
+**How they want to be asked.** Everything at `review` ends in a question, and there are two ways
+to put it (`CONVENTIONS.md` §3b, *How the system asks*). Record the answer as `approval_style:`:
+
+| | What it looks like | Good for |
+|---|---|---|
+| `prompts` (default) | A card per decision with selectable options and a free-text *Other* for edits; rounds of four | Anyone working in Cowork or Claude Code |
+| `numbered` | A numbered block in the text; reply with the numbers to run | People who read the brief as a file and answer from their phone, or a host with no prompt cards |
+
+Ask this as a card itself — it is the first one they see, and it shows the default rather than
+describing it. Say that `numbered` is also what every skill falls back to on a surface without
+cards, so choosing `prompts` never strands them.
+
 ```bash
 python3 $S/csvguard.py --init <project>/01-Tasks/tasks --schema tasks --project <project>
 python3 $S/csvguard.py --init <project>/01-Tasks/task-rules --schema task_rules --project <project>
@@ -854,6 +866,7 @@ Common asks and where they land:
 | "Turn on renewals too" | Add to `enabled-modules.md`, `--init`, run Track 4 for that module only |
 | "My quota changed" | Track 6; supersede the old goal row, don't overwrite it |
 | "Change the follow-up window / cap" | Edit the rule row; the floors are on by default, so this is a number, not a switch |
+| "Stop asking me with cards / start asking with cards" | `approval_style:` in `config.md` — `numbered` or `prompts`; one key, every skill reads it |
 | "Why did the brief draft no follow-ups?" | Almost always an empty activity cache: `activity_sync.py --status`, then a full 90-day ingest and `--lead-touch`. A blank touch date is overdue, never a reason to skip |
 | "Move to Excel" | `csvguard.py --convert-all <project> --to xlsx` |
 | "The stages are wrong" | Re-run Track 3 for that object, then re-confirm against real records |

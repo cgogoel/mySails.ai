@@ -65,7 +65,8 @@ name dropped in.
 **Check the index for an existing answer first.** The best outcome of a request is often "this
 already exists, and it's approved." Regenerating something the library has wastes effort and
 fragments the story customers hear. If a close match exists, offer it and ask whether tailoring is
-really needed.
+really needed — one card, the asset named with its approval date, **Use it as is** / **Tailor it
+for this meeting** / **Build new** (`CONVENTIONS.md` §3b).
 
 Read the battlecard's **"do not say"** section before writing a single competitive line. That
 section exists because someone got burned.

@@ -181,7 +181,8 @@ paying attention.
 
 Capture metric, track, period, target, dates into `00-Config/goals`. Set `last_confirmed` and
 `confirm_cadence` (quarterly default), then check freshness on every run and ask once, briefly, if
-stale.
+stale — one card per goal with the current target as the first option, **Still <target>** /
+**It changed**, *Other* carrying the new number (`CONVENTIONS.md` §3b).
 
 When a target changes, don't overwrite: mark the old row `Superseded`, record `original_target`,
 `revised_date`, `revision_reason`, and create the new one. A goal that moved mid-quarter is part of

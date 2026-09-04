@@ -174,7 +174,10 @@ renewing next month with an engaged buyer, and a date-sorted list buries that.
 
 Creating a renewal opportunity puts a number in the team's forecast. That's visible to management
 and affects coverage reporting, so confirm it explicitly and show the values you're about to set —
-even under a create-at-close policy where it's routine. Routine is not the same as automatic.
+even under a create-at-close policy where it's routine. Routine is not the same as automatic. One
+card per renewal (`CONVENTIONS.md` §3b): account, term, amount and close date in the text,
+**Create the renewal opportunity** / **Not yet**, *Other* for a different amount or date; the CRM
+push is a second card, never the same yes.
 
 Follow the profile for which type marker and required fields to use. Carry across account, contract
 dates, current value as the starting amount, owner, and champion. Then set `renewal_opp_id`,

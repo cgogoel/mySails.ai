@@ -143,7 +143,9 @@ status — the deal rules take over) or is disqualified. Two disqualifications t
 for itself and raises as *Disqualify on opt-out or refusal*: an opt-out or unsubscribe flag that
 flipped `contactable` to no, or an inbound reply that reads as *not interested*. That rule is
 `review` on purpose — the brief quotes the reply and offers "set Disqualified · Not Interested"
-in its approval queue. "Not now" and "not interested" are one word apart, and one of them is a
+in its approval queue, as a card (`CONVENTIONS.md` §3b): the quoted line in the question text,
+**Disqualify · Not Interested** / **Hold instead** / **Leave it**, with *Other* taking a different
+reason or a hold date. "Not now" and "not interested" are one word apart, and one of them is a
 hold, not a death. A bounce is neither: it raises the find-new-address task, per the profile.
 
 **The clock pauses** in three cases, and the rules say nothing while it does:
@@ -156,7 +158,8 @@ hold, not a death. A bounce is neither: it raises the find-new-address task, per
   `on_hold` on a deal: "come back in Q1", an out-of-office until the 14th, a budget cycle. The
   user can set it directly with a `hold_reason`. The system may **infer** it from a reply — in
   which case it quotes the line that implied it, proposes the date, and writes nothing until the
-  user confirms in the brief's queue. The clock restarts the day after `hold_until`. A user who
+  user confirms in the brief's queue — a card with **Hold until <date> · <reason>** / **Not a
+  hold** and *Other* for a different date. The clock restarts the day after `hold_until`. A user who
   does not know this valve exists disables the rule instead, so say it exists.
 
 Whatever the rule, **first contact stays first contact**: most lead follow-ups are first emails,
@@ -182,8 +185,9 @@ Prefer incremental pulls on last-modified over refetching everything. Log the sy
 ### Pushing
 
 Per `CONVENTIONS.md`, never automatic. Build the diff, show it as a table — field, current CRM
-value, proposed value, which local edit caused it — and get an explicit yes. One confirmation per
-batch is fine; zero is not.
+value, proposed value, which local edit caused it — and get an explicit yes: one card, **Push all
+N** / **Show me the diff first** / **Not now**, or the numbered equivalent under
+`approval_style: numbered`. One confirmation per batch is fine; zero is not.
 
 Push only what `field-map.json` lists under `safe_to_push`. Refuse anything in `never_push` even if
 asked directly, and say why — the profile records the reason, usually that an integration owns the
@@ -230,8 +234,9 @@ deliberately leaves them alone.
 
 Matching is on `crm_id` and is handled for you. Where a lead has no `crm_id` at all — a pasted
 list, a conference scan — match by email, then name plus company, and when a match is probable but
-not certain show both rows and ask rather than merging. Duplicates are the most common way these
-registries rot.
+not certain show both rows and ask rather than merging — a card per probable pair, both rows in
+the text, **Same person, merge** / **Different people, keep both**. Duplicates are the most common
+way these registries rot.
 
 Report the *shape* of what arrived, not just the count: how many are contactable, how many are in
 sequence, how many have no email, how many are past 30 days since our last outbound touch. That's the sentence that tells
@@ -281,7 +286,9 @@ status to qualified and fill `converted_opp_id`, and link the note.
 
 Do the local conversion first and show it. CRM lead conversion typically creates an Account,
 Contact, and Opportunity in one irreversible transaction — that deserves its own deliberate
-confirmation, described in those terms, rather than being slipped into a batch of routine updates.
+confirmation, described in those terms, rather than being slipped into a batch of routine updates:
+its own card, the three records it will create named in the text, **Convert in the CRM** / **Local
+only for now**.
 
 ### Raise tasks
 

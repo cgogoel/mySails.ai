@@ -194,6 +194,13 @@ edit, not housekeeping. Local update at `review`; **CRM push follows §7: never 
 field-by-field diff, explicit yes.** Offer to log the meeting summary as a CRM activity the
 same way, recording the id in `crm_activity_id`.
 
+Everything this section offers goes out as cards per `CONVENTIONS.md` §3b, in one pass after the
+note is written, in rounds of four: the champion (**Set <name> as champion** / **Not yet**), each
+renewal field with its quote (**Apply** / **Decline**), the next step current → proposed (**Apply
+as proposed** / **Decline**, *Other* for a different step or date), the sentiment reading where
+it is Negative with its quote, and last the CRM push and activity log as one card each. Under
+`approval_style: numbered` the same items are a numbered block after the note.
+
 ## Engagement: credit the meeting without counting it twice
 
 Meetings are the highest-weighted event in engagement scoring, which makes double-counting them

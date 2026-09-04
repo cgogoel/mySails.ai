@@ -355,6 +355,43 @@ will sometimes be wrong. So `auto` is fenced:
 If a task's automation is `auto` but any of the above applies, downgrade it to `review` and say why
 in `notes`. Silently downgrading is fine; silently upgrading never is.
 
+### How the system asks
+
+Every skill that waits for a yes — an approval queue, a push, a field it proposes, a list it
+found and wants confirmed — asks the same way, so the user learns one habit rather than fifteen.
+
+**Prompt cards by default.** Where the host offers a structured question prompt (the
+`AskUserQuestion` card in Cowork and Claude Code — selectable options plus a free-text *Other*)
+and the user is present, the ask goes through it: **one question per decision**, a short header
+naming the record, the concrete sentence of what will happen in the question text, the
+recommended action as the first option and marked so, and *Other* as the path for a
+customisation of that item ("the 15th, not the 11th", "drop the second paragraph"), applied to
+that item before it runs and echoed in the result. The tool takes four questions per call, so a
+queue goes out in rounds of four ordered by consequence, each round saying where it is. A list
+to confirm — newsletters found in the inbox, probable duplicates, entries for a profile — is one
+multi-select question when it fits in four options and rounds of four when it does not. A
+decision the user should take deliberately (a push that starts an approval flow, an irreversible
+CRM conversion, a customer-visible number) gets a card of its own, never folded into a batch,
+and its option text says what the consequence is.
+
+**Prose is the backup, and it is the user's to choose.** `approval_style:` in `config.md` is
+`prompts` by default; `numbered` switches every skill to the written form — a numbered block,
+the user replies with numbers, read literally ("1 and 3" is two items, not three), an ambiguous
+reply asked about rather than resolved generously. The written form is also the automatic
+fallback wherever no prompt exists: a plain chat surface, a host without the tool, or an
+unattended run. A missing `approval_style:` key means `prompts` — this is the one setting with a
+shipped default, so its absence is not a question to ask mid-brief. Briefs write the numbered block into the brief file in **both** styles, as the
+record of what was offered.
+
+**What never changes with the style.** Only an answered item moves; a dismissed card or an
+unanswered round leaves everything at `Awaiting Approval`, to be asked again next time marked
+*still waiting*. A scheduled or unattended run asks nothing and executes nothing — it writes the
+queue and says how many are waiting — and a run that cannot tell whether someone is present
+treats itself as unattended. No single yes covers a batch of customer-facing sends; the one bulk
+option a brief may offer (past eight ready drafts) still runs item by item behind the fences and
+is never offered when the queue holds a colleague's record or an unverified draft. The fences of
+§3b are checked per item on every ask, whichever surface it goes out on.
+
 ### Lifecycle
 
 ```

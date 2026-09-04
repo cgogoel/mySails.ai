@@ -196,8 +196,9 @@ webinars belong, because they survive a production cycle.
 
 ## Angles, then type, then draft
 
-Work in that order and confirm at each step. Drafting before the angle is agreed wastes the
-expensive part.
+Work in that order and confirm at each step — a card per step (`CONVENTIONS.md` §3b): the angles
+as options with *Other* for the user's own, then the type, then **Draft it** / **Change the angle**.
+Drafting before the angle is agreed wastes the expensive part.
 
 **1. Propose two or three genuinely distinct angles.** Not one idea reworded — different arguments,
 each with a different reader in mind. Say who each would land with. Note where an angle is
