@@ -6,6 +6,33 @@ gained — and, more importantly, what quietly means something different now.
 
 The format is one `## YYYY-MM-DD` heading per template version, matching `VERSION.json`.
 
+## 2026-09-05
+
+Skills and `CONVENTIONS.md` only — no script or schema changed. Plugin `0.13.0`;
+`requires_template` stays at **2026-09-04**. Two rules from the second live morning, both about
+the brief deciding on its own that something did not need doing.
+
+**The next step is proposed for every touched record, one diff each.** In 0.11.0 the brief wrote
+`next_step` automatically where a thread stated one plainly and otherwise left it alone, and a
+record that had already been pushed to the CRM was treated as handled. So the deals with real
+traffic — an outbound sent, a reply received — came through with yesterday's next step or none,
+and the queue never mentioned them. Now every outbound the user sent and every customer reply
+since the last brief produces a proposed `next_step` diff in the approval queue: current against
+proposed, with the thread line behind it; stated where the thread states one, inferred and marked
+so where it does not; one diff per record however many threads. Nothing exempts a record with
+traffic — not an earlier CRM push, not a Tier 1 write, not a proposal approved yesterday, and not
+the system's own view that the current value still looks right (that case prints as a one-line
+"unchanged" so the record is visibly read). `next_step` leaves the auto tier for good.
+
+**A staged draft is not unsent until sent mail says so.** A follow-up drafted by the brief and
+then sent by the user from their mail client stayed at *Awaiting Approval*, was re-offered the
+next morning, and its deal was still counted as untouched. Before the brief calls any staged draft
+unsent — re-offers it, re-drafts for the same deal, or lets the follow-up clock run on it — it
+searches the user's sent mail by the draft's recipient address from the task's created date and
+reads the thread. A match closes the task with the recipient, subject and sent time as evidence,
+counts as an outbound touch, and is reported under *Did automatically*. A search that could not
+run leaves the item offered but marked *unverified*, never asserted unsent.
+
 ## 2026-09-04
 
 Plugin `0.12.0`. `activity_sync.py` changed, so **`requires_template` moves to 2026-09-04**; run

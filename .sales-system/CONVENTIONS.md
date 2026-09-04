@@ -470,11 +470,17 @@ a follow-up rule is not allowed to produce. `on_hold = yes` exempts a deal; a fu
 `hold_until`, an active sequence, or a partner-held status exempts a lead.
 
 *Update records from email* is the one rule that ships `auto`, and its `auto` means folder writes
-only — a dated notes append, a stated next step, a lead to engaged — reported at the top of the
-brief with the CRM push offered as a single queue item. Close date, amount, stage and negative
-sentiment read from a thread are never applied on the system's reading: they wait as
-*edit before applying* items with current, proposed, and the quote. That tier cannot be
-configured down.
+only — a dated notes append, a lead to engaged — reported at the top of the brief with the CRM
+push offered as a single queue item. The next step is never among the auto writes: **every
+outbound the user sent and every customer reply since the last brief produces a proposed
+`next_step` in the queue, one diff per record**, current against proposed with the line behind
+it — regardless of whether the record was pushed to the CRM, written by Tier 1, or proposed
+earlier. Close date, amount, stage and negative sentiment read from a thread are never applied on
+the system's reading: they wait as *edit before applying* items with current, proposed, and the
+quote. That tier cannot be configured down. And before any brief calls a staged draft unsent —
+re-offers it, counts its deal as untouched — it searches sent mail by the recipient's address and
+reads the thread; a draft the user sent from their mail client is closed with the evidence and
+counted as a touch.
 
 ## 3c. Seeding is not refreshing
 

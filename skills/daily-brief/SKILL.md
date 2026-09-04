@@ -1,6 +1,6 @@
 ---
 name: "daily-brief"
-description: "Produce the morning brief focused on today's execution — tasks due, the emails and calls owed on specific leads and opportunities, and every meeting today with who is attending, what their role likely wants, background research on the account, relevant competitor and market context, and an offer to build tailored content for the meeting. Enforces the follow-up guarantee where it is enabled — no open deal the user owns goes past the window without an outbound touch — by drafting and staging every follow-up it raises, burning down any backlog at the cap. Reads every email thread since the last brief on the user's deals and leads and catches the records up — notes, next steps, a lead moved to engaged — while pausing for the user's edit on any close date, amount, stage or negative sentiment a thread implies. Lists every task due and overdue by name, closes the ones email, calendar and CRM activity show are already done, and offers to complete the ones the system can finish itself — waiting for approval before it acts. Also runs a light overnight sweep of the user's newsletter subscriptions and targeted searches for news at tracked accounts. Use when the user asks for their daily brief, morning brief, what's on their plate today, what they should focus on, what they missed, who they need to follow up with, what they missed overnight, what tasks are due or overdue, or asks to prep or start their day. Also use when setting the brief to run each morning."
+description: "Produce the morning brief focused on today's execution — tasks due, the emails and calls owed on specific leads and opportunities, and every meeting today with who is attending, what their role likely wants, background research on the account, relevant competitor and market context, and an offer to build tailored content for the meeting. Enforces the follow-up guarantee where it is enabled — no open deal the user owns goes past the window without an outbound touch — by drafting and staging every follow-up it raises, burning down any backlog at the cap. Reads every email thread since the last brief on the user's deals and leads and catches the records up — notes, a lead moved to engaged — proposes a next step for every deal or lead the user wrote to or heard from, one diff per record, and pauses for the user's edit on any close date, amount, stage or negative sentiment a thread implies. Never calls a staged draft unsent without first searching sent mail for the recipient. Lists every task due and overdue by name, closes the ones email, calendar and CRM activity show are already done, and offers to complete the ones the system can finish itself — waiting for approval before it acts. Also runs a light overnight sweep of the user's newsletter subscriptions and targeted searches for news at tracked accounts. Use when the user asks for their daily brief, morning brief, what's on their plate today, what they should focus on, what they missed, who they need to follow up with, what they missed overnight, what tasks are due or overdue, or asks to prep or start their day. Also use when setting the brief to run each morning."
 ---
 
 # Daily Brief
@@ -105,6 +105,19 @@ Bound every activity query per the profile, and filter auto-captured noise. Wher
 who made a change, say so — "Dana updated the next step on Acme yesterday" is often the most useful
 line in the brief.
 
+**Every staged draft gets checked against sent mail before it is called unsent.** For each task
+at `Awaiting Approval` with a `draft_path`, search the user's sent mail by the draft's recipient
+address, from the task's `created_date` forward, and read the thread. People send from their mail
+client without coming back to the queue, and a brief that then re-offers the draft — or, worse,
+counts the deal as still untouched — has contradicted the one thing the user knows they did. A
+sent message to that address on or after the draft date closes the task: `status = Done`,
+`completed_how = user-sent`, `completion_evidence` carrying the recipient, subject and sent
+time; it is an outbound touch for Step 3's clocks; and it earns a line under *Did automatically*
+("you sent the Acme follow-up yourself on the 3rd — closed it"). No match means the draft is
+still waiting and may be offered. A search that could not run — connector down, address missing
+from the draft — is neither: say so beside the item, and offer it marked *unverified* rather than
+asserting it is unsent.
+
 Be conservative, and give ambiguity somewhere to go. Evidence strong enough to be sure closes the
 task silently and earns one line in the summary. Evidence that is suggestive but not conclusive — a
 sent email to the right domain but the wrong person, a meeting that happened under a different
@@ -121,7 +134,9 @@ Step 10 of the setup ingested the email traffic since the last brief. Step 1 use
 tasks. This step uses it for what a rep would otherwise type in by hand at the end of the day and
 usually does not: **the record catches up with the conversation.** Every open opportunity and
 every lead the user owns that had email traffic in the window gets read — the thread, not just
-the event — and updated, on two tiers that differ in exactly one way: whether the write waits.
+the event — and updated, on two tiers that differ in exactly one way: whether the write waits — plus one
+proposal that is made for every touched record, whether or not the thread says anything about it:
+the next step.
 
 The window is *since the last daily brief*, capped at seven days, not "yesterday": a brief that
 was skipped on Tuesday must not lose Monday's traffic. Bound the mail query per the profile and
@@ -140,9 +155,6 @@ Writes that catch the record up without deciding anything the person would want 
 - **Notes.** Append a dated entry to the deal's notes file (`07-Opportunities/Accounts/<Account>/
   OPP-nnnn-notes.md`) or the lead's, with the thread's subject and the one-line state. Append,
   never rewrite — the notes file is a log.
-- **`next_step` / `next_step_date`** where the thread states one plainly ("send the revised SOW by
-  Friday"). Where the current `next_step` was typed deliberately and the thread does not supersede
-  it, leave it. Where the profile marks the field as shared and append-only, append.
 - **On a lead**: status to the org's *engaged* value when the person replied and the lead sits in
   *new* or *working*; `last_inbound_date` is already written by `--lead-touch`.
 - **Commitments** into `13-Meetings/commitments` where that module is on, either direction, with
@@ -153,7 +165,44 @@ All of these are folder writes with `sync_status = pending-push`. **Nothing here
 on its own**: the brief offers "push *N* record updates to the CRM" as **one** numbered item in the
 Step 5 queue, and §7 governs the push — field-by-field diff, explicit yes. Everything Tier 1 did is
 listed under *Did automatically* at the top of the brief, per deal, one line each, so the user
-never learns about a changed next step by finding it.
+never learns about a changed record by finding it.
+
+`next_step` is not on this list. It used to be — applied where the thread stated one plainly —
+and the first live morning showed why that is the wrong tier: a record that was written to or
+replied to has a different next step than it had yesterday whether or not anyone wrote it down,
+and the ones nobody wrote down are exactly the ones that go stale. It is proposed instead, every
+time, below.
+
+### The next step — proposed for every touched record, one diff each
+
+**Every outbound the user sent and every customer reply since the last brief produces a proposed
+`next_step` in the Step 5 queue, one diff per record.** Not "where the thread states one" — every
+record with traffic. The step is what changed when the mail went out or came back, and it is the
+field the forecast prints verbatim, so a stale one is a visible error and a blank one is worse.
+
+Build the proposal from the thread the way a rep would after reading it: where the thread states
+a step in words ("send the revised SOW by Friday"), propose that, with its date; where it does not,
+propose the step that follows from what was said — a reply owed, a meeting to book, a document
+promised — and say it is inferred, not quoted. The item shows the record's current `next_step` and
+`next_step_date` against the proposed pair and the line from the thread that led to it. The user
+approves as proposed, edits, or declines by number; until then the record holds its current value.
+
+Three things that do not exempt a record, because each one already caused a missed proposal:
+
+- **It was pushed to the CRM earlier.** A push — yesterday's, this morning's, one from another
+  skill — says the record was written, not that its next step still stands. A record that had
+  traffic in the window gets a diff whether or not `sync_status` says `synced`.
+- **A Tier 1 write or an earlier proposal already touched it.** A next step approved from
+  Tuesday's thread does not survive Wednesday's reply. New traffic, new diff.
+- **The current value looks fine.** If the proposal is the same as the current value, the diff
+  says so in one line and asks nothing — but it still appears, so the user can see the record was
+  read. What must never happen is the record being silently skipped on the system's own judgement
+  that nothing changed.
+
+One diff per record, not per thread: several threads on the same deal fold into one proposal
+carrying the latest state. A declined proposal is noted in the notes file as "next step proposed
+from email, declined" so the same traffic does not re-propose it; the next outbound or reply
+re-opens it, since it is new evidence.
 
 ### Tier 2 — paused for the user's edit
 
@@ -331,6 +380,12 @@ Under `review` automation, **draft the emails rather than only naming them.** Wr
 `01-Tasks/Drafts/`, set `draft_path` and `status = Awaiting Approval`, and say in one line how many
 are waiting. A morning's drafts reviewable in one folder is most of the value of the whole system.
 
+Before drafting for a deal or lead, and before counting an existing draft as still waiting, apply
+Step 1's sent-mail check: search sent mail by the recipient's address and read the thread. A
+draft the user already sent from their mail client is a touch, not a gap — it resets the clock,
+closes the task, and must not be re-drafted or re-offered. The activity ingest usually catches the
+same send, but the check is per draft and per address, and it runs whether or not the cache did.
+
 ---
 
 ## Step 4: Tasks due and overdue — listed, not counted
@@ -389,8 +444,12 @@ both: yes or no, item by item.
 |---|---|---|
 | **Ready to run** | A drafted email at `draft_path` sitting at `Awaiting Approval`; a `CRM Update` task where the field and the new value are both already known; logging an activity; filing a note | The system performs the action, then closes the task |
 | **Looks done** | Step 1 found evidence that was suggestive but not conclusive | The system closes the task and records the evidence. It performs nothing |
-| **Edit before applying** | Step 1a read a close date, amount, stage or negative sentiment in a thread | The system writes the value the user confirmed or edited, locally, `pending-push` |
+| **Edit before applying** | Step 1a proposed a next step for a touched record, or read a close date, amount, stage or negative sentiment in a thread | The system writes the value the user confirmed or edited, locally, `pending-push` |
 | **Push to CRM** | Tier 1 writes waiting as `pending-push` | One item for the batch; §7's field-by-field diff runs before anything is sent |
+
+A draft enters the queue only after Step 1's sent-mail check by recipient address came back
+empty. A draft found sent is closed and reported, never offered; one the check could not verify is
+offered with *unverified* beside it and the reason.
 
 Something is **ready to run** only when the action is fully determined — recipient, text, field and
 value all either exist already or follow from the record without a judgement call. If producing the
@@ -433,7 +492,10 @@ what the subject line is, and where the draft can be read before deciding:
 >    promised". Draft: `01-Tasks/Drafts/TASK-00042-followup-acme.md`
 > 2. **TASK-00051** — set Next Step on Northwind to "Security review, 9 Sept" in the CRM (it is
 >    currently blank)
-> 3. **TASK-00038** — looks done: you emailed rob@northwind.com on the 24th, two days after this was
+> 3. **OPP-0031 Acme** — next step: current *"Send pricing"* (28 Aug) → proposed *"Book the
+>    security review Priya asked for"* by 11 Sept, from her reply of the 3rd. Approve, edit, or
+>    decline
+> 4. **TASK-00038** — looks done: you emailed rob@northwind.com on the 24th, two days after this was
 >    raised. Close it?
 >
 > Not offered: **TASK-00047** (first email to a new contact) and **TASK-00055** (discount approval) —
@@ -552,7 +614,8 @@ working. Ten is it competing with the rest of the brief.
 Structure, skipping empty sections rather than printing "None":
 
 **Did automatically** — only if something did. Always first. Includes every Tier 1 record update
-from Step 1a, one line per deal or lead: what changed, from which thread.
+from Step 1a, one line per deal or lead: what changed, from which thread; and every staged draft
+Step 1 found already sent and closed.
 
 **Today** — meetings in order, each with the preparation from Step 2. Long is acceptable here;
 this is what the brief is for.

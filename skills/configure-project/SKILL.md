@@ -732,11 +732,13 @@ CSV a month later finds it next to the setting.
 
 **`Update records from email` is the one shipped `auto`, and it writes only to the folder.** The
 daily brief reads every thread since the last run on an owned deal or lead and catches the record
-up — a dated note, a next step the thread states, a lead moved to engaged — with everything
-listed at the top of the brief and the CRM push offered as one queue item, never automatic. A
-close date, an amount, a stage, or a negative reading in a thread is never applied on the
-system's own reading: those pause as *edit before applying* items showing current against
-proposed with the line that implied it. Say this at setup, because "auto" alarms people until
+up — a dated note, a lead moved to engaged — with everything listed at the top of the brief and
+the CRM push offered as one queue item, never automatic. The next step is never written on the
+system's own reading: every record the user wrote to or heard from gets one proposed next-step
+diff in the queue, current against proposed, whether or not the thread states a step and whether
+or not the record was pushed earlier. A close date, an amount, a stage, or a negative reading in
+a thread is likewise never applied unasked: those pause as *edit before applying* items showing
+current against proposed with the line that implied it. Say this at setup, because "auto" alarms people until
 they hear what it is allowed to touch; `review` makes every write wait, `manual` makes it only
 report.
 
