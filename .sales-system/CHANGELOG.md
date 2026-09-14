@@ -6,6 +6,57 @@ gained — and, more importantly, what quietly means something different now.
 
 The format is one `## YYYY-MM-DD` heading per template version, matching `VERSION.json`.
 
+## 2026-09-15
+
+Scripts, one schema, skills and `CONVENTIONS.md`. Plugin `0.14.0`; `requires_template` moves
+to **2026-09-15**, because the skills now call `activity_sync.py --plan` and `--log` and read
+a column the lead registry did not have. Run `update-system`; `csvguard --repair` adds the
+column on first touch.
+
+**Lead activity now syncs — from the CRM, into the folder, and back — the way deal activity
+was supposed to.** The live finding behind this: the activity cache had two sources ever,
+`gmail` and `calendar`. No CRM activity had been ingested in a month, for leads *or* deals;
+the mailbox read was prescribed and ran every morning, the CRM read said "per the profile"
+and never ran once. Deals barely noticed, because the user's own mailbox holds most deal
+traffic. Leads paid for it: a colleague's logged calls and cadence sends exist only as CRM
+activity linked to the lead, so every handed-over lead read as *no recorded touch* — 49 of 66
+on one book — and `06-Leads/Notes/` sat empty while lead events went into the cache.
+
+- **`activity_sync.py --plan`** prints the CRM activity read for the window: every activity
+  linked to an open opportunity *or a lead in the registry*, bounded by the profile's query
+  rules, first ingest sized to 90 days. It uses the profile's `activity` block where there is
+  one and falls back to the CRM dialect's standard objects (Salesforce: Task and Event by
+  `WhatId` and `WhoId`, as SOQL semi-joins so no id lists are pasted); with neither it exits 1
+  and the brief says lead activity is unreadable. `--status --json` gains
+  `crm_activity_synced` and `needs_crm_full_window`, judged separately from the mail sources.
+- **The ingest resolves CRM ids.** Events may carry `opp_crm_id` / `lead_crm_id`; the script
+  maps them through the registries' `crm_id` (both Salesforce id forms), fills a lead event's
+  counterpart address from the registry so it dedups against the mailbox copy, keeps the
+  owner's name as `by` and the CRM record id as `crm_id`, and takes an explicit `direction`
+  where the CRM records one. An email with no knowable direction stays kind `email`: it counts
+  for engagement and moves no clock, because a guessed direction resets a clock wrongly.
+- **`activity_sync.py --log`** records one event the user reported — a call, an off-calendar
+  meeting, a note — against a `LEAD-` or `OPP-` id through the same dedup, and for a lead
+  rewrites the touch dates in the same command, so the lead the user just phoned is not
+  *overdue* tomorrow. A later CRM copy of the same event enriches it rather than adding a row.
+- **`last_outbound_by`** on the lead registry. A colleague's touch resets the lead clock — the
+  clock asks whether the company has left this person alone — and the name says whose, so
+  "last touch Cortney Lee, 08/12" is a different line from "you, 08/12". Blank means the
+  user's own mailbox or calendar.
+- **Daily brief:** Step 10 runs the CRM read after mail and calendar, on both registries, and
+  says what it read in counts; Step 1a creates the lead's notes file when it is missing and
+  writes a dated line for every lead with activity, colleagues' CRM-logged touches included,
+  and lists leads under *Did automatically*; Step 3 shows the name beside every lead clock;
+  Step 5 gains a *Log to CRM* queue kind — one card per lead or deal, **Log it** / **Not
+  now**, offered only for what the CRM cannot see: reported calls, meetings and notes, and
+  sent email only where the profile says the org does not auto-capture it.
+- **lead-tracking, opportunity-tracking, meeting-notes:** recording what happened goes through
+  `--log` before the prose note, and each offers the CRM activity log as its own card;
+  meeting-notes' off-calendar ingest uses `--log` and accepts a lead.
+- **configure-project / CONVENTIONS §7a:** `lead_link` is now read; the CRM activity read is
+  prescribed alongside the mailbox read, and the colleague-touch and log-back rules are
+  written down.
+
 ## 2026-09-14
 
 Skills and `CONVENTIONS.md` only — no script or schema changed. Plugin `0.13.1`;

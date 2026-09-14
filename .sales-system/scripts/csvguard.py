@@ -794,6 +794,22 @@ CRM_DIALECTS = {
         # (SalesLoft1__Active_Lead__c); neither shows up in the report label.
         "field_suffix": "__c",
         "namespace_separator": "__",
+        # Where activity lives when the profile has no canonical `activity` block.
+        # Standard objects only; activity_sync.py --plan prints the read from these.
+        # WhatId links to the deal, WhoId to the lead (or contact) — the lead link is
+        # the one that was recorded and never read for a month.
+        "activity": {
+            "task": {"object": "Task", "id": "Id", "subject": "Subject",
+                     "subtype": "TaskSubtype", "status": "Status", "date": "ActivityDate",
+                     "who": "WhoId", "who_type": "Who.Type", "who_email": "Who.Email",
+                     "what": "WhatId", "what_type": "What.Type", "owner": "Owner.Name",
+                     "modified": "LastModifiedDate"},
+            "event": {"object": "Event", "id": "Id", "subject": "Subject",
+                      "subtype": "EventSubtype", "date": "StartDateTime",
+                      "who": "WhoId", "who_type": "Who.Type", "who_email": "Who.Email",
+                      "what": "WhatId", "what_type": "What.Type", "owner": "Owner.Name",
+                      "modified": "LastModifiedDate"},
+        },
     },
     "hubspot": {
         "id_field": "hs_object_id",

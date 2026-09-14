@@ -297,8 +297,14 @@ profile. Do not silently substitute the generic list — the CRM would reject it
 Record the org's own auto-reply subject patterns too. An out-of-office counted as a reply marks a
 departed contact's still-running mailbox as an engaged human, and that error compounds quietly.
 
-Fill in `lead_link` even though nothing reads it yet — the same evidence drives lead triage later,
-and introspecting twice is how two versions of one block end up disagreeing.
+Fill in `lead_link` — `activity_sync.py --plan` reads it to build the CRM activity read over
+the user's leads, and it is the only route by which a colleague's logged call or cadence send
+on a lead reaches the lead's clock. It sat unread for a month while the block said "nothing
+reads it yet", and every handed-over lead read as *never touched* for exactly that time. Where
+the profile ends up with no `activity` block at all, the plan falls back to the CRM dialect's
+standard objects (Salesforce: Task and Event, `WhatId` for the deal, `WhoId` for the lead);
+for a CRM with no dialect defaults the block is required or lead activity is unreadable, and
+the brief will say so every morning until it is filled.
 
 **Set `crm` correctly — it's load-bearing.** It selects the dialect in
 `csvguard.CRM_DIALECTS`: which field holds the record identifier, which holds the

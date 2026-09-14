@@ -180,6 +180,12 @@
       "note": "DERIVED: the last email from this person to us. A reply after our last outbound means the ball is in our court."
     },
     {
+      "name": "last_outbound_by",
+      "type": "text",
+      "owner": "derived",
+      "note": "DERIVED: who on our side made the touch in last_outbound_date, where the source names them — a colleague's logged call or cadence send, read from CRM activity. Blank means the user's own mailbox or calendar, i.e. the user. A colleague's touch resets the clock; the name is what lets the user decide whether to continue that thread."
+    },
+    {
       "name": "total_activities",
       "type": "number",
       "owner": "crm"

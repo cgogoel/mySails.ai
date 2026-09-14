@@ -192,7 +192,11 @@ first renewal conversation, `first_renewal_touch_date` finally has its date.
 show current against proposed, since overwriting a next step someone typed deliberately is an
 edit, not housekeeping. Local update at `review`; **CRM push follows §7: never automatic,
 field-by-field diff, explicit yes.** Offer to log the meeting summary as a CRM activity the
-same way, recording the id in `crm_activity_id`.
+same way, recording the id in `crm_activity_id` — and against the cached event via
+`activity_sync.py --log ... --crm-activity-id`, so the next CRM activity read recognises its
+own copy rather than counting the meeting twice. The offer is the same for a meeting with a
+lead: the activity attaches to the lead's `crm_id`, and a lead with none gets a line saying
+there is nothing to attach to.
 
 Everything this section offers goes out as cards per `CONVENTIONS.md` §3b, in one pass after the
 note is written, in rounds of four: the champion (**Set <name> as champion** / **Not yet**), each
@@ -211,18 +215,21 @@ the most expensive dedup mistake available. The rule:
   `engagement_ingested: already-on-calendar` and ingest nothing. The transcript's engagement
   value here is the attendee evidence, which the fold already delivered.
 - **Off-calendar** — an ad-hoc phone call, a hallway conversation someone typed up: this record
-  is the only trace, and it's exactly the meeting that used to go uncounted. Ingest it:
+  is the only trace, and it's exactly the meeting that used to go uncounted. Record it:
 
   ```bash
-  python3 "$S/activity_sync.py" --ingest <project> --input events.json
-  # {"source": "transcript", "user_emails": ["you@co.com"],
-  #  "events": [{"date": "2026-08-18", "kind": "meeting", "opp_id": "OPP-0031",
-  #              "counterpart_email": "jane@acme.com", "detail": "ad-hoc pricing call"}]}
+  python3 "$S/activity_sync.py" --log <project> --record OPP-0031 --kind meeting \
+      --date 2026-08-18 --who jane@acme.com --detail "ad-hoc pricing call"
   ```
 
-  Set `counterpart_email` to the primary external attendee's address resolved from
-  `opportunity-contacts` — the dedup key includes it, so a resolvable email is what protects
-  against a later calendar ingest of the same event. Then `engagement_ingested: ingested`.
+  `--record` takes a `LEAD-` id as readily as an `OPP-` one — a call with someone still in
+  the lead registry is the same event on the other clock, and for a lead the touch dates are
+  rewritten in the same command. Set `--who` to the primary external attendee's address
+  resolved from `opportunity-contacts` (for a lead it defaults to the lead's own) — the dedup
+  key includes it, so a resolvable email is what protects against a later calendar or CRM
+  ingest of the same event. Then `engagement_ingested: ingested`. When the user later says yes
+  to the CRM activity log below, re-run the same `--log` with `--crm-activity-id` so the cached
+  event carries the CRM's id.
 
 When in doubt about which case applies, `already-on-calendar` is the safe wrong answer: it
 under-credits one meeting, where the alternative inflates the strongest signal in the score.

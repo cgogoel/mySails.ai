@@ -783,12 +783,50 @@ may hardcode an object name. `field-map.json` carries an `activity` block that
 }
 ```
 
-`lead_link` is recorded even though nothing reads it yet. The same reply and meeting evidence
-drives lead triage, and introspecting twice for one block is how the two versions end up
-disagreeing.
+`lead_link` is read by `activity_sync.py --plan`, which builds the CRM activity read over the
+user's leads from it. It was recorded for a month under the note "nothing reads it yet", and
+in that month no CRM activity was ingested for leads *or* deals — the mailbox read was spelled
+out and ran every morning, the CRM read said "per the profile" and never ran once. Introspect
+the block once and fill every link; introspecting twice is how two versions end up disagreeing.
 
 `email_direction_semantics` is the load-bearing one. It is the difference between a reliable
 answer and a guess, and **whatever consumes it must say which one it is giving.**
+
+### The CRM activity read is prescribed, and it covers leads
+
+The same rule as the mailbox read below, for the same reason: a fetch that is not written down
+is a fetch that does not happen. **Every run of a brief ingests the CRM's activity for its
+window over both registries** — every activity record linked to an open opportunity *or to a
+lead in the registry* — as `activity_sync.py --plan` prints it: bounded by the profile's query
+rules, paged to exhaustion, handed back as one payload with `"source": "crm"`, each record
+tagged with the CRM's own ids (`opp_crm_id`, `lead_crm_id`) for the ingest to resolve through
+`crm_id`, the owner's name as `by`, the record's id as `crm_id`. Never a query per account, and
+never the deals alone. Where no `activity` block exists and the CRM's dialect declares no
+defaults, the plan exits 1 and the brief says lead and colleague activity is unreadable — it
+does not improvise an object name.
+
+Why leads, specifically: the mailbox and the calendar see the user's own traffic, and for a
+deal that is most of the evidence. For a lead it is often none of it. A handed-over lead, a
+lead a colleague called, a lead in someone else's cadence — that work exists only as CRM
+activity, and a clock fed from the mailbox alone reads every one of them as *never touched*.
+`--status --json` reports `needs_crm_full_window` separately from `needs_full_window`: a cache
+that has never taken a CRM payload takes the full 90-day window for the CRM read while mail and
+calendar stay incremental.
+
+**A colleague's touch counts, and is named.** The lead clock measures whether the company has
+left this person alone, so a colleague's logged call or cadence send resets it. Because the
+decision it feeds is different — continue their thread, or start fresh — `last_outbound_by`
+carries the name, blank meaning the user's own mailbox or calendar, and every list that shows
+the date shows the name.
+
+**What the folder knows and the CRM does not goes the other way, on the user's yes.** A call
+or off-calendar meeting the user reports is recorded with `activity_sync.py --log` — same key,
+same dedup, lead or deal — so the clock moves on the user's word. Whether it is also logged to
+the CRM is an offer under §7: one card per record, never automatic, never folded into a field
+push. Only what the CRM cannot see is offered — reported calls, meetings and notes, and sent
+email only where the profile says the org does not auto-capture it; where it does, a second
+Task per message is a duplicate the cache's dedup would hide and the CRM would keep. On yes the
+CRM's activity id goes back onto the cached event so the next read recognises its own copy.
 
 ### The mailbox read is exhaustive, every run
 

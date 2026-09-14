@@ -147,18 +147,23 @@ built on it fired on 95% of one live book on a day when four of those deals had 
 running. Compute the last touch from evidence the system actually holds — the most recent of:
 
 - `last_outbound_date` across the deal's rows in `07-Opportunities/opportunity-contacts`;
-- the latest `email_out` or `meeting` event for the deal in `.sales-system/cache/activity.json`;
-- the CRM activity table, only where `field-map.json` says it is populated for real.
+- the latest `email_out`, `call` or `meeting` event for the deal in
+  `.sales-system/cache/activity.json` — which, once the CRM read has run, includes what
+  colleagues logged (the event's `by` says who);
+- the CRM activity table, only where `field-map.json` says it is populated for real — and it
+  reaches the cache through `activity_sync.py --plan`, the prescribed read over open deals and
+  live leads, not through an improvised per-account query.
 
 Two checks before any deal is called quiet:
 
 - **No data is not no work.** A record with no recorded outbound touch at all is treated as
   **untouched for longer than the window** — it is in the list, marked *no recorded touch*, never
   silently excluded. The one thing that must happen first is making sure the absence is real: if
-  the activity cache is empty, has never seen the lead registry, or holds nothing for most of the
-  book (`activity_sync.py --status` says which), **run a full-window ingest now** — 90 days of
-  email, calendar and CRM activity through `--ingest`, then `--lead-touch` — before evaluating
-  anything. That is the brief's job, not a suggestion for the user; "the cache is empty, so I
+  the activity cache is empty, has never seen the lead registry, has never taken a CRM
+  activity payload (`needs_crm_full_window`), or holds nothing for most of the book
+  (`activity_sync.py --status --json` says which), **run a full-window ingest now** — 90 days
+  of email, calendar and CRM activity (the CRM read as `--plan` prints it) through `--ingest`,
+  then `--lead-touch` — before evaluating anything. That is the brief's job, not a suggestion for the user; "the cache is empty, so I
   drafted nothing" is the failure this rule exists to prevent.
 - **Sanity-check the signal, and say so — but still produce the list.** If, *after* that ingest,
   the test still matches more than about a third of the open book, lead with one line saying the
@@ -340,6 +345,23 @@ exactly the things a manager needs.
 
 Update the row, append to the account note, recompute derived fields, set
 `sync_status = pending-push`, and mention unpushed changes at the end.
+
+**A call outcome is an event before it is a note.** When the user logs a call, an off-calendar
+meeting or a conversation against a deal, record it in the activity cache so the engagement
+score and the outbound clock move on the user's word, not only on what a connector saw:
+
+```bash
+python3 "$S/activity_sync.py" --log <project> --record OPP-0031 --kind call \
+    --date 2026-09-12 --who jane@acme.com --detail "pricing call; procurement next"
+```
+
+Same key and dedup as the briefs' ingest, so the CRM's copy of the same call adds nothing.
+Then rescore (`engagement.py --score <project> --apply`, or leave it to the next brief), and
+append the prose to the account note as before. **Then offer to log it to the CRM** — one card,
+**Log it** / **Not now**, never automatic and separate from any field push; on yes create the
+activity on the deal's `crm_id` and re-run `--log` with `--crm-activity-id` so the next CRM
+read recognises its own copy. Sent emails are not offered where the profile says the org
+auto-captures email; they are already there.
 
 When a stage advances, check whether the close plan supports it. Advancing to a late stage with no
 economic buyer named is worth one sentence of pushback — not a refusal, just a flag. The rep may

@@ -1,6 +1,6 @@
 ---
 name: "daily-brief"
-description: "Produce the morning brief focused on today's execution — tasks due, the emails and calls owed on specific leads and opportunities, and every meeting today with who is attending, what their role likely wants, background research on the account, relevant competitor and market context, and an offer to build tailored content for the meeting. Enforces the follow-up guarantee where it is enabled — no open deal the user owns goes past the window without an outbound touch — by drafting and staging every follow-up it raises, burning down any backlog at the cap. Reads every email thread since the last brief on the user's deals and leads and catches the records up — notes, a lead moved to engaged — proposes a next step for every deal or lead the user wrote to or heard from, one diff per record, and pauses for the user's edit on any close date, amount, stage or negative sentiment a thread implies. Never calls a staged draft unsent without first searching sent mail for the recipient. Lists every task due and overdue by name, closes the ones email, calendar and CRM activity show are already done, and offers to complete the ones the system can finish itself — waiting for approval before it acts. Also runs a light overnight sweep of the user's newsletter subscriptions and targeted searches for news at tracked accounts. Use when the user asks for their daily brief, morning brief, what's on their plate today, what they should focus on, what they missed, who they need to follow up with, what they missed overnight, what tasks are due or overdue, or asks to prep or start their day. Also use when setting the brief to run each morning."
+description: "Produce the morning brief focused on today's execution — tasks due, the emails and calls owed on specific leads and opportunities, and every meeting today with who is attending, what their role likely wants, background research on the account, relevant competitor and market context, and an offer to build tailored content for the meeting. Enforces the follow-up guarantee where it is enabled — no open deal the user owns goes past the window without an outbound touch — by drafting and staging every follow-up it raises, burning down any backlog at the cap. Reads every email thread since the last brief on the user's deals and leads, and the CRM's activity on both — colleagues' logged calls and cadence sends on the user's leads included — and catches the records up — notes for every deal and lead touched, a lead moved to engaged — proposes a next step for every deal or lead the user wrote to or heard from, one diff per record, and pauses for the user's edit on any close date, amount, stage or negative sentiment a thread implies. Never calls a staged draft unsent without first searching sent mail for the recipient. Lists every task due and overdue by name, closes the ones email, calendar and CRM activity show are already done, and offers to complete the ones the system can finish itself — waiting for approval before it acts. Also runs a light overnight sweep of the user's newsletter subscriptions and targeted searches for news at tracked accounts. Use when the user asks for their daily brief, morning brief, what's on their plate today, what they should focus on, what they missed, who they need to follow up with, what they missed overnight, what tasks are due or overdue, or asks to prep or start their day. Also use when setting the brief to run each morning."
 ---
 
 # Daily Brief
@@ -88,28 +88,63 @@ run, don't stall the brief — note it in one line and carry on.
     - **Every message becomes an event.** Hand the whole set to `--ingest` as one `gmail`-source
       file — date, from, to, subject, counterpart address, account hint where the domain gives
       one. Direction is derived by the script from the user's address, so sent and received must
-      both be present or the outbound clocks stay blank. Then calendar and CRM activity per
-      `CONVENTIONS.md` §7a, then the lead dates:
+      both be present or the outbound clocks stay blank. Then the calendar, then the CRM:
+    - **CRM activity, whole window, deals AND leads — the read is prescribed.** Run
+      `activity_sync.py --plan <project>` and execute exactly the read it prints: every activity
+      record linked to an open opportunity *or to a lead in the registry*, bounded by the window
+      and by the profile's query rules, paged to exhaustion. Not a search per account, and not
+      "the deals only": the lead link is the half that was recorded in the profile for a month
+      and never read, and it is the only place a colleague's work on the user's leads exists — a
+      handed-over lead whose previous owner sent six cadence emails reads as *never touched*
+      without it. Map each record to an event the way the plan's kind guide says (call, meeting,
+      email with direction only where the CRM states it, else `email`; a cadence send is `out`;
+      the profile's noise dropped), tag it with the CRM's own ids (`opp_crm_id` from the deal
+      link, `lead_crm_id` from the lead link — the ingest resolves them through `crm_id`, so no
+      mapping is built by hand), carry the owner's name as `by` and the record id as `crm_id`,
+      and hand the lot back as **one payload with `"source": "crm"`**. The owner clause — the
+      user's id under `own` scope, `team.csv`'s ids under `team`, the same way every registry
+      pull is scoped — goes on the *lead and deal* sub-selects, never on the activity: a
+      colleague's call on your lead has their owner id, and it is exactly what this read is
+      for. On a big book or a first 90-day read, a connector that times out is sliced by date
+      (the plan says how), each slice ingested as it lands, and the brief says which slices
+      ran; a partial read reported is honest, a partial read presented as whole is not.
+      The profile has no `activity` block and the CRM's dialect declares no defaults → the plan
+      says so and exits 1; the brief then says in one line that lead and colleague activity is
+      unreadable until `configure-project` fills the block, and does not pretend otherwise.
 
 ```bash
-python3 "$S/activity_sync.py" --ingest <project> --input events.json
+python3 "$S/activity_sync.py" --ingest <project> --input events.json        # gmail
+python3 "$S/activity_sync.py" --ingest <project> --input calendar.json      # calendar
+python3 "$S/activity_sync.py" --plan <project>                              # prints the CRM read
+# ... run that read through the CRM connector, write crm-activity.json ...
+python3 "$S/activity_sync.py" --ingest <project> --input crm-activity.json  # source "crm"
 python3 "$S/activity_sync.py" --lead-touch <project>
 ```
 
     - **Say what was read.** One line: "read 212 inbox and 87 sent messages since Tue 2 Sep; 41
-      attributed to 19 deals and 6 leads, 258 unmatched." A brief that read nothing must say it
+      attributed to 19 deals and 6 leads, 258 unmatched. CRM: 63 activities, 40 on 17 deals, 19
+      on 11 leads (8 of them colleagues'), 4 unlinked." A brief that read nothing must say it
       read nothing and why — connector missing, query refused — never imply the clocks were
       refreshed. Zero sent messages over a window in which the user was working is a signal the
-      sent query failed, not that they sent nothing; say so.
+      sent query failed, not that they sent nothing; say so. The same goes for the CRM line: a
+      CRM that auto-captures email and returned zero activities over a working week is a failed
+      read, and `--status` reporting `crm_activity_synced: false` after this step means the CRM
+      payload never went in — say which.
 
     **Check `--status` first, and force a full window when the cache cannot be trusted.** Run
     `activity_sync.py --status <project> --json`; if `needs_full_window` is true, or most of the
     owned book has no events at all, ingest **90 days** from every connected
     source — mail, calendar, CRM activity — rather than the incremental window, then run
-    `--lead-touch`. This is not optional and not a question for the user: an empty cache makes
-    every deal and lead read as never touched, and a brief that responds by drafting nothing has
-    failed silently in exactly the way the follow-up rules exist to prevent. Say in one line that
-    the full ingest ran and how many events it found.
+    `--lead-touch`. If only `needs_crm_full_window` is true — mail and calendar are current but
+    the CRM activity read has never been ingested, which was every folder's state before this
+    release — the *CRM* read alone takes the 90-day window (`--plan` already sizes it that way
+    on a first ingest) while mail and calendar stay incremental. This is not optional and not a
+    question for the user: an empty cache makes every deal and lead read as never touched, and
+    a brief that responds by drafting nothing has failed silently in exactly the way the
+    follow-up rules exist to prevent. Say in one line that the full ingest ran and how many
+    events it found — and, on the first CRM ingest, how many leads gained a touch date they did
+    not have, because that number is the correction to every previous brief's "no touch on
+    record" count.
 
     The same read feeds three later steps, so it is done once here and reused: Step 1's
     sent-mail check on staged drafts (the per-address search there confirms against the mailbox;
@@ -183,8 +218,19 @@ Writes that catch the record up without deciding anything the person would want 
 - **Notes.** Append a dated entry to the deal's notes file (`07-Opportunities/Accounts/<Account>/
   OPP-nnnn-notes.md`) or the lead's, with the thread's subject and the one-line state. Append,
   never rewrite — the notes file is a log.
+- **The lead's notes file is not optional, and it is created when it is missing.** The lead's
+  file is `06-Leads/Notes/LEAD-nnnn-<first>-<last>.md`, frontmatter per `CONVENTIONS.md` §6
+  (`id`, `type: lead`, `company`, `updated`), one `## YYYY-MM-DD` entry per touch. A brief that
+  writes three deal notes and no lead notes on a morning it ingested lead events has done
+  half the job — that was the live state for a month: lead events in the cache, `06-Leads/
+  Notes/` empty. **Every lead with activity in the window gets its dated line**, whichever
+  source saw it: the user's own thread, and equally a colleague's CRM-logged call or cadence
+  send ("09/08 — Cortney Lee logged a call: left voicemail", from the `by` on the event). The
+  colleague's line is the record the user reads before deciding whether to pick up that
+  thread, and it exists nowhere else in the folder.
 - **On a lead**: status to the org's *engaged* value when the person replied and the lead sits in
-  *new* or *working*; `last_inbound_date` is already written by `--lead-touch`.
+  *new* or *working*; `last_inbound_date` is already written by `--lead-touch`, and
+  `last_outbound_by` with it — a colleague's touch resets the clock, and the name says whose.
 - **Commitments** into `13-Meetings/commitments` where that module is on, either direction, with
   the source set to the thread.
 - **Competitor mentions** routed to `competitor-tracking` as it already expects them.
@@ -192,8 +238,10 @@ Writes that catch the record up without deciding anything the person would want 
 All of these are folder writes with `sync_status = pending-push`. **Nothing here reaches the CRM
 on its own**: the brief offers "push *N* record updates to the CRM" as **one** numbered item in the
 Step 5 queue, and §7 governs the push — field-by-field diff, explicit yes. Everything Tier 1 did is
-listed under *Did automatically* at the top of the brief, per deal, one line each, so the user
-never learns about a changed record by finding it.
+listed under *Did automatically* at the top of the brief, **per deal and per lead**, one line
+each, so the user never learns about a changed record by finding it. "No record changes from
+email" is only true when no deal *and no lead* had traffic; a morning that ingested two lead
+events and printed that line has contradicted itself.
 
 `next_step` is not on this list. It used to be — applied where the thread stated one plainly —
 and the first live morning showed why that is the wrong tier: a record that was written to or
@@ -393,7 +441,15 @@ in an active sequence, passed to a partner, or `hold_until` in the future. **A l
 `last_outbound_date` is overdue, not excluded** — but blank across the whole book means the touch
 dates have never been written, so Step 10's forced full-window ingest and `--lead-touch` must have
 run this morning before the list is built; after that, what is still blank is genuinely
-untouched and goes in the list marked *no recorded touch*. If more than a third of the owned lead
+untouched and goes in the list marked *no recorded touch*. **The clock counts a colleague's
+touch**, read from CRM activity — the question it answers is whether this person has been left
+alone by the company, not by the user — and the list names whose it was from `last_outbound_by`:
+"Malwarebytes, Atul Dhingra — last touch Cortney Lee, 08/12, 33 days", never a bare date. A
+lead whose last touch was someone else's is a different decision (continue their thread, or
+start fresh) from one the user let go quiet, and the brief must not present them as the same
+line. Before this release the clock could only see the user's own mailbox, so every
+handed-over lead read as *no recorded touch*; the first CRM ingest corrects that count, and the
+brief says by how much. If more than a third of the owned lead
 book still matches, say the signal may be off in one line and list at the cap regardless. Nearly
 every lead follow-up is first contact: draft it, set `Awaiting Approval`, and keep it out of the
 ready-to-run queue.
@@ -482,6 +538,19 @@ both: yes or no, item by item.
 | **Looks done** | Step 1 found evidence that was suggestive but not conclusive | The system closes the task and records the evidence. It performs nothing |
 | **Edit before applying** | Step 1a proposed a next step for a touched record, or read a close date, amount, stage or negative sentiment in a thread | The system writes the value the user confirmed or edited, locally, `pending-push` |
 | **Push to CRM** | Tier 1 writes waiting as `pending-push` | One item for the batch; §7's field-by-field diff runs before anything is sent |
+| **Log to CRM** | Activity the folder knows and the CRM does not — on a lead or a deal alike | The system creates the activity record on the linked lead or deal, then records its id against the cached event with `activity_sync.py --log --crm-activity-id` so the next CRM read recognises its own copy |
+
+**What qualifies as *log to CRM*** is exactly the set the CRM cannot see on its own: a call,
+meeting or note the user reported and `--log` recorded (a `by` of the user, no `crm_id`); a
+meeting-notes summary the user has not yet logged; and a sent draft **only where the profile
+says the org does not auto-capture email** (`activity_is_auto_captured` false, or absent). Where
+it auto-captures — most Salesforce orgs with email integration do — a sent email is already a
+Task within the hour, and offering to log it again produces a duplicate activity per message;
+the ingest's dedup protects the *cache* from that, not the CRM. One card per record, lead or
+deal, **Log it** / **Not now**, carrying the activity's subject and date; never automatic, and
+never folded into the push batch — a push edits fields on a record, a log creates a record, and
+the user should see which is which. A lead with no `crm_id` gets no offer (there is nothing to
+attach to) and a line saying so.
 
 A draft enters the queue only after Step 1's sent-mail check by recipient address came back
 empty. A draft found sent is closed and reported, never offered; one the check could not verify is
@@ -563,12 +632,14 @@ How the prompts are built:
   amount, stage or sentiment): **Apply as proposed** / **Decline** — with the proposed value quoted
   in the option text so approving it is a read, not a recall; an edited value comes in through
   *Other*. *Push to CRM*: one question, **Push all N** / **Show me the diff first** / **Not now**.
+  *Log to CRM*: one question per record, **Log it** / **Not now**, the subject and date in the
+  question — "log your 09/12 call with Jane Doe (Acme) as a completed call on her lead".
   Every question also has *Other* by construction — that is where "send it, but drop the second
   paragraph" and "make the next step 15 Sept, not the 11th" arrive, and any text there is a
   customisation of that item, applied before the action runs and echoed back in the result line.
 - **Batches of four, ordered by consequence.** The tool takes four questions per call; the queue
   goes out in rounds of four — ready-to-run first, then looks-done, then edit-before-applying,
-  then the push — and each round says where it is: "4 of 11; 7 more after this." Never more than
+  then the push, then the activity logs — and each round says where it is: "4 of 11; 7 more after this." Never more than
   four rounds without pausing to run what has been approved so far, so a long queue does not
   become a wall of unanswered cards.
 - **No "run all" as a first question.** A single yes covering a dozen sends is the number-typing

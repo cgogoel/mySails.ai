@@ -111,16 +111,29 @@ days is an emergency, not a task.
 
 Every lead the user owns is on a clock, and the clock measures one thing: **the last outbound
 touch from us** — `last_outbound_date`, written by `activity_sync.py --lead-touch` from the
-email, meeting and call events the briefs ingest, matched to the lead by the person's address.
+email, meeting and call events the briefs ingest, matched to the lead by the person's address
+or, for CRM activity, by the lead's CRM id. "Us" is the company, not the user: a colleague's
+logged call or cadence send on this lead resets the clock, and `last_outbound_by` names them
+(blank means the user's own mailbox or calendar — the user). The clock asks whether this person
+has been left alone, and a lead the previous owner wrote to last month has not been; but it is
+a different decision from one the user let go quiet — continue their thread, or start over —
+so every list that reads the clock shows the name beside the date, never a bare date.
 Never `last_activity_date` or `days_since_active`: both are CRM-calculated, both carry import
 stamps that are not events, and both stop moving when the CRM stops logging. A lead with
 `last_outbound_date` blank after a full-window ingest has not been written to in that window —
 **treat it as past the window and due**, marked *no recorded touch*, rather than inventing a date
-or leaving it out. And make sure the blank is real before trusting it: if the cache is empty or
-has never seen the lead registry (`activity_sync.py --status`), ingest a full 90-day window and
-run `--lead-touch` first. A blank produced by an empty cache is not evidence of anything.
+or leaving it out. And make sure the blank is real before trusting it: if the cache is empty,
+has never seen the lead registry, or **has never taken a CRM activity payload**
+(`activity_sync.py --status --json`: `needs_full_window`, `needs_crm_full_window`), ingest a
+full 90-day window — the CRM read per `--plan`, which is the only source that sees a
+colleague's work — and run `--lead-touch` first. A blank produced by an empty cache is not
+evidence of anything, and a blank produced by a cache that only ever saw the user's own mailbox
+is the same blank wearing a date: for a month every handed-over lead read as *no recorded
+touch* on exactly that basis.
 
 ```bash
+python3 "$S/activity_sync.py" --status <project> --json     # needs_crm_full_window?
+python3 "$S/activity_sync.py" --plan <project>              # the CRM activity read, deals and leads
 python3 "$S/activity_sync.py" --lead-touch <project>
 ```
 
@@ -270,6 +283,41 @@ That's what a manager can act on.
 When the user says what happened, update the row, append to the note, adjust `next_step` and
 `next_step_date`. Set `sync_status = pending-push` rather than pushing immediately, and mention at
 the end that there are unpushed changes.
+
+**What happened is an event, and the event goes in the cache — or the clock does not move.** A
+call the user reports, a meeting that was never on the calendar, a conversation at an event:
+record it, and the touch dates follow in the same command:
+
+```bash
+python3 "$S/activity_sync.py" --log <project> --record LEAD-0042 --kind call \
+    --date 2026-09-12 --detail "spoke; wants a demo of the portal"
+```
+
+`--kind` is `call`, `meeting`, `note`, `email_out` or `email_in`; `--who` defaults to the
+lead's address; `--by` names a colleague where the user is reporting someone else's touch.
+The same key and dedup as the ingest, so the CRM's copy of the call arriving tomorrow is
+recognised as the same event and adds nothing. Without this, the lead the user just phoned
+is still *overdue* in tomorrow's brief, and the follow-up rule drafts an email to someone
+they spoke to yesterday — which is the sort of thing that gets a system switched off.
+
+The notes file gets the same entry in prose. `06-Leads/Notes/LEAD-0042-jane-doe.md` is created
+if it does not exist (frontmatter per `CONVENTIONS.md` §6) — the folder should never hold lead
+events with no lead notes, which was its state for a month.
+
+**Then offer to log it to the CRM.** The CRM did not see the call; the user did. Per §7 that is
+one card, **Log it** / **Not now** — "log your 09/12 call with Jane Doe as a completed call on
+her lead record" — never automatic, and separate from any field push. On yes, create the
+activity on the lead's `crm_id`, then record the CRM's id against the cached event so the next
+CRM read recognises its own copy:
+
+```bash
+python3 "$S/activity_sync.py" --log <project> --record LEAD-0042 --kind call \
+    --date 2026-09-12 --crm-activity-id 00T...
+```
+
+A lead with no `crm_id` gets no offer — there is nothing to attach to — and a line saying so.
+Emails the user sent are not offered where the profile says the org auto-captures email
+(`activity_is_auto_captured`); they are already Tasks, and a second one is a duplicate.
 
 Disqualifying needs a reason from the org's list. If the user's reason doesn't fit one, ask — a
 registry full of "Other" teaches nothing about why leads die.
