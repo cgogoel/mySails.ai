@@ -6,6 +6,26 @@ gained — and, more importantly, what quietly means something different now.
 
 The format is one `## YYYY-MM-DD` heading per template version, matching `VERSION.json`.
 
+## 2026-09-14
+
+Skills and `CONVENTIONS.md` only — no script or schema changed. Plugin `0.13.1`;
+`requires_template` stays at **2026-09-04**.
+
+**The scheduled brief leaves its cards waiting, instead of promising them.** 0.13.0 said the
+approval cards would be "asked when the user next opens the session". They were not, and could
+not be: a scheduled brief runs in its own session, a card is drawn only when the skill calls the
+prompt tool during a turn, and opening a session is not a turn — so the cards appeared only once
+the user typed something. Now the unattended run's last act, after the brief file is written and
+every task is at *Awaiting Approval*, is to put out the first round of cards and stop; they are
+on screen when the session is opened, an unanswered card moves nothing, and the closing message
+names the phrase for the rest. That phrase — "show my queue", "what's waiting", "queue", or
+"ready when you are" — works in any session on the folder and rebuilds the pending items as
+cards from the task registry and the latest brief's *Ready when you are* block, minus anything
+done since, without re-running the brief; the draft check runs again first, since time has
+passed. Where the prompt tool is unavailable in the scheduled session, the run falls back to the
+numbered block with the same closing message — and never again to the claim that cards will
+appear by themselves.
+
 ## 2026-09-05
 
 Skills and `CONVENTIONS.md` only — no script or schema changed. Plugin `0.13.0`;

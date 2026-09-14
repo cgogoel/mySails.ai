@@ -385,9 +385,14 @@ record of what was offered.
 
 **What never changes with the style.** Only an answered item moves; a dismissed card or an
 unanswered round leaves everything at `Awaiting Approval`, to be asked again next time marked
-*still waiting*. A scheduled or unattended run asks nothing and executes nothing — it writes the
-queue and says how many are waiting — and a run that cannot tell whether someone is present
-treats itself as unattended. No single yes covers a batch of customer-facing sends; the one bulk
+*still waiting*. A scheduled or unattended run executes nothing; it writes the queue, says how
+many are waiting, and **ends by putting out the first round of cards and stopping** — a card is
+drawn only when a skill calls the prompt tool in a turn, so a run that merely promises cards on
+"next open" has promised something no session can do. An unanswered card leaves everything at
+`Awaiting Approval`. "Show my queue" (or "what's waiting", "queue", "ready when you are") in any
+session on the folder rebuilds the pending items as cards from the registries and the latest
+brief file, without re-running the skill that raised them; the state lives in the folder, not
+the conversation. A run that cannot tell whether someone is present treats itself as unattended. No single yes covers a batch of customer-facing sends; the one bulk
 option a brief may offer (past eight ready drafts) still runs item by item behind the fences and
 is never offered when the queue holds a colleague's record or an unverified draft. The fences of
 §3b are checked per item on every ask, whichever surface it goes out on.

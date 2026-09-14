@@ -593,11 +593,28 @@ Handling the answers, in either form:
 - **Only an answered item moves.** A dismissed card, an unanswered round, a reply about something
   else — every item not explicitly chosen stays where it was, `Awaiting Approval`, and appears
   again tomorrow marked *still waiting*.
-- **A scheduled or unattended run asks nothing and executes nothing.** Build the queue, write the
-  numbered block into the brief, leave the tasks at `Awaiting Approval`, say how many are waiting
-  and that they will be asked when the user next opens the session. Approving on someone's behalf
-  because they were not there to answer is the precise failure this whole model exists to prevent.
-  A run that cannot tell whether someone is present treats itself as unattended.
+- **A scheduled or unattended run executes nothing — but it does leave the cards waiting.** A
+  scheduled brief runs in its own session, and nothing happens in a session because someone
+  opened it: a card is only ever drawn when this skill calls the prompt tool during a turn. So
+  the unattended run's **last act**, after the brief file is written and the tasks are at
+  `Awaiting Approval`, is to put out the first round of cards and stop there. The run then
+  waits, for as long as it takes; an unanswered card is an unanswered card, and nothing moves
+  until a person answers it. Before the cards go out, the run's closing message names the
+  phrase that brings the rest back (below), so a user who answers the first four knows how to
+  get the next four. Where the prompt tool is unavailable or errors in that session, fall back
+  to the numbered block and the same closing message — never to the claim that the cards will
+  appear on their own, because they will not. Approving on someone's behalf because they were
+  not there to answer remains the failure this whole model exists to prevent; a run that cannot
+  tell whether someone is present treats itself as unattended.
+- **Picking the queue up later.** "Show my queue", "what's waiting", "queue", or "ready when
+  you are" — in the brief's own session or any other session on the same folder — rebuilds the
+  cards from the folder without re-running the brief: every task at `Awaiting Approval` with a
+  `draft_path` or a determined action, plus the *edit before applying* and next-step proposals
+  in the latest brief file's **Ready when you are** block, minus anything already `Done` since.
+  The state is in the folder, not in the conversation, which is why this works from a fresh
+  session. Run the draft check (Step 1) on each draft before offering it, since time has passed.
+  Asking for the brief again does the same, after the new brief is built; items are put to the
+  user, never re-derived from scratch.
 - **Skip is a decision, decline is a record.** *Skip today* leaves the item to re-appear tomorrow;
   *Decline* on an edit-before-applying item writes "proposed from email, declined" to the notes
   file so the same evidence does not propose it again.
@@ -736,9 +753,11 @@ about is a brief nobody reads.
 
 The sweep in Step 6 narrows the window: late enough that the morning's newsletters have landed,
 early enough to still change the day. For most people that is a specific half hour rather than a
-guess — ask rather than assume. A scheduled run builds the approval queue and executes none of it;
-when the user next opens the session and asks for the queue — or asks for the brief again — the
-items still at `Awaiting Approval` are put to them as prompts, not re-derived.
+guess — ask rather than assume. A scheduled run builds the approval queue, executes none of it,
+and ends by putting out the first round of cards so they are waiting in that session when it is
+opened; "show my queue" in any session brings the rest back from the folder. Say this when
+setting the schedule up, in those words, so the user knows where the cards will be and what to
+type — the brief must never tell them the cards will appear by themselves on opening a session.
 
 ---
 
