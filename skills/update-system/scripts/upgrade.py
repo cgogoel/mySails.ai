@@ -36,12 +36,22 @@ Since 2026-08-13 the folder holds **schemas only** — scripts run from the plug
 set up before that still contain a `scripts/` directory which nothing reads any more;
 `--prune-scripts` removes it, and says so rather than doing it quietly.
 
+**Except in a split setup.** When the skills run in one environment and reach the folder
+through a shell on another machine — a cloud session working on a folder on the user's
+computer — the plugin is not on the machine the scripts must run on. `--device-copy`
+installs the plugin's scripts and CONVENTIONS.md into the folder as a *device copy*,
+with `scripts/DEVICE-COPY.json` recording the plugin version and a hash per file, which
+find_scripts.py verifies on every run. Once a folder has a device copy, every later
+`--apply` refreshes it (a device copy left behind its folder is the stale-guard accident
+again), and `--prune-scripts` will not remove it without `--drop-device-copy`.
+
 Never touched: crm-profile/, brand.json, backups/, cache/, locks/, and your registries,
 notes and briefs, which live outside this folder entirely.
 
 Usage:
   upgrade.py --check <project>
-  upgrade.py --apply <project> [--prune-scripts] [--no-migrate]
+  upgrade.py --apply <project> [--prune-scripts] [--no-migrate] [--device-copy]
+  upgrade.py --apply <project> --from <extracted plugin>/.sales-system --device-copy
   upgrade.py --check <project> --from <some>/.sales-system     # override the source
 
 Exit codes: 0 nothing to do / applied cleanly, 1 changes pending or needing a human,
@@ -302,7 +312,60 @@ def _edited(rel, why):
 # them, never remove them silently.
 
 
+DEVICE_MARKER = os.path.join("scripts", "DEVICE-COPY.json")
+
+
+def has_device_copy(dst):
+    return os.path.isfile(os.path.join(dst, DEVICE_MARKER))
+
+
+def plugin_version(src):
+    try:
+        with open(os.path.join(src, os.pardir, ".claude-plugin", "plugin.json"),
+                  encoding="utf-8") as f:
+            return json.load(f).get("version", "")
+    except (OSError, json.JSONDecodeError):
+        return ""
+
+
+def install_device_copy(src, dst):
+    """Copy the plugin's scripts and CONVENTIONS.md into the folder and record what was
+    copied. Writes in place (truncate-and-write), because the device bridge refuses
+    unlink and rename-over-existing is not something to rely on there."""
+    files = {}
+    sd = os.path.join(dst, "scripts")
+    os.makedirs(sd, exist_ok=True)
+    rels = sorted(os.path.join("scripts", f) for f in os.listdir(os.path.join(src, "scripts"))
+                  if f.endswith(".py"))
+    rels.append("CONVENTIONS.md")
+    changed = 0
+    for rel in rels:
+        s, d = os.path.join(src, rel), os.path.join(dst, rel)
+        if not os.path.isfile(s):
+            continue
+        if not os.path.exists(d) or sha(d) != sha(s):
+            with open(s, "rb") as fi, open(d, "wb") as fo:
+                fo.write(fi.read())
+            changed += 1
+        files[rel] = sha(d)
+    marker = {"template_version": version_of(src), "plugin_version": plugin_version(src),
+              "installed_at": datetime.now().isoformat(timespec="seconds"),
+              "note": "Written by update-system --device-copy. The skills run these scripts "
+                      "on this machine because the plugin itself is installed elsewhere. "
+                      "find_scripts.py checks every hash below on each run; do not edit "
+                      "the scripts here — edits are reported as an unverified copy.",
+              "files": files}
+    with open(os.path.join(dst, DEVICE_MARKER), "w", encoding="utf-8") as f:
+        json.dump(marker, f, indent=2)
+        f.write("\n")
+    print(f"\n  device copy: {changed} of {len(files)} file(s) refreshed, plugin "
+          f"{marker['plugin_version'] or '?'}, template {marker['template_version']}. "
+          "find_scripts.py will verify it on every run.")
+
+
 def legacy_scripts(dst):
+    if has_device_copy(dst):
+        return []   # a device copy is live machinery, not leftovers
     out = []
     for sub in LEGACY_DIRS:
         d = os.path.join(dst, sub)
@@ -326,6 +389,10 @@ def explain_legacy(legacy, dst, project):
           f"guard on this month's\n  data, and a stale CONVENTIONS.md is a rulebook that "
           f"no longer describes the rules.")
     print(f"  Retire them with:\n    --apply {project} --prune-scripts")
+    print("  UNLESS the plugin is not installed on the machine this folder is on (a split "
+          "setup:\n  Claude in a cloud session, the folder on your computer). Then these are "
+          "the only\n  scripts the skills can run, and the fix is the opposite — make them a "
+          "verified copy:\n    --apply <project> --device-copy")
 
 
 def prune_scripts(dst, project):
@@ -522,8 +589,11 @@ def report(src, dst, actions, has_baseline, project, legacy=()):
 
     print(f"\n  Never touched: {', '.join(PRESERVE)} — and your registries, notes and "
           f"briefs\n  live outside this folder entirely.")
+    # No flag is appended for leftover scripts: whether they are leftovers to prune or the
+    # only scripts this machine can run (a split setup) is a question explain_legacy puts to
+    # the reader. Suggesting --prune-scripts here deleted the scripts a split folder runs on.
     print(f"\n  To apply:  python3 {os.path.abspath(__file__)} --apply {project}"
-          + ("  --prune-scripts" if legacy else "") + "\n")
+          + ("  [--prune-scripts | --device-copy — see above]" if legacy else "") + "\n")
     return 1
 
 
@@ -536,6 +606,11 @@ def main():
                          "script lives in.")
     ap.add_argument("--no-migrate", action="store_true",
                     help="Skip the registry migration afterwards")
+    ap.add_argument("--device-copy", dest="device_copy", action="store_true",
+                    help="Install or refresh the folder's verified copy of the scripts, for a "
+                         "split setup where the plugin is not on the machine the folder is on")
+    ap.add_argument("--drop-device-copy", dest="drop_device_copy", action="store_true",
+                    help="With --prune-scripts: also retire a device copy")
     ap.add_argument("--prune-scripts", dest="prune_scripts", action="store_true",
                     help="Retire the folder's leftover scripts/ directory, which nothing "
                          "reads since scripts moved into the plugin")
@@ -571,10 +646,33 @@ def main():
     actions, has_baseline = plan(src, dst)
     legacy = legacy_scripts(dst)
     if a.check:
-        return report(src, dst, actions, has_baseline, project, legacy)
+        rc = report(src, dst, actions, has_baseline, project, legacy)
+        if has_device_copy(dst):
+            m = read_json(os.path.join(dst, DEVICE_MARKER), {}) or {}
+            stale = [r for r in [os.path.join("scripts", f) for f in
+                                 os.listdir(os.path.join(src, "scripts")) if f.endswith(".py")]
+                     + ["CONVENTIONS.md"]
+                     if not os.path.isfile(os.path.join(dst, r))
+                     or sha(os.path.join(dst, r)) != sha(os.path.join(src, r))]
+            print(f"\n  device copy: plugin {m.get('plugin_version', '?')}, template "
+                  f"{m.get('template_version', '?')} — "
+                  + (f"{len(stale)} file(s) behind this plugin; --apply refreshes them"
+                     if stale else "current"))
+            rc = rc or (1 if stale else 0)
+        return rc
 
-    report(src, dst, actions, has_baseline, project, legacy)
+    report(src, dst, actions, has_baseline, project, [] if a.device_copy else legacy)
     rc = apply(src, dst, actions, migrate=not a.no_migrate, project=project)
+    if a.prune_scripts and a.drop_device_copy and has_device_copy(dst):
+        os.rename(os.path.join(dst, DEVICE_MARKER),
+                  os.path.join(dst, "scripts", "DEVICE-COPY.retired.json"))
+        legacy = legacy_scripts(dst)
+    elif a.device_copy or has_device_copy(dst):
+        install_device_copy(src, dst)
+        if a.prune_scripts:
+            print("  --prune-scripts ignored: this folder runs on its device copy. Pass "
+                  "--drop-device-copy as well if the plugin is now installed on this machine.")
+        legacy = []
     if legacy:
         prune_scripts(dst, project) if a.prune_scripts else explain_legacy(legacy, dst,
                                                                           project)

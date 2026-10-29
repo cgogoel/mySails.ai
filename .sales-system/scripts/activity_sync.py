@@ -98,6 +98,11 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # traffic in both directions kept one side and silently discarded the other.
 CACHE_FORMAT = 2
 
+# A cache whose newest event is older than this is reported stale by --status and trips
+# run_integrity. Three days covers a weekend; a fourth quiet day on a working book is
+# almost always an ingest that stopped running, which is how a live folder went a month.
+STALE_DAYS = 3
+
 
 def _legacy_cache_dir(root):
     """Where versions before 2026-09-04 kept the cache: the machine's temp directory,
@@ -192,6 +197,113 @@ def load_opp_index(root):
 
 LEAD_TERMINAL = {"disqualified", "do not contact", "junk", "qualified",
                  "customer or partner"}
+
+# Domains that say nothing about which customer a person works for. A Gmail address on a
+# deal is a person, never an account.
+FREEMAIL = {"gmail.com", "googlemail.com", "outlook.com", "hotmail.com", "live.com",
+            "yahoo.com", "icloud.com", "me.com", "aol.com", "proton.me", "protonmail.com",
+            "msn.com", "comcast.net", "verizon.net", "att.net"}
+
+# Optional, user-maintained: one row per (deal, domain) the mailbox should credit to it.
+# Either the local id (OPP-0031) or the CRM id may name the deal.
+DOMAIN_FILE = os.path.join("00-Config", "opp-domains.csv")
+# Written by hand in at least one live folder before the domain index existed. Read, never
+# written: `<crm or local id> <domain>` per line.
+LEGACY_DOMAIN_FILE = os.path.join(".sales-system", "cache", "opp-domain-map.txt")
+
+
+def config_value(root, key, default=""):
+    """One `key: value` line from 00-Config/config.md's frontmatter or body."""
+    try:
+        with open(os.path.join(root, "00-Config", "config.md"), encoding="utf-8") as f:
+            m = re.search(rf"^\s*-?\s*{re.escape(key)}:\s*(.+?)\s*$", f.read(), re.M)
+            return m.group(1).strip().strip("`") if m else default
+    except OSError:
+        return default
+
+
+def user_identity(root):
+    """(name, email) of the folder's user, from `owner: Name <email>` in config.md."""
+    raw = config_value(root, "owner")
+    m = re.match(r"\s*(.*?)\s*<\s*([^>]+)\s*>", raw)
+    if m:
+        return m.group(1).strip(), m.group(2).strip().lower()
+    return (raw.strip(), "") if "@" not in raw else ("", raw.strip().lower())
+
+
+def load_domain_index(root, user_emails=()):
+    """Who a mailbox address belongs to, when the event carries no deal id.
+
+    Returns (by_email, by_domain, owner_of): exact contact address -> opp id; domain ->
+    set of OPEN opp ids; opp id -> owner. Built from the opportunity-contacts registry
+    (the people on each deal), `00-Config/opp-domains.csv`, and the legacy cache map.
+
+    Until 0.15.0 `load_opp_index` returned an empty domain map and the mailbox ingest
+    matched deals by *account name* only — which a mailbox event never carries. So mail
+    attributed to leads (matched by address) and almost never to deals: a live folder
+    ingested 25 sent messages and credited 0 to deals, and its deal clocks froze while
+    its lead clocks moved. This is that missing half."""
+    import csvguard as G
+    G.set_dialect(root)
+    opp_by_crm, _, _ = load_crm_maps(root)
+    i, rows = _registry_rows(root, "07-Opportunities/opportunities.csv")
+    open_ids, owner_of, known = set(), {}, set()
+    for r in rows:
+        if "id" not in i:
+            break
+        oid = r[i["id"]]
+        known.add(oid)
+        owner_of[oid] = (r[i["owner"]] if "owner" in i else "").strip()
+        if not (r[i["stage"]] if "stage" in i else "").startswith("Closed"):
+            open_ids.add(oid)
+    skip = set(FREEMAIL) | {norm_domain(u) for u in user_emails if "@" in u or "." in u}
+    by_email, by_domain = {}, {}
+
+    def add_domain(oid, dom):
+        dom = norm_domain(dom)
+        if oid in open_ids and dom and "." in dom and dom not in skip:
+            by_domain.setdefault(dom, set()).add(oid)
+
+    i, rows = _registry_rows(root, "07-Opportunities/opportunity-contacts.csv")
+    if "email" in i and "opportunity_id" in i:
+        for r in rows:
+            em, oid = (r[i["email"]] or "").strip().lower(), r[i["opportunity_id"]]
+            if em and oid in known:
+                # An address on two deals is a person on two deals: the open one wins,
+                # and two open ones leave the address to the domain rule (ambiguous).
+                if em in by_email and by_email[em] != oid:
+                    if (by_email[em] in open_ids) == (oid in open_ids):
+                        by_email[em] = None
+                        continue
+                    if oid not in open_ids:
+                        continue
+                by_email[em] = oid
+                add_domain(oid, em)
+    by_email = {k: v for k, v in by_email.items() if v}
+
+    def resolve(ref):
+        ref = (ref or "").strip()
+        if ref in known:
+            return ref
+        return opp_by_crm.get(G.crm_key(ref), "")
+
+    for rel in (DOMAIN_FILE, LEGACY_DOMAIN_FILE):
+        p = os.path.join(root, rel)
+        if not os.path.exists(p):
+            continue
+        try:
+            with open(p, encoding="utf-8") as f:
+                for line in f:
+                    parts = [x for x in re.split(r"[,\s]+", line.strip()) if x]
+                    if len(parts) < 2 or parts[0].lower() in ("opp", "opp_id", "id",
+                                                              "opportunity"):
+                        continue
+                    oid = resolve(parts[0])
+                    if oid:
+                        add_domain(oid, parts[1])
+        except OSError:
+            pass
+    return by_email, by_domain, owner_of
 
 
 def load_lead_index(root):
@@ -291,12 +403,23 @@ def load_crm_maps(root):
 
 
 def attribute(e, by_name, lead_by_email, norm_name, opp_by_crm=None, lead_by_crm=None,
-              crm_key=None):
+              crm_key=None, opp_by_email=None, opp_by_domain=None, owner_of=None,
+              owner_name="", domain_tiebreak=False):
     """Which record an event belongs to: ("opp", id), ("lead", id) or (None, None).
-    Deals win — a converted lead's traffic belongs to the deal it became. A CRM id on
-    the event (`opp_crm_id` / `lead_crm_id`) resolves through the registries; it ranks
-    with the local id of the same kind, above the name and address hints."""
+
+    Strongest evidence first: a local or CRM id on the event; the account name; the exact
+    address of a person on a deal; the exact address of a lead; then the counterpart's
+    domain, only where it names exactly one open deal. Deals win over leads at equal
+    strength — a converted lead's traffic belongs to the deal it became — but a lead's
+    own address beats a deal's *domain*: a domain is a company, an address is a person.
+
+    `domain_tiebreak` (mailbox sources only): where a domain names several open deals and
+    exactly one of them is the user's, the user's own mailbox is crediting the user's deal.
+    Anything wider stays unattached and counted (CONVENTIONS §7a: a customer with two open
+    deals is not assigned to whichever looked likelier)."""
     ck = crm_key or (lambda s: (s or "").strip())
+    addrs = [(a or "").strip().lower() for a in (e.get("counterpart_email"), e.get("from"))]
+    addrs = [a for a in addrs if a]
     opp = (e.get("opp_id") or "").strip()
     if not opp and opp_by_crm:
         opp = opp_by_crm.get(ck(e.get("opp_crm_id")), "")
@@ -304,18 +427,26 @@ def attribute(e, by_name, lead_by_email, norm_name, opp_by_crm=None, lead_by_crm
         hit = by_name.get(norm_name(e.get("account", "")))
         if hit:
             opp = hit["id"]
+    if not opp and opp_by_email:
+        opp = next((opp_by_email[a] for a in addrs if a in opp_by_email), "")
     if opp:
         return "opp", opp
     lead = (e.get("lead_id") or "").strip()
     if not lead and lead_by_crm:
         lead = lead_by_crm.get(ck(e.get("lead_crm_id")), "")
     if not lead:
-        for addr in (e.get("counterpart_email"), e.get("from")):
-            lead = lead_by_email.get((addr or "").strip().lower(), "")
-            if lead:
-                break
+        lead = next((lead_by_email[a] for a in addrs if a in lead_by_email), "")
     if lead:
         return "lead", lead
+    if opp_by_domain:
+        for a in addrs:
+            cands = opp_by_domain.get(norm_domain(a)) or set()
+            if len(cands) == 1:
+                return "opp", next(iter(cands))
+            if len(cands) > 1 and domain_tiebreak and owner_name and owner_of:
+                mine = [c for c in cands if owner_of.get(c) == owner_name]
+                if len(mine) == 1:
+                    return "opp", mine[0]
     return None, None
 
 
@@ -411,6 +542,11 @@ def ingest(root, payload):
     by_name, _ = load_opp_index(root)
     lead_by_email = load_lead_index(root)
     opp_by_crm, lead_by_crm, lead_email = load_crm_maps(root)
+    src = payload.get("source", "unknown")
+    owner_name, owner_email = user_identity(root)
+    domain_users = user_emails + ([owner_email] if owner_email else [])
+    opp_by_email, opp_by_domain, owner_of = load_domain_index(root, domain_users)
+    mailbox = src in ("gmail", "calendar", "outlook", "mail")
     lead_p = lead_cache_path(root)
     leads = load_json(lead_p, {})
     from partner_conflict import norm_name
@@ -419,6 +555,8 @@ def ingest(root, payload):
             for store in (cache, leads) for key, events in store.items() for e in events}
     added = lead_added = dup = unattributed = 0
     who_missing = 0
+    unknown_crm = {}
+    newest = ""
 
     for e in payload.get("events", []):
         kind = (e.get("kind") or "").lower()
@@ -426,9 +564,22 @@ def ingest(root, payload):
             e["kind"] = classify_email(e, user_emails)
 
         what, rid = attribute(e, by_name, lead_by_email, norm_name,
-                              opp_by_crm, lead_by_crm, G.crm_key)
+                              opp_by_crm, lead_by_crm, G.crm_key,
+                              opp_by_email, opp_by_domain, owner_of, owner_name,
+                              domain_tiebreak=mailbox)
+        if e.get("date") and (e.get("date") or "")[:10] > newest:
+            newest = e["date"][:10]
         if not rid:
             unattributed += 1
+            # A CRM id the registry doesn't hold is a record created in the CRM since the
+            # last import, not a matching problem. Name it, so the run can import it and
+            # re-ingest the same payload (dedup makes the second pass free).
+            for fld, kind_ in (("opp_crm_id", "opp"), ("lead_crm_id", "lead")):
+                v = str(e.get(fld) or "").strip()
+                if v:
+                    unknown_crm.setdefault(kind_, {}).setdefault(v, 0)
+                    unknown_crm[kind_][v] += 1
+                    break
             continue
 
         who = (e.get("counterpart_email") or e.get("from") or "")
@@ -452,11 +603,41 @@ def ingest(root, payload):
             leads.setdefault(rid, []).append(rec)
             lead_added += 1
 
-    src = payload.get("source", "unknown")
     meta["cache_format"] = CACHE_FORMAT
-    meta["sources"][src] = {"last_sync": date.today().isoformat(),
-                            "last_added": added, "last_lead_added": lead_added,
-                            "last_dupes": dup}
+    # The watermark is the end of the window that was actually READ, not the day the
+    # ingest ran. Stamping today regardless meant a partial read — leads only, one
+    # day of a five-day gap — told the next run there was nothing left to fetch, and the
+    # gap was never read. `window.until` is exclusive (the day after the last day read),
+    # matching Gmail's `before:`. A payload with no window keeps the old behaviour, and
+    # says so in `window_declared`, so run_integrity can tell the two apart.
+    window = payload.get("window") or {}
+    prev = meta["sources"].get(src, {})
+    if window.get("until"):
+        from datetime import timedelta
+        last_day = (date.fromisoformat(window["until"][:10]) - timedelta(days=1)).isoformat()
+        last_sync = max(prev.get("last_sync", ""), last_day)
+    else:
+        last_sync = date.today().isoformat()
+    from datetime import datetime, timezone
+    rec = {"last_sync": last_sync,
+           "last_added": added, "last_lead_added": lead_added, "last_dupes": dup,
+           "last_unattributed": unattributed,
+           "last_ingest_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+           "last_payload_events": len(payload.get("events", [])),
+           "window_declared": bool(window.get("since") and window.get("until")),
+           "newest_event": max(newest, prev.get("newest_event", ""))}
+    if window:
+        rec["window"] = {k: window[k] for k in ("since", "until") if k in window}
+    if unknown_crm:
+        rec["unknown_crm"] = {k: sorted(v, key=lambda x: -v[x])[:100]
+                              for k, v in unknown_crm.items()}
+        rec["unknown_crm_events"] = sum(n for v in unknown_crm.values() for n in v.values())
+    if payload.get("read"):
+        # What the fetch saw, before attribution: per-direction counts and the days whose
+        # query came back empty. The ingest can't verify these; it records them so the
+        # Preflight line is built from what was handed in rather than from memory.
+        rec["read"] = payload["read"]
+    meta["sources"][src] = rec
     meta["unattributed"] = meta.get("unattributed", 0) + unattributed
     if _lead_registry_exists(root):
         # Indexed means "the lead registry was consulted", not "leads had addresses":
@@ -467,6 +648,16 @@ def ingest(root, payload):
     save_json(meta_p, meta)
     print(f"{src}: +{added} deal events, +{lead_added} lead events, {dup} duplicates "
           f"collapsed, {unattributed} unattributable (no matching deal or lead)")
+    for kind_, ids in sorted(unknown_crm.items()):
+        label = "deal" if kind_ == "opp" else "lead"
+        print(f"  NOT IN REGISTRY: {len(ids)} CRM {label} record(s) with activity: "
+              + ", ".join(sorted(ids, key=lambda x: -ids[x])[:20])
+              + (" …" if len(ids) > 20 else ""))
+    if unknown_crm:
+        print("  Fetch those records by Id through the CRM connector, add them to the "
+              "registry (the same import lead-tracking / opportunity-tracking does), then "
+              "re-run this --ingest on the same payload. Until then their activity is lost "
+              "and run_integrity --finish fails the run.")
     if unattributed:
         print("  unattributable events are dropped — if that number is large, account "
               "names, CRM ids or lead addresses in the source don't match the registry "
@@ -618,6 +809,14 @@ def lead_touch(root, as_json=False):
     if touched:
         G.write_table(path, header, rows, schema=schema, root=root, backup=True)
     summary["written"] = touched
+    # Evidence that the step ran, for run_integrity: a brief that says it refreshed the
+    # lead clocks has to be able to point at this stamp.
+    from datetime import datetime, timezone
+    meta_p = cache_paths(root)[1]
+    m2 = load_json(meta_p, {"sources": {}})
+    m2["lead_touch_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    m2["lead_touch_written"] = touched
+    save_json(meta_p, m2)
     if as_json:
         print(json.dumps(summary))
     else:
@@ -645,6 +844,13 @@ def status(root, as_json=False):
     except Exception:
         has_crm = False
     crm_synced = any(is_crm_source(s, root) for s in sources)
+    newest = max((e.get("date", "") for store in (cache, leads) for v in store.values()
+                  for e in v), default="")
+    try:
+        age = (date.today() - date.fromisoformat(newest[:10])).days if newest else None
+    except ValueError:
+        age = None
+    stale = age is None or age > STALE_DAYS
     if as_json:
         # needs_full_window is the one bit the brief must act on: no source has ever
         # synced, or the lead registry has never been indexed. A brief that sees True and
@@ -660,8 +866,16 @@ def status(root, as_json=False):
                           "needs_full_window": not sources
                                                or not meta.get("leads_indexed"),
                           "crm_activity_synced": crm_synced,
-                          "needs_crm_full_window": has_crm and not crm_synced}))
+                          "needs_crm_full_window": has_crm and not crm_synced,
+                          "newest_event": newest, "newest_event_age_days": age,
+                          "stale": stale, "stale_after_days": STALE_DAYS,
+                          "lead_touch_at": meta.get("lead_touch_at")}))
         return 0
+    if stale:
+        print(f"STALE: newest cached event is {newest or 'none'}"
+              + (f" ({age} days old)" if age is not None else "")
+              + f" — more than {STALE_DAYS} days means the ingest has not been running. "
+                "Every follow-up clock read from this cache is wrong by at least that much.")
     print(f"cache: {cache_p}")
     print(f"{n} events across {len(cache)} deals; {ln} events across {len(leads)} leads")
     if cache and not meta.get("leads_indexed"):
@@ -724,6 +938,32 @@ def _open_filters(root):
     objs = fm.get("objects") or {}
     return ((objs.get("leads") or {}).get("default_filter") or "",
             (objs.get("opportunities") or {}).get("default_filter") or "")
+
+
+def soql_reads(vendor, since, tomorrow, opp_filter, lead_filter):
+    """The CRM activity read as four SOQL statements: {Task, Event} x {deal, lead}.
+
+    Each has exactly one semi-join at the top level of its WHERE clause, which is the
+    only place Salesforce allows one. Tasks are bounded on modification; Events on when
+    they happened, with a ceiling, because recurring series scheduled decades out are
+    real and a future meeting is not evidence of anything. Returned as data so the
+    selftest can assert the shape rather than trusting a printout."""
+    out = []
+    for key, bound in (("task", f"LastModifiedDate >= {since}T00:00:00Z"),
+                       ("event", f"StartDateTime >= {since}T00:00:00Z AND "
+                                 f"StartDateTime < {tomorrow}T00:00:00Z")):
+        o = vendor.get(key) or {}
+        if not o:
+            continue
+        fields = ", ".join(dict.fromkeys(v for k, v in o.items() if k != "object" and v))
+        for link, parent, flt, tag in ((o.get("what", "WhatId"), "Opportunity",
+                                        opp_filter, "deal"),
+                                       (o.get("who", "WhoId"), "Lead", lead_filter, "lead")):
+            out.append({"label": f"{o['object']} on {tag}s", "object": o["object"],
+                        "link": tag,
+                        "soql": f"SELECT {fields} FROM {o['object']} WHERE {bound} "
+                                f"AND {link} IN (SELECT Id FROM {parent} WHERE {flt})"})
+    return out
 
 
 def plan(root, since=None):
@@ -830,31 +1070,23 @@ def plan(root, since=None):
                 of = "IsClosed = false AND " + of
             from datetime import timedelta
             tomorrow = (date.today() + timedelta(days=1)).isoformat()
-            print("\n  the two reads, as SOQL — semi-joins, so no id lists are pasted in:")
-            # Tasks are bounded on modification; Events on when they happened, with a
-            # ceiling, because recurring series scheduled decades out are a real thing
-            # and a future meeting is not evidence of anything.
-            for key, bound in (("task", f"LastModifiedDate >= {since}T00:00:00Z"),
-                               ("event", f"StartDateTime >= {since}T00:00:00Z AND "
-                                         f"StartDateTime < {tomorrow}T00:00:00Z")):
-                o = vendor.get(key) or {}
-                if not o:
-                    continue
-                fields = ", ".join(dict.fromkeys(v for k, v in o.items()
-                                                 if k != "object" and v))
-                print(f"    SELECT {fields} FROM {o['object']}\n"
-                      f"      WHERE {bound}\n"
-                      f"        AND ({o.get('what','WhatId')} IN (SELECT Id FROM Opportunity "
-                      f"WHERE {of})\n"
-                      f"          OR {o.get('who','WhoId')} IN (SELECT Id FROM Lead "
-                      f"WHERE {lf}))")
-            print("    Page to exhaustion. If the connector rejects Who.Email, drop it — "
-                  "the ingest fills a lead's\n    address from the registry.")
+            for q in soql_reads(vendor, since, tomorrow, of, lf):
+                print(f"\n  [{q['label']}]\n    {q['soql']}")
+            print("\n  FOUR queries, run separately, all four every time. Salesforce rejects "
+                  "a semi-join\n  inside OR (\"Semi join sub-selects are only allowed at "
+                  "the top level WHERE\n  expressions\"), so deal-linked and lead-linked "
+                  "activity cannot share one query.\n  Until 0.15.0 this plan printed the "
+                  "OR form; every run that executed it got a\n  MALFORMED_QUERY, and the "
+                  "CRM read silently never happened.")
+            print("  Page to exhaustion. If the connector rejects Who.Email, drop it — "
+                  "the ingest fills a lead's\n  address from the registry. A Task can carry "
+                  "both links; ingesting both copies is\n  safe, dedup collapses them. "
+                  "Merge all four results into ONE payload, source \"crm\".")
             scope = _scope(root)
             print(f"    Scope is `{scope}`: " + (
-                "add the owner clause (the user's CRM user id) to BOTH sub-selects"
+                "add the owner clause (the user's CRM user id) to EVERY sub-select"
                 if scope == "own" else
-                "add `OwnerId IN (<the ids in 00-Config/team.csv>)` to BOTH sub-selects,"
+                "add `OwnerId IN (<the ids in 00-Config/team.csv>)` to EVERY sub-select,"
                 "\n    the same way the registry pull is scoped")
                 + " — never to the activity\n    itself: a colleague's call on your lead "
                 "has their OwnerId, and it is exactly what you are here for.")
@@ -963,7 +1195,35 @@ def selftest():
     check("by kept, blank crm_id dropped", (rec.get("by"), "crm_id" in rec),
           ("Cortney", False))
 
-    total = 18
+    # 0.15.0 — the CRM read is four top-level semi-joins, never OR'd ones.
+    qs = soql_reads(sf.get("activity") or {}, "2026-10-01", "2026-10-30",
+                    "IsClosed = false", "IsConverted = false")
+    check("four CRM reads", len(qs), 4)
+    check("no OR between semi-joins", any(" OR " in q["soql"] for q in qs), False)
+    check("one semi-join per read", all(q["soql"].count("IN (SELECT") == 1 for q in qs), True)
+
+    # 0.15.0 — mailbox mail reaches deals by the counterpart's domain, but only where the
+    # domain names exactly one open deal; a lead's own address still beats a domain.
+    dom = {"acme.com": {"OPP-1"}, "agency.gov": {"OPP-2", "OPP-3"}}
+    owners = {"OPP-2": "Pat Rep", "OPP-3": "Someone Else"}
+    check("unique domain -> deal",
+          attribute({"counterpart_email": "x@acme.com"}, {}, {}, ident,
+                    opp_by_domain=dom), ("opp", "OPP-1"))
+    check("lead address beats deal domain",
+          attribute({"counterpart_email": "lead@acme.com"}, {}, {"lead@acme.com": "LEAD-1"},
+                    ident, opp_by_domain=dom), ("lead", "LEAD-1"))
+    check("ambiguous domain stays unattached",
+          attribute({"counterpart_email": "y@agency.gov"}, {}, {}, ident,
+                    opp_by_domain=dom), (None, None))
+    check("mailbox tiebreak takes the user's one deal",
+          attribute({"counterpart_email": "y@agency.gov"}, {}, {}, ident, opp_by_domain=dom,
+                    owner_of=owners, owner_name="Pat Rep", domain_tiebreak=True),
+          ("opp", "OPP-2"))
+    check("deal contact address beats lead",
+          attribute({"counterpart_email": "lead@acme.com"}, {}, {"lead@acme.com": "LEAD-1"},
+                    ident, opp_by_email={"lead@acme.com": "OPP-1"}), ("opp", "OPP-1"))
+
+    total = 26
     for f in fails:
         print(f"FAIL {f}", file=sys.stderr)
     print(f"activity_sync selftest: {total - len(fails)}/{total} passed")

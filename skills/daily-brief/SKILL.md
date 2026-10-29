@@ -18,6 +18,55 @@ one.
 
 The bar: after reading, they know what to do first, and they walk into every meeting prepared.
 
+## The run is bracketed — begin, then finish
+
+Every brief, scheduled or asked for, opens with `run_integrity.py --begin` and closes with
+`run_integrity.py --finish`. Nothing between them is optional, and the bracket is what makes
+that true rather than merely stated: for a month in one live folder the scheduled brief wrote
+"ingest not run" in its run notes nearly every morning, the 30-day floor went unmeasured, four
+weekday briefs never appeared, and nothing noticed — because a skipped step cost the run
+nothing. Now it costs the first line of the brief and a notification.
+
+```bash
+python3 "$S/run_integrity.py" --begin <project>       # FIRST scripted step, after resolving $S
+# ... Steps 8–10 below, floor_check.py, then the brief file is written ...
+python3 "$S/run_integrity.py" --finish <project> --brief 09-Briefs/Daily/<date>-daily-brief.md
+```
+
+- `--begin` runs the registry check itself (Step 8), records the run, and prints **tripwires**:
+  a cache whose newest event is more than 3 days old, weekday briefs missing since the last
+  one, a previous run that failed or never finished. Each is a `TRIPWIRE:` line; say them at
+  the top of the brief. A missing day is reported by the first run that sees it and not
+  again. It also prints every `NEEDS YOU` row; name each one in the brief, not a count.
+- `--finish` checks the **evidence** each required step leaves — the watermarks and timestamps
+  the ingest, `--lead-touch` and `floor_check.py` write — not the run's account of itself, and
+  writes the **Preflight line** as the brief's first line. Do not write your own Preflight
+  line, edit the script's, or soften it in the prose below it. Run it after the brief file
+  exists; run it again if you rewrite the file. Besides a step that did not run, it fails:
+  - a mail day with sent mail and **nothing received**, or a day with no received or no sent
+    query at all (re-run that day's query, below);
+  - CRM activity where a fifth or more of the read sits on **records not in the registry**
+    (import them and re-ingest, below);
+  - floor breaches with **no follow-up draft staged** this run (a file written in
+    `01-Tasks/Drafts/` after `--begin`). A run that stages none on purpose declares
+    `--skip --step drafts --reason "…"`, and the run reports FAILED, which is honest.
+- **Numbers in the prose come from the Preflight line.** If the body says "1 inbound thread"
+  and the line says "0 in", one of them is wrong and the brief reads as both. Quote the line's
+  counts; add only what it cannot know.
+- A required step that genuinely cannot run — connector missing, query refused after a retry —
+  is declared with `--skip <project> --step gmail|calendar|crm|lead_touch|floor|drafts --reason "…"`.
+  The run is then reported FAILED, with the reason, which is the honest result. A skip is
+  not a way to make the line come out green, and nothing is ever skipped for time: the
+  ingest is cheaper than the brief, and a brief without it is the wrong document.
+- **`NOTIFY:` is an instruction.** Whenever `--begin` trips or `--finish` exits 3, its last line
+  is `NOTIFY: <text>`. Send that text as a push notification (the `PushNotification` tool where
+  the host has it) before ending the run. An unattended run whose failure reaches nobody is the
+  defect this whole section exists to remove.
+
+Required steps default to registries, mail, calendar, CRM (when the profile names one), lead
+clocks, the floor and the follow-up drafts; `preflight_required:` in config.md overrides the list for a folder that
+genuinely has no calendar or no CRM.
+
 ## Before anything else
 
 1. Find the project root — the connected folder containing `.sales-system/`. Then resolve the
@@ -34,7 +83,20 @@ The bar: after reading, they know what to do first, and they walk into every mee
    run. **A non-zero exit here is a full stop**: say so in plain terms and produce nothing. A
    brief or forecast built without registry repair and drift verification is a different artifact
    and must not be presented as the same one. A folder with no `find_scripts.py` predates this
-   release — run `update-system`.
+   release — run `update-system`. **A zero exit is a go, whatever stderr says**: a warning is
+   something to report in one line, never a reason to skip the scripted steps.
+
+   **Split setup — the folder is on another machine.** When the folder is reached through a
+   shell on the user's computer (a device or remote shell tool) rather than the filesystem your
+   own shell sees, the plugin you are running from is *not* on that machine, so every script
+   command runs **through that shell, from the folder**, against the folder's **device copy**
+   of the scripts (`.sales-system/scripts/` with `DEVICE-COPY.json`, installed by
+   `update-system --device-copy`). `find_scripts.py` verifies the copy's hashes and resolves
+   to it silently; that is the normal answer, not a fallback. If it warns that the in-folder
+   scripts are *unverified* — no marker, an edited file, a version behind the folder — say so
+   in one line, carry on with them (they are what the folder has), and put `update-system`
+   in the brief's queue. Do not try to copy the folder's data to where the plugin is: it is
+   the user's data, and a run in September that tried was rightly refused.
 2. Read `$S/../CONVENTIONS.md`.
 3. Read `00-Config/config.md` — `scope`, `default_automation`, and **`brief_content`**, which
    records what this user wants in daily versus weekly. Honour it; the split below is the default,
@@ -49,7 +111,8 @@ The bar: after reading, they know what to do first, and they walk into every mee
    `auto` and the queue holds only drafts already sitting at `Awaiting Approval`.
 7. Read `03-Market/watchlist` for the Step 6 sweep — which newsletters are sources, and which
    terms are worth a search. No watchlist means no sweep, not a free-range news scan.
-8. Repair the registries:
+8. Repair the registries — `run_integrity.py --begin` has already run this and printed the
+   result; run it again only after a fix:
 
 ```bash
 python3 "$S/csvguard.py" --check-all <project>
@@ -76,23 +139,34 @@ run, don't stall the brief — note it in one line and carry on.
     runs on every brief, scheduled or not, and it is not a question for the user or a step to skip
     because the cache looks current. The read is **exhaustive over the window, both directions**:
 
-    - **Inbox and sent, whole window.** Two queries against the connected mailbox — everything
-      received and everything sent since the last brief (capped at seven days; 90 days when the
+    - **Received and sent, whole window.** Two queries against the connected mailbox — everything
+      received (wherever it was filed — not just what is still in the inbox) and everything sent since the last brief (capped at seven days; 90 days when the
       cache cannot be trusted, below). Page through **every** result until the connector reports
       no more; a first page is not the window. Where the connector searches by query, that is
-      `in:inbox after:<since>` and `in:sent after:<since>` (or the equivalent), not a search per
+      `-in:sent after:<since>` and `in:sent after:<since>` (or the equivalent), not a search per
       account, per deal, or per contact — a targeted search finds only what you already knew to
       look for, and the first live mornings missed sent follow-ups and replies on threads whose
       subject named nothing tracked for exactly that reason. Include threads that look
       irrelevant; attribution is the ingest's job, not the fetch's.
-    - **Every message becomes an event.** Hand the whole set to `--ingest` as one `gmail`-source
-      file — date, from, to, subject, counterpart address, account hint where the domain gives
-      one. Direction is derived by the script from the user's address, so sent and received must
-      both be present or the outbound clocks stay blank. Then the calendar, then the CRM:
+    - **Every message becomes an event — through `ingest_gmail.py`, not hand-built JSON.**
+      Save what the connector returned, one entry per query with the day it was bounded to
+      (`{"days": [{"date", "folder": "sent"|"received", "response"}]}`, plus any `get_thread`
+      results under `"threads"`), and run `ingest_gmail.py` over it with the window that was
+      actually read. It derives date, direction and counterpart, drops internal-only mail,
+      flags empty and saturated days, stamps the window as the watermark, and ingests.
+      Matching to deals is the ingest's job — a person on the deal, then a lead's own
+      address, then a domain that names exactly one open deal (from `opportunity-contacts`
+      and `00-Config/opp-domains.csv`) — so do not attach `opp_id`s yourself. Where the
+      connector is the mail tool described under *Mailbox connector notes* below, the window
+      is read **one day at a time**. Then the calendar, then the CRM:
     - **CRM activity, whole window, deals AND leads — the read is prescribed.** Run
       `activity_sync.py --plan <project>` and execute exactly the read it prints: every activity
       record linked to an open opportunity *or to a lead in the registry*, bounded by the window
-      and by the profile's query rules, paged to exhaustion. Not a search per account, and not
+      and by the profile's query rules, paged to exhaustion. For Salesforce that is **four
+      queries** — Task and Event, each once for deal links and once for lead links — because
+      Salesforce rejects a semi-join inside `OR`; the plan before 0.15.0 printed the `OR` form,
+      and a run that executed it got `MALFORMED_QUERY` and no CRM evidence at all. Run all four,
+      merge them into one payload. Not a search per account, and not
       "the deals only": the lead link is the half that was recorded in the profile for a month
       and never read, and it is the only place a colleague's work on the user's leads exists — a
       handed-over lead whose previous owner sent six cadence emails reads as *never touched*
@@ -108,20 +182,49 @@ run, don't stall the brief — note it in one line and carry on.
       for. On a big book or a first 90-day read, a connector that times out is sliced by date
       (the plan says how), each slice ingested as it lands, and the brief says which slices
       ran; a partial read reported is honest, a partial read presented as whole is not.
+      **Records the registry doesn't have yet.** The ingest prints `NOT IN REGISTRY:` with the
+      CRM ids of deals and leads that have activity but no row — records someone created in
+      the CRM since the last import. On 2026-10-29 that was 21 of 62 activities, including
+      three leads the user had written to that morning, and the brief
+      called them "mostly ids not in the registry" and moved on. Their activity is not lost
+      to the CRM, only to the folder, and the fix is in reach of the run: fetch exactly those
+      ids through the CRM connector (`WHERE Id IN (…)`, the registry's usual field set), add
+      them as rows the way `lead-tracking` / `opportunity-tracking` import does (a folder
+      write, `sync_status = synced`, nothing pushed), then re-run `--ingest` on the **same**
+      CRM payload; dedup makes the second pass free. Say in one line which records were
+      added. A record outside the user's scope (another rep's lead) is still imported, since
+      the brief needs to know it exists, and is named rather than worked.
       The profile has no `activity` block and the CRM's dialect declares no defaults → the plan
       says so and exits 1; the brief then says in one line that lead and colleague activity is
       unreadable until `configure-project` fills the block, and does not pretend otherwise.
 
 ```bash
-python3 "$S/activity_sync.py" --ingest <project> --input events.json        # gmail
-python3 "$S/activity_sync.py" --ingest <project> --input calendar.json      # calendar
-python3 "$S/activity_sync.py" --plan <project>                              # prints the CRM read
-# ... run that read through the CRM connector, write crm-activity.json ...
-python3 "$S/activity_sync.py" --ingest <project> --input crm-activity.json  # source "crm"
+python3 "$S/activity_sync.py" --status <project> --json                     # window + full-window flags
+python3 "$S/ingest_gmail.py" <project> --input mail-read.json \
+        --since <first day read> --until <day after the last day read>     # gmail
+python3 "$S/activity_sync.py" --ingest <project> --input calendar.json      # calendar, with "window"
+python3 "$S/activity_sync.py" --plan <project>                              # prints the CRM reads
+# ... run every read it prints through the CRM connector, merge into crm-activity.json ...
+python3 "$S/activity_sync.py" --ingest <project> --input crm-activity.json  # source "crm", with "window"
 python3 "$S/activity_sync.py" --lead-touch <project>
+python3 "$S/floor_check.py" <project>                                       # Step 3's numbers
 ```
 
-    - **Say what was read.** One line: "read 212 inbox and 87 sent messages since Tue 2 Sep; 41
+    Every payload carries `"window": {"since": …, "until": …}` (until exclusive) for the span
+    actually read: that is the source's watermark. Without it the watermark is "today", and a
+    run that read one day of a five-day gap told the next run there was nothing left to fetch.
+
+    **The window is continuous.** It starts **on** the source's last watermark day (`--begin`
+    prints it), not "yesterday" and not the day after — the last read may have ended partway
+    through that day, and dedup makes the overlap free. A run that fires late, or after a gap
+    of missed days, reads the whole gap. `--finish` fails a mail read that starts after the
+    watermark.
+    The seven-day cap above bounds Step 1a's *thread reading*, not the ingest: the ingest
+    covers the whole gap, day by day, up to 90 days. A month-long gap is ~40 working-day
+    queries, which is cheaper than a month of briefs built on stale clocks.
+
+    - **Say what was read.** The Preflight line `--finish` writes carries the counts; the
+      run notes add only what it cannot know. The shape: "read 212 inbox and 87 sent messages since Tue 2 Sep; 41
       attributed to 19 deals and 6 leads, 258 unmatched. CRM: 63 activities, 40 on 17 deals, 19
       on 11 leads (8 of them colleagues'), 4 unlinked." A brief that read nothing must say it
       read nothing and why — connector missing, query refused — never imply the clocks were
@@ -150,6 +253,50 @@ python3 "$S/activity_sync.py" --lead-touch <project>
     sent-mail check on staged drafts (the per-address search there confirms against the mailbox;
     the sent set read here is what makes a miss visible), Step 1a's thread reads, and Step 3's
     replies-owed list. None of those may substitute their own narrower search for this read.
+
+### Mailbox connector notes
+
+Observed against the Gmail connector in live runs and re-checked on 2026-10-29. They are the
+reason the read is per day, and they are not obvious from the tool's description:
+
+- **Thread search returns no message dates** — in `THREAD_VIEW_MINIMAL` or
+  `THREAD_VIEW_METADATA_ONLY` — and previews only the five *oldest* messages of each thread.
+  So the only trustworthy date for a search hit is the day its query was bounded to:
+  `after:YYYY/MM/DD before:<next day>`. `get_thread` (`METADATA_ONLY`) does return a real date
+  per message; use it where an exact date matters (a backfill read by week, a draft check).
+- **Message and thread ids are not a clock.** Results do not come back in date order, and an
+  id says nothing reliable about when a message was sent.
+- **No page token is returned**, whatever `resultCountEstimate` says. The only way to read
+  everything is a window that fits in one page: one day, `pageSize` 50. A day that returns
+  exactly 50 is *saturated* — split it (`category:` tabs, or `after:`/`before:` with epoch
+  seconds) rather than trusting it. `ingest_gmail.py` flags it.
+- **An empty result `{}` is sometimes wrong.** Single-day queries have returned `{}` for days
+  that had mail. Re-run any weekday that came back empty in both folders once before
+  believing it; `ingest_gmail.py` lists them as *suspect* until passed `--confirm-empty`.
+- **Don't exclude your own domain in the query.** `-to:<own domain>` drops whole threads that
+  had any internal recipient, which is most customer threads with a colleague on cc. Read
+  everything; the script drops internal-only mail itself.
+- **A day with sent mail and nothing received is suspect.** On 2026-10-29 a run read 9
+  outbound and 0 inbound and its Preflight said OK; the mailbox held three customer replies
+  that day from three accounts. `ingest_gmail.py` now lists such days as
+  `one_sided_days` and `--finish` fails them. Re-run that day's received query once; if it is
+  still empty of outside senders, pass the day to `--confirm-empty`.
+- **Your other addresses and your colleagues' other domains.** A renamed company keeps the
+  old domain in live use: colleagues cc'd from it read as customers, and mail sent from the
+  user's old address reads as inbound. Set `owner_aliases:` (the user's other addresses) and
+  `internal_domains:` (colleagues' domains beyond the owner's) in `00-Config/config.md`,
+  comma-separated. `configure-project` should ask; a brief that sees the user's own name on
+  another domain proposes the setting in one line.
+- **Received mail is not the inbox.** Per day, two queries: `in:sent` and
+  `-in:sent -category:promotions -category:social` (folder `received`). Never `in:inbox`: a
+  user who archives — or whose filters skip the inbox — keeps most customer replies outside
+  it. Checked 2026-10-29 in a live mailbox: one thread in the inbox for the day, internal;
+  the customer replies that day (five accounts) were all archived. Every brief before 0.15.0
+  read `in:inbox`, which is why inbound counts — and every Heating/Warm score, which gates on
+  inbound — ran low.
+
+A brief built on a different mailbox connector follows the same rules wherever that
+connector shares the limitation, and says in the read line which it used.
 
 Briefs are written to `09-Briefs/Daily/YYYY-MM-DD-daily-brief.md`.
 
@@ -410,6 +557,13 @@ What differs:
   breach, marked *no recorded touch* so the user can see which are genuinely cold and which may
   be data. Nothing is held back as "unbaselined": the cap is what keeps the first week sane, and
   a record that was never written to is exactly what the floor exists to catch.
+- **The numbers come from `floor_check.py`, every run.** It applies the scope, the renewal,
+  on-hold and excluded-stage exemptions, and the touch rules below to the registries and the
+  cache, prints the counts and the breaches oldest-and-largest first, and writes the evidence
+  `--finish` looks for. Use its counts verbatim. "Floor not recomputed" is no longer a thing a
+  brief can say: if the script could not run, `--finish` fails the run and says why. Whose
+  touch counts on a deal is `followup_deal_touch:` in config.md — `any` (the default:
+  anyone on our side, named, the same rule the lead clock uses) or `own`.
 - **Backlog, recomputed every run.** Where the book already breaches the floor, run a burn-down at
   the cap, not a flood: oldest and largest first, at `daily_cap` and never above it, and report
   progress as a fraction of the original — "12 of 46 cleared" — so the end is visible. The
@@ -785,7 +939,22 @@ working. Ten is it competing with the rest of the brief.
 
 Structure, skipping empty sections rather than printing "None":
 
-**Did automatically** — only if something did. Always first. Includes every Tier 1 record update
+**Preflight** — the first line, always, written by `run_integrity.py --finish`. Any
+`TRIPWIRE:` from `--begin` goes directly under it, in words: "No brief ran on 10/08, 10/09,
+10/12, 10/13 — this one covers the whole gap."
+
+**A CRM email is not "direction unknown" while the mailbox is in the cache.** CRM email tasks
+often carry no direction. Before saying a thread's state is unknown, look for the same day
+and subject in the mail ingest: a task logged under the user's name on the day the user sent
+that subject is the user's outbound, and whether the customer answered is in the received
+read. On 2026-10-29 a brief said it could not tell whether a customer had replied; the reply was in
+the mailbox, archived, and the received read had missed it.
+
+**Meetings: read the RSVPs.** An attendee who declined is part of the prep ("your manager declined
+this occurrence"), and a brief that tells the user to raise items in a meeting its host
+declined is wrong in a way the user notices.
+
+**Did automatically** — only if something did. Includes every Tier 1 record update
 from Step 1a, one line per deal or lead: what changed, from which thread; and every staged draft
 Step 1 found already sent and closed.
 
@@ -821,6 +990,19 @@ builds more trust than three invented priorities.
 
 Offer to run it on weekday mornings, early enough to act on. A brief that has to be remembered
 about is a brief nobody reads.
+
+**The scheduled prompt stays short and names the bracket.** It says which folder, which skill,
+and that the run begins with `run_integrity.py --begin`, ends with `--finish --brief`, and
+sends any `NOTIFY:` line as a notification — then the folder's few genuine quirks. It does not
+restate this skill's method: a second copy of the steps drifts from the first, and the copy in
+the prompt is the one a hurried run follows. Where the folder is on the user's computer and
+the run is in the cloud, the prompt also says so, and that the scripts run through the device
+shell from the folder (see *Split setup*).
+
+A run whose computer is asleep or offline cannot run, and the scheduler may fire it late or
+fold several missed mornings into one. That is why `--begin` checks for missing weekday
+briefs: the gap is reported by the next run that does happen, and the mail window — which
+starts at the watermark, not at yesterday — covers it.
 
 The sweep in Step 6 narrows the window: late enough that the morning's newsletters have landed,
 early enough to still change the day. For most people that is a specific half hour rather than a

@@ -801,7 +801,9 @@ lead in the registry* — as `activity_sync.py --plan` prints it: bounded by the
 rules, paged to exhaustion, handed back as one payload with `"source": "crm"`, each record
 tagged with the CRM's own ids (`opp_crm_id`, `lead_crm_id`) for the ingest to resolve through
 `crm_id`, the owner's name as `by`, the record's id as `crm_id`. Never a query per account, and
-never the deals alone. Where no `activity` block exists and the CRM's dialect declares no
+never the deals alone. For Salesforce the plan prints **four** statements — Task and Event,
+each once for deal links and once for lead links — because Salesforce allows a semi-join only
+at the top level of a WHERE clause, never inside `OR`. Every one of them runs. Where no `activity` block exists and the CRM's dialect declares no
 defaults, the plan exits 1 and the brief says lead and colleague activity is unreadable — it
 does not improvise an object name.
 
@@ -831,8 +833,9 @@ CRM's activity id goes back onto the cached event so the next read recognises it
 ### The mailbox read is exhaustive, every run
 
 The activity cache is only as good as what the briefs hand it, and the fetch is the one part
-the script cannot check. So the rule for the fetch is fixed: **every run of a brief reads the
-whole inbox and the whole sent folder for its window** — two queries, `in:inbox` and `in:sent`
+the script cannot check. So the rule for the fetch is fixed: **every run of a brief reads all
+received mail and the whole sent folder for its window** — two queries, received
+(`-in:sent`, wherever it is filed; never `in:inbox`, which misses every archived reply) and `in:sent`
 since the last run (capped at seven days; 90 days when `--status` says the cache cannot be
 trusted), paged until the connector has no more. Never a search per account, deal or contact
 as the primary read: that finds only what was already known to look for, and it misses the
@@ -842,6 +845,37 @@ derived from the user's address and an inbox-only read leaves every outbound clo
 brief says what it read — counts in, counts out, how many attributed, how many unmatched — and
 a run that read nothing says so rather than implying the clocks moved. Zero sent messages over
 a working week is a failed query, not a quiet user.
+
+The read is turned into events by `ingest_gmail.py`, never by hand: it takes what the
+connector returned per query-day, derives date, direction and counterpart, and stamps the
+window that was read as the source's watermark. Every ingest payload carries
+`"window": {"since", "until"}` (until exclusive); the watermark is the end of what was read,
+not the day the ingest ran, and the next run's window starts on that day (one day of
+overlap, which dedup absorbs, because the last read may have ended partway through it) — so a gap of missed
+mornings is read in full by the next run that happens. Where the connector cannot date a
+search hit or page past one result page (the Gmail connector, as of 2026-10), the window is
+read one day at a time; the daily-brief skill keeps the connector notes.
+
+Mail reaches deals by the strongest evidence available: a deal id, the account name, the
+address of a person on the deal (`opportunity-contacts`), then — after a lead's own address
+has had its chance — a domain that names exactly one open deal (`opportunity-contacts`
+addresses and `00-Config/opp-domains.csv`, one `opp_id,domain` per row). A domain that names
+two open deals stays unattached and counted, except that the user's own mailbox credits the
+one of them the user owns.
+
+### A run proves what it did
+
+A step that can be skipped silently will be, the first morning a run is short of time. So
+every brief is bracketed by `run_integrity.py`: `--begin` runs the registry check, records
+the run and reports tripwires — a cache whose newest event is more than three days old,
+expected brief days with no brief, a previous run that failed or never finished — and
+`--finish` checks the evidence each required step leaves (the watermarks and timestamps the
+ingest, `--lead-touch` and `floor_check.py` write) and writes the brief's first line, the
+**Preflight line**, itself. A step that cannot run is declared with `--skip` and a reason,
+and the run is reported FAILED. Any tripwire or failure ends with a `NOTIFY:` line that the
+run sends as a notification. The rule underneath: a brief that did less than a full run
+must look different from one that did a full run, on its first line, and someone must be
+told.
 
 ### Three states, not two
 
@@ -1067,8 +1101,17 @@ new schema columns reach the existing registries.
 Silently leaving someone on an old file while reporting a successful upgrade is the same class
 of mistake as a silent revert.
 
-Folders set up before scripts moved into the plugin still contain `.sales-system/scripts/`.
-Nothing reads them. `--check` reports them and `--prune-scripts` retires them to `backups/` —
+**Split setup.** Where the skills run in one environment and reach the folder through a
+shell on another machine, the plugin is not where the scripts must run, so the folder carries
+a **device copy**: `.sales-system/scripts/` plus `CONVENTIONS.md`, installed and refreshed by
+`upgrade.py --apply --device-copy`, with `scripts/DEVICE-COPY.json` recording the plugin
+version and a hash per file. `find_scripts.py` verifies those hashes and the folder's
+template version on every run and resolves to a verified copy silently; it warns only about a
+copy it cannot verify. A device copy is never "leftover": `--prune-scripts` leaves it unless
+`--drop-device-copy` is passed.
+
+Folders set up before scripts moved into the plugin still contain `.sales-system/scripts/`,
+with no `DEVICE-COPY.json`. Nothing reads them. `--check` reports them and `--prune-scripts` retires them to `backups/` —
 opt-in, because it's a deletion inside someone's folder. Leaving a stale `csvguard.py` next to
 live registries is an invitation to run last month's guard against this month's data.
 

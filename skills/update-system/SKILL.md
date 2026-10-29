@@ -17,7 +17,9 @@ one update button.
 Scripts live in the plugin and run from there, so **updating the plugin updates all
 behaviour everywhere at once**. What a folder holds is its schemas — which the user is
 allowed to edit — and those need reconciling rather than replacing. That's the only reason
-a second step exists.
+a second step exists — except in a **split setup** (the folder on the user's computer, the
+plugin in a cloud session), where the folder also carries a verified copy of the scripts and
+this skill is what refreshes it after every plugin update. See *Split setup* below.
 
 ## Step 1 — Is the plugin itself behind?
 
@@ -125,9 +127,45 @@ which needs `base_currency:` in `config.md` and at least one row in `00-Config/f
 - If a merge kept something of theirs, name it: "kept your `Legal Review` stage and your
   `exec_sponsor_internal` column."
 
+### Split setup — the folder is on another machine than the plugin
+
+When this skill runs where the plugin is installed (a cloud session) and reaches the folder
+only through a shell on the user's computer, there is no filesystem on which `upgrade.py`, the
+plugin's `.sales-system/` and the folder are all visible — and the skills' scripts must run on
+the computer, where the plugin is not. The folder therefore carries a **device copy** of the
+scripts, and this skill is what keeps it current. Without it a split folder either has no
+scripts (every scripted step fails) or an unverified copy that `find_scripts.py` warns about
+on every run — and in one live folder that warning was read as "the scripts are broken" and
+answered by skipping the ingest for a month, while every brief advised "run update-system".
+
+How, with the folder on the computer and the plugin here:
+
+1. Package the plugin here: `tar czf plugin-<version>.tgz -C <plugin root> .claude-plugin
+   .sales-system skills` (the plugin root is `find_scripts.py --plugin-root` run here, or the
+   installed plugin directory).
+2. Copy it into the folder's cache with the file-transfer tool (it is gitignored and never
+   synced to the CRM): `<project>/.sales-system/cache/plugin-<version>.tgz`. Use a fresh
+   staged path for each version, and confirm the bytes landed by checksum on both sides.
+3. On the computer, extract **outside** the folder (the folder's mount may refuse to overwrite
+   or delete): `mkdir -p "$HOME/.sales-plugin-<version>" && tar xzf … -C "$HOME/.sales-plugin-<version>"`.
+4. Run the upgrade there, against the folder, installing the device copy:
+
+```bash
+X="$HOME/.sales-plugin-<version>"
+python3 "$X/skills/update-system/scripts/upgrade.py" --check <project> --from "$X/.sales-system"
+python3 "$X/skills/update-system/scripts/upgrade.py" --apply <project> --from "$X/.sales-system" --device-copy
+python3 "<project>/.sales-system/find_scripts.py" --explain    # must say "device copy verified"
+```
+
+Once a folder has a device copy every later `--apply` refreshes it — it does not need the flag
+again — and `--prune-scripts` leaves it alone unless `--drop-device-copy` is passed, which is
+only right once the plugin is installed on the computer itself. Say in the report that the
+folder now runs on a verified device copy of plugin `<version>`, and that this skill must run
+after every plugin update for the folder to get it.
+
 ### Folders set up before scripts moved into the plugin
 
-Those still contain `.sales-system/scripts/`. Nothing reads them now. They're inert sitting
+Those still contain `.sales-system/scripts/` with no `DEVICE-COPY.json`. Nothing reads them now. They're inert sitting
 there and actively dangerous if someone runs one, because they're last month's versions —
 running an old guard against current data is precisely the accident the guard exists to
 prevent.

@@ -901,10 +901,26 @@ def doctor(root):
     # PLUGIN's manifest, not the folder's: a folder's own manifest records only what the
     # folder holds — schemas and the resolver — and reading that one would assert nothing
     # about the scripts, which are the thing in question.
-    man = read_json_safe(os.path.join(scripts, os.pardir, "MANIFEST.json"))
-    named = [f for f in (man.get("files") or {}) if f.startswith("scripts/")]
+    # A device copy (split setup) is verified against its own record of what was copied —
+    # the folder's MANIFEST.json never lists scripts, so reading it would always fail here.
+    dev = os.path.join(scripts, "DEVICE-COPY.json")
+    if os.path.isfile(dev):
+        sys.path.insert(0, os.path.join(root, ".sales-system"))
+        try:
+            import find_scripts as FS
+            good, detail = FS.verify_device_copy(scripts)
+        except Exception as e:  # an old resolver without the verifier
+            good, detail = False, f"resolver cannot verify device copies ({e}); run update-system"
+        (ok if good else problems).append(("" if good else "device copy unverified: ") + detail)
+        man = {}
+        named = []
+    else:
+        man = read_json_safe(os.path.join(scripts, os.pardir, "MANIFEST.json"))
+        named = [f for f in (man.get("files") or {}) if f.startswith("scripts/")]
     missing = [f for f in named if not os.path.isfile(os.path.join(scripts, os.path.basename(f)))]
-    if missing:
+    if os.path.isfile(dev):
+        pass
+    elif missing:
         problems.append(f"{len(missing)} script(s) named in the plugin's MANIFEST.json are "
                         f"not at the resolved path: {', '.join(sorted(missing))}")
     elif named:

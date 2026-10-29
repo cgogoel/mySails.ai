@@ -6,6 +6,92 @@ gained — and, more importantly, what quietly means something different now.
 
 The format is one `## YYYY-MM-DD` heading per template version, matching `VERSION.json`.
 
+## 2026-10-29
+
+Scripts, skills and `CONVENTIONS.md`. Plugin `0.15.0`; `requires_template` moves to
+**2026-10-29**, because the daily brief now calls three new scripts. Run `update-system` — and
+if your folder lives on your computer while Claude runs in the cloud, run it with the
+device-copy steps in that skill, after **every** plugin update.
+
+**The daily brief can no longer skip its ingest without saying so on line one, and telling
+you.** The live finding behind this release: one folder's scheduled brief skipped the activity
+ingest on nearly every run from late September to late October. Each brief said "ingest not
+run" somewhere in its run notes and carried on; the activity cache held no mail after 09/23;
+the 30-day floor went unmeasured for a month and, when finally recomputed, was 23 of 39 deals
+and 46 of 61 leads — against a last reported figure of 2. Five weekday briefs never appeared
+(the computer was away for a week and missed runs were folded into later ones), and nothing
+pointed at the gap.
+
+- **`run_integrity.py`** brackets every brief. `--begin` runs the registry check, records the
+  run and reports tripwires: newest cached event more than 3 days old, expected brief days with
+  no brief, a previous run that failed or never finished. `--finish` checks the evidence each
+  required step left — not the run's own account — and writes the **Preflight line** as the
+  brief's first line. Any tripwire or failure ends in a `NOTIFY:` line the run sends as a
+  notification. `preflight_required:` in config.md changes which steps are required.
+- **`ingest_gmail.py`** turns the mailbox read into the ingest — the connector's own output per
+  query-day in, events out — so a run no longer hand-builds JSON or guesses deal ids. It flags
+  suspect-empty and saturated days.
+- **`floor_check.py`** computes both 30-day floors from the registries and the cache, every run.
+  "Floor not recomputed" is no longer something a brief can say. Whose touch counts on a deal
+  is `followup_deal_touch: any|own` in config.md; the default `any` counts a colleague's touch
+  and names them, as the lead clock already did. Leads in `Nurture` and partner-held statuses
+  are counted on the skip line, not in the floor; `lead_floor_statuses:` names the covered
+  statuses exactly for a folder that wants a different set.
+- **The CRM activity read is four queries, not two.** `--plan` printed `WhatId IN (…) OR WhoId
+  IN (…)`; Salesforce rejects a semi-join inside `OR`, so a run that executed the plan as
+  printed got `MALFORMED_QUERY` and no CRM evidence. It now prints Task and Event, each once for
+  deal links and once for lead links.
+- **Mail now reaches deals, not only leads.** The ingest matched mailbox events to deals by
+  account name, which a mailbox event never carries — the domain index was an empty stub. It now
+  matches by the address of a person on the deal, then (after a lead's own address) by a domain
+  that names exactly one open deal, from `opportunity-contacts` and the new optional
+  `00-Config/opp-domains.csv`. **What this means for you:** the first ingest after upgrading
+  credits deals with mail that used to land nowhere, so deal touch dates move forward and the
+  floor count falls. That is a correction, not an improvement in your follow-up.
+- **The watermark is what was read, not when.** Each payload states its `window`; a source's
+  `last_sync` is the end of that window. Before, it was always "today", so a partial read
+  marked a gap as read.
+- **Split setup: a verified device copy of the scripts.** Where the folder is on your computer
+  and the plugin in a cloud session, the folder needs its own copy of the scripts. `update-system
+  --device-copy` installs one with a hash manifest; `find_scripts.py` verifies it silently on
+  every run. Before, the same copy produced a "falling back to a stale copy" warning on every
+  run, which runs read as failure — and the advice it gave, "run update-system", could not fix
+  it, because update-system treated the copy as leftovers to prune.
+- **Received mail is read wherever it is filed, not just in the inbox.** The read was `in:inbox`
+  plus `in:sent`. In a mailbox whose owner archives (or whose filters skip the inbox), customer
+  replies are not in the inbox: on 2026-10-29 one live mailbox's inbox held one internal
+  thread while five accounts' replies sat archived. The received query is now `-in:sent`.
+  **What this means for you:** inbound counts rise after upgrading, and with them engagement
+  scores, which gate Heating and Warm on inbound. Re-ingest at least 30 days of received mail
+  to correct the history; until then older scores read colder than reality.
+- **Second live pass, same day.** The first brief run on this layer printed `Preflight: OK`
+  over a read that was not. What it found, and what changed:
+  - *Sent mail, nothing received.* The run read 9 outbound and 0 inbound for the day; the
+    mailbox held 35 received threads, three of them customer replies. `ingest_gmail.py` now
+    lists a day with sent mail and no received mail as `one_sided_days`, and a weekday with
+    no sent or no received query as `unqueried`; `--finish` fails both.
+  - *CRM activity on records the folder doesn't have.* 21 of 62 CRM activities sat on 10
+    leads and deals created in the CRM since the last import, three of them leads the user
+    was working that morning. The ingest dropped them as "unattributable" and the run was
+    green. The ingest now names those CRM ids (`NOT IN REGISTRY:`), the skill imports them
+    and re-ingests the same payload, and `--finish` fails when a fifth or more of the read
+    is on missing records.
+  - *Drafts.* The run listed 23 deal and 45 lead floor breaches and staged no drafts.
+    `drafts` is now a required step: breaches with no file written in `01-Tasks/Drafts/`
+    during the run fail it, unless declared with `--skip --step drafts`.
+  - *A tripwire is said once, not every day.* Missing-brief days are reported by the first
+    run that sees them; before, the same five days would have tripped every run for three
+    weeks.
+  - *Every `NEEDS YOU` row is kept,* not the last three lines of the check, and the summary
+    sentence is no longer counted as a row (the run reported 4 rows and could name 2).
+  - *`owner_aliases:` and `internal_domains:`* in config.md. A renamed company keeps its old
+    domain in use; without these, colleagues cc'd from it read as customers.
+  - Skill: prose numbers quote the Preflight line; a CRM email logged by the user on the day
+    they sent that subject is their outbound, not "direction unknown"; meetings read RSVPs.
+- Gmail connector notes in the daily-brief skill: no dates in search results, no page token,
+  `{}` returned for days that had mail, `-to:<own domain>` dropping threads. The read is one day
+  at a time.
+
 ## 2026-09-15
 
 Scripts, one schema, skills and `CONVENTIONS.md`. Plugin `0.14.0`; `requires_template` moves

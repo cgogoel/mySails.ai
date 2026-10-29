@@ -23,6 +23,17 @@ Usage from a skill, as the first scripted step:
 Exit status is the contract: 0 and one line of path on stdout, or 1 and an explanation on
 stderr. Never a silent empty string.
 
+**The device copy.** In a split setup — the skill runs in one environment (a cloud
+session, where the plugin is installed) and reaches the folder through a shell on another
+machine (the user's computer) — the plugin is not on the machine where the folder is, so
+nothing above can find it there. The scripts have to be in the folder. `update-system`
+installs them as a *device copy*: `.sales-system/scripts/` plus `DEVICE-COPY.json`, which
+records the plugin version and a hash per file. This resolver verifies those hashes and
+the folder's template version, and a verified copy is a normal, silent answer — not the
+"stale fallback" warning it used to print, which live runs read as a failure for a month
+and answered by skipping every scripted step. An unverified copy (no marker, an edited
+file, a version behind the folder) still warns, and says exactly which.
+
 Other modes:
     find_scripts.py [project]              resolve, cache, print the scripts dir
     find_scripts.py --plugin-root          print the plugin root instead
@@ -60,6 +71,47 @@ def _template_version(scripts_dir):
         return ""
 
 
+DEVICE_MARKER = "DEVICE-COPY.json"
+LEGACY_WHY = "in-folder copy"
+
+
+def _sha(path):
+    import hashlib
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def verify_device_copy(scripts_dir):
+    """(ok, detail). ok is True only for a device copy whose every recorded file is
+    present and unmodified, and whose template version matches the folder's own
+    VERSION.json — i.e. the scripts are byte-for-byte the plugin release the folder was
+    upgraded to."""
+    marker = os.path.join(scripts_dir, DEVICE_MARKER)
+    try:
+        with open(marker, encoding="utf-8") as f:
+            m = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return False, ("no DEVICE-COPY.json — this is an old or hand-copied set of scripts, "
+                       "not one update-system installed")
+    bad = []
+    for rel, want in (m.get("files") or {}).items():
+        p = os.path.join(scripts_dir, os.pardir, rel)
+        if not os.path.isfile(p):
+            bad.append(f"{rel} missing")
+        elif _sha(p) != want:
+            bad.append(f"{rel} modified")
+    folder_v = _template_version(scripts_dir)
+    if m.get("template_version") and folder_v and m["template_version"] != folder_v:
+        bad.append(f"copy is template {m['template_version']}, folder is {folder_v}")
+    if bad:
+        return False, "; ".join(bad[:5]) + (f" (+{len(bad) - 5} more)" if len(bad) > 5 else "")
+    return True, (f"device copy of plugin {m.get('plugin_version', '?')}, template "
+                  f"{m.get('template_version', '?')}, {len(m.get('files') or {})} files verified")
+
+
 def _candidates(project):
     """(path, why) in priority order. Nothing is touched on disk here."""
     out = []
@@ -95,12 +147,10 @@ def _candidates(project):
         for c in sorted(glob.glob(pat)):
             out.append((_norm(c), "plugin cache"))
 
-    # Last, and deliberately last. Folders set up before the scripts moved into the plugin
-    # still have a copy here. It is last month's guard, and running an old guard against
-    # current data is precisely the accident the guard exists to prevent — so it is a
-    # fallback of last resort and it announces itself.
-    out.append((_norm(os.path.join(project, ".sales-system", "scripts")),
-                "in-folder legacy copy (stale)"))
+    # Last. Either a verified device copy (see the module docstring — the normal answer in
+    # a split setup) or an old in-folder copy from before scripts moved into the plugin,
+    # which is last month's guard and announces itself as such.
+    out.append((_norm(os.path.join(project, ".sales-system", "scripts")), LEGACY_WHY))
 
     seen, uniq = set(), []
     for p, why in out:
@@ -152,6 +202,9 @@ def find_scripts(project, use_cache=True, explain=False):
 
     if use_cache:
         hit = _cached(project)
+        if hit and _norm(hit) == _norm(os.path.join(project, ".sales-system", "scripts")) \
+                and not verify_device_copy(hit)[0]:
+            hit = None   # re-resolve so the warning is printed, never cached silence
         if hit:
             if explain:
                 print(f"  cache      {hit}  TAKEN", file=sys.stderr)
@@ -164,14 +217,14 @@ def find_scripts(project, use_cache=True, explain=False):
             print(f"  {'ok  ' if ok else 'miss'}  {why:28} {path}", file=sys.stderr)
         if not ok:
             continue
-        if why == "in-folder legacy copy (stale)":
+        if why == LEGACY_WHY:
             if best is None:
                 best = (path, why)   # keep it, but only if nothing else answered
             continue
         # Among real plugin copies, the newest support layer wins. Two installed versions
         # of the plugin is a normal state during an upgrade and picking the older one
         # silently is the same class of bug as this file exists to prevent.
-        if best is None or best[1] == "in-folder legacy copy (stale)" or \
+        if best is None or best[1] == LEGACY_WHY or \
                 _template_version(path) > _template_version(best[0]):
             best = (path, why)
         if why in ("SALES_SYSTEM_SCRIPTS", "CLAUDE_PLUGIN_ROOT"):
@@ -179,10 +232,17 @@ def find_scripts(project, use_cache=True, explain=False):
 
     if not best:
         return None, None
-    if best[1] == "in-folder legacy copy (stale)":
-        print("warning: falling back to the in-folder copy of the scripts at "
-              f"{best[0]}. These are not updated with the plugin and may be months behind. "
-              "Run update-system, or set SALES_SYSTEM_SCRIPTS.", file=sys.stderr)
+    if best[1] == LEGACY_WHY:
+        ok, detail = verify_device_copy(best[0])
+        if ok:
+            if explain:
+                print(f"  device copy verified: {detail}", file=sys.stderr)
+            return best[0], "device copy (verified)"
+        print("warning: using the in-folder scripts at "
+              f"{best[0]}, which could NOT be verified against a plugin release: {detail}. "
+              "Run update-system (in a split setup: with --device-copy) to install a "
+              "verified copy.", file=sys.stderr)
+        return best[0], "in-folder copy (unverified)"
     return best
 
 
