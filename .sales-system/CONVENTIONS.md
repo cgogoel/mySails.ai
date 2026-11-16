@@ -870,12 +870,14 @@ every brief is bracketed by `run_integrity.py`: `--begin` runs the registry chec
 the run and reports tripwires — a cache whose newest event is more than three days old,
 expected brief days with no brief, a previous run that failed or never finished — and
 `--finish` checks the evidence each required step leaves (the watermarks and timestamps the
-ingest, `--lead-touch` and `floor_check.py` write) and writes the brief's first line, the
+ingest, `--lead-touch`, `floor_check.py` and `market_sweep.py --record` write) and writes the brief's first line, the
 **Preflight line**, itself. A step that cannot run is declared with `--skip` and a reason,
 and the run is reported FAILED. Any tripwire or failure ends with a `NOTIFY:` line that the
 run sends as a notification. The rule underneath: a brief that did less than a full run
 must look different from one that did a full run, on its first line, and someone must be
-told.
+told. The corollary for output: **a section that can legitimately be empty prints its
+coverage when it is** — the news sweep's quiet morning is one line saying what was read and
+searched, never nothing, because a silent section cannot be told apart from a broken one.
 
 ### Three states, not two
 

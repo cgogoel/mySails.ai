@@ -1,6 +1,6 @@
 ---
 name: "daily-brief"
-description: "Produce the morning brief focused on today's execution — tasks due, the emails and calls owed on specific leads and opportunities, and every meeting today with who is attending, what their role likely wants, background research on the account, relevant competitor and market context, and an offer to build tailored content for the meeting. Enforces the follow-up guarantee where it is enabled — no open deal the user owns goes past the window without an outbound touch — by drafting and staging every follow-up it raises, burning down any backlog at the cap. Reads every email thread since the last brief on the user's deals and leads, and the CRM's activity on both — colleagues' logged calls and cadence sends on the user's leads included — and catches the records up — notes for every deal and lead touched, a lead moved to engaged — proposes a next step for every deal or lead the user wrote to or heard from, one diff per record, and pauses for the user's edit on any close date, amount, stage or negative sentiment a thread implies. Never calls a staged draft unsent without first searching sent mail for the recipient. Lists every task due and overdue by name, closes the ones email, calendar and CRM activity show are already done, and offers to complete the ones the system can finish itself — waiting for approval before it acts. Also runs a light overnight sweep of the user's newsletter subscriptions and targeted searches for news at tracked accounts. Use when the user asks for their daily brief, morning brief, what's on their plate today, what they should focus on, what they missed, who they need to follow up with, what they missed overnight, what tasks are due or overdue, or asks to prep or start their day. Also use when setting the brief to run each morning."
+description: "Produce the morning brief focused on today's execution — tasks due, the emails and calls owed on specific leads and opportunities, and every meeting today with who is attending, what their role likely wants, background research on the account, relevant competitor and market context, and an offer to build tailored content for the meeting. Enforces the follow-up guarantee where it is enabled — no open deal the user owns goes past the window without an outbound touch — by drafting and staging every follow-up it raises, burning down any backlog at the cap. Reads every email thread since the last brief on the user's deals and leads, and the CRM's activity on both — colleagues' logged calls and cadence sends on the user's leads included — and catches the records up — notes for every deal and lead touched, a lead moved to engaged — proposes a next step for every deal or lead the user wrote to or heard from, one diff per record, and pauses for the user's edit on any close date, amount, stage or negative sentiment a thread implies. Never calls a staged draft unsent without first searching sent mail for the recipient. Lists every task due and overdue by name, closes the ones email, calendar and CRM activity show are already done, and offers to complete the ones the system can finish itself — waiting for approval before it acts. Also runs a required news sweep: newsletters from every Gmail category, and searches on competitors, customers, prospects and watched market themes. Use when the user asks for their daily brief, morning brief, what's on their plate today, what they should focus on, what they missed, who they need to follow up with, what they missed overnight, what tasks are due or overdue, or asks to prep or start their day. Also use when setting the brief to run each morning."
 ---
 
 # Daily Brief
@@ -11,10 +11,12 @@ It is not a status report. Trends, aggregate market movement and competitor posi
 the weekly; pipeline against quota belongs in the forecast. Everything here should be actionable
 before this evening, and the test is whether someone could work the whole day from it.
 
-The one piece of market content that does belong is the overnight sweep in Step 6 — news that names
-an account someone here is actually working, tight enough to act on today. That is a different
-thing from the weekly's market section, and most of Step 6 is rules for keeping it from becoming
-one.
+The one piece of market content that does belong is the news sweep in Step 6 — news that names a
+customer, a prospect or a competitor, or moves a market theme the user watches, tight enough to act
+on this week. The line is **named news in, general commentary out**: a breach at a prospect or a
+competitor's federal award is the daily's; an industry trend piece is the weekly's. Step 6 is
+required — it runs every brief, is evidenced like the ingest, and prints a coverage line even on a
+quiet morning.
 
 The bar: after reading, they know what to do first, and they walk into every meeting prepared.
 
@@ -29,7 +31,8 @@ nothing. Now it costs the first line of the brief and a notification.
 
 ```bash
 python3 "$S/run_integrity.py" --begin <project>       # FIRST scripted step, after resolving $S
-# ... Steps 8–10 below, floor_check.py, then the brief file is written ...
+# ... Steps 8–10 below, floor_check.py, Step 6 (market_sweep.py --plan / --record),
+#     then the brief file is written ...
 python3 "$S/run_integrity.py" --finish <project> --brief 09-Briefs/Daily/<date>-daily-brief.md
 ```
 
@@ -49,12 +52,16 @@ python3 "$S/run_integrity.py" --finish <project> --brief 09-Briefs/Daily/<date>-
     (import them and re-ingest, below);
   - floor breaches with **no follow-up draft staged** this run (a file written in
     `01-Tasks/Drafts/` after `--begin`). A run that stages none on purpose declares
-    `--skip --step drafts --reason "…"`, and the run reports FAILED, which is honest.
+    `--skip --step drafts --reason "…"`, and the run reports FAILED, which is honest;
+  - **no news sweep record** written after `--begin` (`market_sweep.py --record`), or a record
+    that left planned searches undone. From 10/29 to 11/16 one folder's brief carried no news at
+    all — the sweep was the one section with no evidence check, and a missing section looked
+    exactly like a quiet morning.
 - **Numbers in the prose come from the Preflight line.** If the body says "1 inbound thread"
   and the line says "0 in", one of them is wrong and the brief reads as both. Quote the line's
   counts; add only what it cannot know.
 - A required step that genuinely cannot run — connector missing, query refused after a retry —
-  is declared with `--skip <project> --step gmail|calendar|crm|lead_touch|floor|drafts --reason "…"`.
+  is declared with `--skip <project> --step gmail|calendar|crm|lead_touch|floor|drafts|market_sweep --reason "…"`.
   The run is then reported FAILED, with the reason, which is the honest result. A skip is
   not a way to make the line come out green, and nothing is ever skipped for time: the
   ingest is cheaper than the brief, and a brief without it is the wrong document.
@@ -64,8 +71,11 @@ python3 "$S/run_integrity.py" --finish <project> --brief 09-Briefs/Daily/<date>-
   defect this whole section exists to remove.
 
 Required steps default to registries, mail, calendar, CRM (when the profile names one), lead
-clocks, the floor and the follow-up drafts; `preflight_required:` in config.md overrides the list for a folder that
-genuinely has no calendar or no CRM.
+clocks, the floor, the follow-up drafts and the news sweep; `preflight_required:` in config.md
+overrides the list for a folder that genuinely has no calendar or no CRM. The news sweep is not
+governed by that list but by its own key, `news_sweep_required:` (default `true`), so an override
+written before the sweep was a step cannot drop it by omission. `--begin` also trips when any
+customer or prospect has not been searched in more than 7 days.
 
 ## Before anything else
 
@@ -110,7 +120,9 @@ genuinely has no calendar or no CRM.
    what may not. A missing rules file is not permission: with no rules, nothing is offered as
    `auto` and the queue holds only drafts already sitting at `Awaiting Approval`.
 7. Read `03-Market/watchlist` for the Step 6 sweep — which newsletters are sources, and which
-   terms are worth a search. No watchlist means no sweep, not a free-range news scan.
+   themes are watched — and the `news_sweep_*` keys in config.md. No watchlist means no
+   newsletter or theme sweep; competitor, customer and prospect searches still run from their
+   registries.
 8. Repair the registries — `run_integrity.py --begin` has already run this and printed the
    result; run it again only after a fix:
 
@@ -860,23 +872,50 @@ catch a mistake.
 
 ---
 
-## Step 6: The overnight sweep — what you may have missed
+## Step 6: The news sweep — required, every run
 
-A light pass, run last and kept short: newsletters that landed since the previous brief, plus a
-small number of targeted searches. The Market Tracking module owns the watchlist, the signal
-registry, and the rules for both — **this step is a consumer of that module, not a second copy of
-it.** Everything kept here is logged there as a signal, through the guard, with
-`source_type = Newsletter` (and `newsletter_name`) or `Web Search`.
+Newsletters since the last brief, plus searches across four groups: competitors, customers,
+prospects and watched market themes. The Market Tracking module owns the watchlist, the signal
+registry and the rules for both — **this step is a consumer of that module, not a second copy of
+it.** It is planned and evidenced by `market_sweep.py`, and `run_integrity.py --finish` fails the
+run when the evidence is missing:
 
-If there is no watchlist, do not invent one. Say the sweep has no sources configured, point at
-`market-tracking`, and do the one thing still worth doing without it: a search on each account with a
-meeting today.
+```bash
+python3 "$S/market_sweep.py" --plan <project> [--meeting "<account>" ...]   # what is due today
+# ... read the newsletters, run the searches, log what survives ...
+python3 "$S/market_sweep.py" --record <project> --json <payload.json>         # the evidence
+```
 
-### Newsletters
+Pass every account with a meeting today as `--meeting` (the plan also finds meetings the calendar
+ingest cached). `--plan` prints the newsletter query and, per group, every account or row due today
+with its key and why it is due. `--record` takes back what was actually done, keyed the same way:
 
-Sweep the enabled `03-Market/watchlist` rows whose `kind` is `Newsletter` or `Feed`, matching on the
-sender address or URL in `sources`, across messages that arrived since the last brief. Read them
-**against the watchlist**, not for general interest.
+```json
+{"newsletters": {"issues_read": 3, "senders": ["news@fedscoop.com"], "kept": 1},
+ "searched": {"competitors": ["COMP-0001", "..."], "customers": ["<key>", "..."],
+              "prospects": ["<key>", "..."], "themes": ["WATCH-0007", "..."]},
+ "searches_run": {"competitors": 4, "customers": 6, "prospects": 14, "themes": 3},
+ "kept": {"customers": 0, "prospects": 1, "competitors": 0, "themes": 0},
+ "signals_logged": ["SIG-0042"]}
+```
+
+It advances the last-searched date per account, stamps `last_checked` on every watchlist row
+swept — whether or not it produced anything — and prints the **coverage line** the section ends
+with. A planned item left out of `searched` is a gap: recorded, printed as `GAP:`, and a failed
+Preflight. A search that genuinely could not run (no web search tool) is
+`run_integrity.py --skip --step market_sweep --reason "…"`, which is also a failed Preflight —
+the honest result. Never shorten the plan to fit time.
+
+### Newsletters — their own query, every Gmail category
+
+Run the query `--plan` prints, exactly: `from:(a@x.com OR b@y.com …) after:<last brief date>`, built
+from the `sources` of every enabled watchlist row of kind `Newsletter` (and mail-delivered `Feed`),
+with **no category exclusion**. Gmail files FedScoop, MeriTalk, DefenseScoop and the rest in
+Promotions, which the Step 3 activity ingest excludes on purpose — so do not reuse that ingest, and
+do not change its filter (it keeps promotions out of the activity record). Open **every** issue
+with `get_thread` / `get_message` and read the body: subject lines are not enough, and
+`search_threads` truncates long threads. Read each issue against the four groups and the
+watchlist, not for general interest. Off with `news_sweep_newsletters: false`.
 
 Two mechanics from `market-tracking` matter more here than anywhere else, because a daily cadence
 collides with a weekly publication schedule:
@@ -887,51 +926,95 @@ collides with a weekly publication schedule:
   already in `03-Market/signals` it is not news and it gets no line — including when this is the
   first time you personally saw it.
 
-### Searches
+### Searches — four groups, a daily tier and a weekly rotation
 
-Bounded, and chosen rather than swept. Search:
+Each group is searched over the last `news_sweep_window_days` (default 3) with news queries on the
+name plus the terms `--plan` suggests, through the market-tracking precision filter: a result must
+be *about* the named organisation, not merely mention it.
 
-- each account with a meeting today — though what turns up belongs in that meeting's prep in Step 2,
-  not down here;
-- the few deals where a change would actually move something: the largest live opportunities closing
-  this quarter, and renewals inside the conversation window;
-- watchlist rows with `cadence = Daily`.
+| Group | From | Searched every run | Rotated (each covered at least weekly) |
+|---|---|---|---|
+| Competitors | every row of `04-Competitors/competitors` | all of them | — |
+| Customers | accounts with an active contract in `08-Renewals/renewals` | renewal within `news_sweep_customer_renewal_days` (90); a meeting today | everyone else |
+| Prospects | accounts on open opportunities (not stages the profile excludes, e.g. `Pursuit`; not renewals; not partner accounts in `11-Partners`) and on leads not disqualified | closing within `news_sweep_prospect_close_days` (60); top `news_sweep_prospect_top_n` (10) by amount; a meeting today | everyone else |
+| Market themes | enabled watchlist rows of kind Theme, Regulation, Technology, Publication, Person or Event (and web `Feed` rows) with cadence Daily or Weekly | all of them | — |
 
-That is a budget, not a starting point. If the list of things worth searching is longer than the
-budget, say which you picked and leave the rest to the weekly.
+Watchlist rows of kind `Account` or `Prospect` fold into the customer or prospect group; one with
+cadence Daily puts that account in the daily tier.
+
+**The rotation** assigns each account to one of the brief's weekdays by a stable hash of its
+normalised name — one account with three deals and two leads is one search, on one day — so the
+whole book is covered every week at about a fifth of the daily cost. An account that moves into
+the daily tier leaves the rotation that day. An account not searched in more than 7 days (a
+missed run, a holiday) comes back as `overdue` in the next plan, and `--begin` names it.
+
+What to look for:
+
+- **Competitors** — funding, M&A, product or pricing changes, federal awards, leadership moves.
+- **Customers** — breaches, leadership changes, budget cuts, reorganisations, new mobile programmes.
+- **Prospects** — the same, plus RFPs/RFIs and contract awards.
+
+`news_sweep_customers` / `news_sweep_prospects` take `tiered` (default), `daily` (everyone every
+run) or `off`; `news_sweep_competitors` `all` or `off`; `news_sweep_market_themes` `true` or
+`false`.
 
 ### The bar
 
 An item survives if it does one of two things:
 
-1. **Names something tracked** — an account, prospect, opportunity, renewal, customer or competitor.
+1. **Names something tracked** — a customer, prospect, opportunity, renewal or competitor.
    Fuzzy-match on name and domain; CRM account names and press coverage rarely spell things the same
    way.
-2. **Matches an enabled watchlist row** whose `lens` is `deal` or `both`, *and* carries a concrete
-   `so_what` naming what changes.
+2. **Moves a watched theme** — matches an enabled watchlist row whose `lens` is `deal` or `both`,
+   *and* carries a concrete `so_what` naming what changes.
 
-A watched theme with nothing to do about it is dropped without comment. `lens = content` rows are not
-the daily's business — standing and thought leadership belong to `demand-gen` and the weekly.
+A watched theme with nothing to do about it is dropped without comment. General industry
+commentary — trend pieces, market sizing, "what this means for mobile security" — is the weekly's,
+however well it is written.
 
-Each surviving line reads: what happened, what it changes, for whom. Three sentences at most, and the
-middle one is the only one earning its space.
+**Content lens.** Under `news_sweep_content_lens: label` (the default), an item that passes only a
+`lens = content` row gets a line in Market themes tagged *(content)* — a moment the company may
+have standing to comment on, handed to `demand-gen`, never a suggestion to post from the brief.
+Under `off`, content rows are left to `demand-gen` and the weekly. **Never suggest commenting
+publicly on a competitor's win, funding or bad news** — that intelligence goes to
+competitor-tracking, where it shapes positioning instead of becoming a post.
 
-> **Acme discloses a mobile data-exposure incident** (reported, *Risk Weekly*, event 24 Aug) — their
-> security team now has board attention and a deadline. The evaluation that stalled in May is live
-> again, and Priya is the way back in. → OPP-0031
+Each surviving line is one line: what happened, the source link or newsletter name, which account
+or deal it affects.
 
-### Size, and the honest empty case
+> **Acme discloses a mobile data-exposure incident** — *Risk Weekly*, event 24 Aug — the
+> evaluation that stalled in May is live again; Priya is the way back in. → OPP-0031
 
-Aim at five lines. Eight is the ceiling. **Print nothing at all on a quiet morning** — "nothing
-overnight worth your attention" is a real result, and it is what makes the section believable on the
-day it does have something.
+### Logging
 
-If it produces eight items a day for a week, the bar is too low or the watchlist too broad. Say so
-and offer to tighten it. Quietly carrying on is how a decision aid becomes a digest.
+Every kept item is logged to `03-Market/signals` through the guard, with `source_type = Newsletter`
+(plus `newsletter_name`) or `Web Search` (plus `source_url`), `related_id` on the customer or
+prospect it touches and `competitor_id` on every competitor item. A competitor item that touches a
+battlecard goes through competitor-tracking's staleness check. `--record` stamps `last_checked` on
+the watchlist rows; the signal ids go in its `signals_logged`.
 
 Raise a task off a signal only where `relevance = High` and there is a specific person to contact,
 and count it against the day's caps like any other. Two signals becoming two tasks is this step
 working. Ten is it competing with the rest of the brief.
+
+### Output — the section is never silent
+
+The brief **always** has a `## Market and news` section. Sub-groups in this order, each capped:
+**Newsletters** (5), **Customers** (3), **Prospects** (3), **Competitors** (3), **Market themes**
+(3). The caps stop one noisy group — usually the themes — from crowding out the account news. An
+empty sub-group is not printed; it collapses into the coverage line, which closes the section
+every time and is `--record`'s line verbatim:
+
+> News sweep: 4 newsletter issue(s) read, 6 competitors searched, 9 customers searched (2 daily,
+> 7 rotated), 21 prospects searched (11 daily, 10 rotated), 3 market themes searched — nothing passed.
+
+On a quiet morning that line *is* the section. A silent section cannot be told apart from a broken
+one; one line makes a failure visible on day one. (`news_sweep_quiet_morning: silent` drops the
+line on a morning with nothing kept — the sweep still runs, still records, and still fails the
+Preflight when it did not.)
+
+If it produces a full set of items every day for a week, the bar is too low or the watchlist too
+broad. Say so and offer to tighten it. Quietly carrying on is how a decision aid becomes a digest.
 
 ---
 
@@ -971,7 +1054,8 @@ items on a line of their own.
 **Ready when you are** — the numbered approval queue, as the record; the asking happens through
 prompts in the session. Omitted entirely when there is nothing to approve.
 
-**Worth knowing** — the overnight sweep. Five lines at most, and omitted when the morning is quiet.
+**Market and news** — Step 6's section, always present: the capped sub-groups that have
+anything, then the coverage line.
 
 Under `team` scope, keep the focus on the user's own day but flag where a colleague's account needs
 them — an unowned meeting, a rep out today with a deal needing cover.
@@ -997,7 +1081,9 @@ sends any `NOTIFY:` line as a notification — then the folder's few genuine qui
 restate this skill's method: a second copy of the steps drifts from the first, and the copy in
 the prompt is the one a hurried run follows. Where the folder is on the user's computer and
 the run is in the cloud, the prompt also says so, and that the scripts run through the device
-shell from the folder (see *Split setup*).
+shell from the folder (see *Split setup*). The prompt does not need to name the news sweep: it is a required step of the
+bracket, so a prompt rewrite that forgets it fails the Preflight instead of silently dropping the
+section — which is what happened when one live prompt was rewritten on 10/29.
 
 A run whose computer is asleep or offline cannot run, and the scheduler may fire it late or
 fold several missed mornings into one. That is why `--begin` checks for missing weekday
@@ -1021,9 +1107,12 @@ Three failure modes.
 **Breadth.** Pulling in trends and pipeline analysis because they are available. That is the
 weekly's job and the forecast's, and including them here means the meeting prep — the part only
 this brief does — gets skimmed. Step 6 is the deliberate exception and it is fenced for exactly
-this reason: account-linked, actionable today, five lines. The moment it starts carrying industry
-trends or competitor positioning it has become the weekly printed daily, and it will be skipped
-along with everything under it.
+this reason: the line is **account- or competitor-named news (in) versus general industry
+commentary (out, weekly)**, with a cap per sub-group. News about a named competitor belongs here
+as much as news about a customer — the user sells against a small, named set of them, and a
+change at any one is worth knowing within days. The moment the section starts carrying trend
+pieces or market commentary it has become the weekly printed daily, and it will be skipped along
+with everything under it.
 
 **Shallow prep.** Listing a meeting with the account name and calling it preparation. If the brief
 doesn't tell the user something they didn't already know about who they're meeting and what those

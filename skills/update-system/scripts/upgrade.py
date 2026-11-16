@@ -597,6 +597,41 @@ def report(src, dst, actions, has_baseline, project, legacy=()):
     return 1
 
 
+def config_keys(src, project, do_apply):
+    """Config keys a release added with a default, brought into an existing config.md.
+
+    A default that lives only in skill prose disappears whenever a scheduled prompt is
+    rewritten — that is how one folder's news sweep vanished for three weeks. A key in
+    config.md survives that, and the user can see and change it. So the upgrade adds any
+    missing key, with its default, under its own heading; it never rewrites one present.
+    Today that is the news_sweep_* keys (template 2026-11-16)."""
+    import importlib.util
+    path = os.path.join(src, "scripts", "market_sweep.py")
+    if not os.path.isfile(path):
+        return 0
+    sys.path.insert(0, os.path.join(src, "scripts"))
+    spec = importlib.util.spec_from_file_location("market_sweep", path)
+    M = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(M)
+    miss = M.missing_config_keys(project)
+    if miss is None:
+        print("\n  config: no 00-Config/config.md — configure-project writes the news sweep "
+              "keys when it creates one.")
+        return 0
+    if not miss:
+        return 0
+    if not do_apply:
+        print(f"\n  config: {len(miss)} news_sweep_* key(s) missing from config.md — --apply "
+              "adds them with their defaults (the daily brief's news sweep is a required "
+              "step; these keys say what it covers).")
+        return 1
+    M.add_config_keys(project)
+    print(f"\n  config: added {len(miss)} news_sweep_* key(s) to 00-Config/config.md with "
+          f"their defaults ({', '.join(miss)}). The daily brief's news sweep is now a "
+          "required step; change these keys to narrow it, or set news_sweep_required: false.")
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(add_help=True)
     ap.add_argument("--check")
@@ -647,6 +682,7 @@ def main():
     legacy = legacy_scripts(dst)
     if a.check:
         rc = report(src, dst, actions, has_baseline, project, legacy)
+        rc = config_keys(src, project, False) or rc
         if has_device_copy(dst):
             m = read_json(os.path.join(dst, DEVICE_MARKER), {}) or {}
             stale = [r for r in [os.path.join("scripts", f) for f in
@@ -663,6 +699,7 @@ def main():
 
     report(src, dst, actions, has_baseline, project, [] if a.device_copy else legacy)
     rc = apply(src, dst, actions, migrate=not a.no_migrate, project=project)
+    config_keys(src, project, True)
     if a.prune_scripts and a.drop_device_copy and has_device_copy(dst):
         os.rename(os.path.join(dst, DEVICE_MARKER),
                   os.path.join(dst, "scripts", "DEVICE-COPY.retired.json"))

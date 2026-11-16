@@ -1,5 +1,5 @@
 {
-  "template_version": "2026-10-29",
+  "template_version": "2026-11-16",
   "note": "sha256 per shipped file, written at package time. upgrade.py compares against it to tell an edited file from an untouched one. Not a security control \u2014 just provenance.",
   "files": {
     "scripts/activity_sync.py": "e65704babd794f6efc488dd977bd6bfb2f262a1617e0f4475cf23b61baca89cf",
@@ -12,9 +12,10 @@
     "scripts/fx.py": "e64e54ef89be59c2cadc8f7a01633b38739fc1a7372c88ce3ab79dd58a1c6981",
     "scripts/ingest_gmail.py": "75a04ca746a210f58df7eaf01506db6f3e876d8a6e37db8122c934aa16baa7d9",
     "scripts/make_template.py": "93abb9ba55ee52271d116ff5f4c94fc1e98ac71ef271ee36c46607c940433abf",
+    "scripts/market_sweep.py": "4a13b550d29184f79a8ce9881b575e316328302ac3b834733b88fd6b8b1c5b89",
     "scripts/partner_conflict.py": "b4ce155717f8a8296e142dc35536195738f64f155e5d7c3dbdfc6755e714aec2",
     "scripts/quote.py": "75aa8a5c380c0e2d4f7fffa8a1e48e947f2064c7bb1362b78613d038f0d0d33b",
-    "scripts/run_integrity.py": "3f5da2fb7975d484cf645bc4dc0c1e46dde666b5f7ccaaf99ca071ca11268b55",
+    "scripts/run_integrity.py": "35f290ca746e0fad9b5047dda98d98d5e82ecda4e2994061fba2b4b75ac8e79b",
     "scripts/setup_status.py": "d4a403234181434b35927d4ae48975efa27f4cac49966bac387d1b7909ce825b",
     "scripts/sheetstyle.py": "027a07cdfa937eda2fdc1219f6b1606b72b48c1b9e7f3ebe8bfe795bcc01a94b",
     "schemas/campaigns.json": "22671a206fb16fd7c5f117c1d757169f3a1a5c2a9b0df6ebbecaeb6d6388260d",
@@ -43,9 +44,9 @@
     "schemas/task_rules.json": "474784de219c91079d6e57eb20ca3bb42f956bd3f4a1bdb87a63f23708840358",
     "schemas/tasks.json": "92392a011f61c9efac300bdb62084e37c68f2dd95ed72f3660606927b00dfbee",
     "schemas/team.json": "666d4e841ca2a7c65fccfa59fac8dbc95a46220e173a93430afff9c1b9b22982",
-    "CONVENTIONS.md": "47f4e50389289ca68d3c1a007cdfe4da48c693ea8421ba2afc6b9c3cbab9d42e",
-    "VERSION.json": "89aa5f244b7ceef256ad134af9fd37b5943a0bb744cb9b7fb53e463ac3406711",
+    "CONVENTIONS.md": "c92319c1969d42784386ba388463f781a9c40a6f3facc9a7f38ba6c250a3f77e",
+    "VERSION.json": "3af5612e7a30763b5f999339d345fa690fd99cd239c9f1b117cdd9397b1c7e2c",
     "find_scripts.py": "13c6d125c87f995f1f5c3efcf48e5c81d08fbed21fccc213a40e8e78d5ef967b",
-    "CHANGELOG.md": "98bd315e54ea3109963321f3db581a338d55e209ba43ed6009c03ccb6d7b9d56"
+    "CHANGELOG.md": "e747d7b464744fbb32fb9498127f3761198971a07e84e9568cdafb520462c61c"
   }
 }
