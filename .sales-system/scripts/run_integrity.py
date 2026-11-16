@@ -32,11 +32,17 @@ must send that text as a push notification. That is the part of the contract a s
 cannot do for itself.
 
 Required steps default to: registries, gmail, calendar, crm (only when the profile names
-a CRM), lead_touch, floor, drafts. Override with `preflight_required:` in config.md, comma-separated.
+a CRM), lead_touch, floor, drafts, market_sweep. Override with `preflight_required:` in
+config.md, comma-separated. The news sweep is governed by its own key instead —
+`news_sweep_required:` (default true) — so an override list written before the sweep was
+a step does not silently drop it: from 2026-10-29 to 2026-11-16 one folder's brief carried
+no news at all, because the sweep was the one section with no evidence check and a missing
+section looked exactly like a quiet morning.
 
 Usage:
   run_integrity.py --begin  <project> [--json]
   run_integrity.py --skip   <project> --step crm --reason "Salesforce connector not connected"
+  run_integrity.py --skip   <project> --step market_sweep --reason "web search unavailable"
   run_integrity.py --finish <project> [--brief 09-Briefs/Daily/2026-10-29-daily-brief.md] [--json]
   run_integrity.py --status <project>          # tripwires only, no run recorded
 """
@@ -53,12 +59,15 @@ from datetime import date, datetime, timedelta, timezone
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import activity_sync as A  # noqa: E402
+import market_sweep as M  # noqa: E402
 
 RUNS = "runs.json"
-DEFAULT_REQUIRED = ("registries", "gmail", "calendar", "crm", "lead_touch", "floor", "drafts")
+DEFAULT_REQUIRED = ("registries", "gmail", "calendar", "crm", "lead_touch", "floor", "drafts",
+                    "market_sweep")
 LABEL = {"registries": "registry check", "gmail": "mail ingest", "calendar": "calendar ingest",
          "crm": "CRM activity read", "lead_touch": "lead clocks", "floor": "30-day floor",
-         "drafts": "follow-up drafts"}
+         "drafts": "follow-up drafts", "market_sweep": "news sweep"}
+KNOWN_STEPS = set(LABEL)
 # CRM activity on records the registry doesn't hold fails the run from this many events
 # and this share of the read. Below it, the brief still names them; it just isn't a failure.
 UNKNOWN_CRM_MIN, UNKNOWN_CRM_SHARE = 3, 0.2
@@ -106,6 +115,9 @@ def required(root):
     steps = [s.strip() for s in raw.split(",") if s.strip()] if raw else list(DEFAULT_REQUIRED)
     if "crm" in steps and not raw and not has_crm(root):
         steps.remove("crm")
+    steps = [s for s in steps if s != "market_sweep"]
+    if M.required(root):
+        steps.append("market_sweep")
     return steps
 
 
@@ -175,6 +187,14 @@ def tripwires(root, today, gaps_out=None):
         gaps_out.extend(all_gaps)
     if gaps:
         out.append(f"no daily brief on {len(gaps)} expected day(s): {', '.join(gaps)}")
+    try:
+        od = M.overdue(root, today)
+    except Exception as e:  # a broken sweep plan must not hide the other tripwires
+        od = []
+        out.append(f"news sweep overdue check failed: {e}")
+    if od:
+        out.append(f"news sweep: {len(od)} account(s) not searched in {M.OVERDUE_DAYS}+ days: "
+                   + ", ".join(od[:6]) + (" …" if len(od) > 6 else ""))
     if runs:
         last = runs[-1]
         if not last.get("finished_at"):
@@ -264,6 +284,9 @@ def skip(root, step, reason):
     if not run:
         print("error: no run in progress — call --begin first", file=sys.stderr)
         return 2
+    if step not in KNOWN_STEPS:
+        print(f"warning: {step!r} is not a step this script knows "
+              f"({', '.join(sorted(KNOWN_STEPS))}); recorded anyway", file=sys.stderr)
     run["skips"][step] = reason
     save_runs(root, data)
     print(f"recorded: {LABEL.get(step, step)} skipped — {reason}. This run will be reported "
@@ -395,13 +418,34 @@ def evaluate(root, run):
             if "drafts" in req:
                 fails.append(msg)
 
+    # News sweep: the record market_sweep.py --record writes, after --begin. A brief whose
+    # news section is missing must not read as a quiet morning.
+    sw = M.latest(root)
+    if sw and _after(sw.get("recorded_at"), t0):
+        c = sw.get("counts") or {}
+        nl = sw.get("newsletters") or {}
+        bit = (f"news sweep: {nl.get('issues_read', 0)} newsletter(s), "
+               + ", ".join(f"{(c.get(g) or {}).get('searched', 0)} {g}"
+                           for g in ("competitors", "customers", "prospects", "themes")))
+        parts.append(bit)
+        gaps = sw.get("gaps") or {}
+        if gaps and "market_sweep" in req:
+            n = sum(len(v) for v in gaps.values())
+            fails.append(f"news sweep left {n} planned item(s) unsearched ("
+                         + ", ".join(f"{g} {len(v)}" for g, v in gaps.items()) + ")")
+    else:
+        why = run["skips"].get("market_sweep")
+        msg = "news sweep did not run" + (f" ({why})" if why else "")
+        parts.append(msg)
+        if "market_sweep" in req:
+            fails.append(msg)
+
     st = status_json(root)
     parts.append(f"cache newest {st.get('newest_event') or 'none'}")
     if st.get("stale"):
         fails.append(f"cache still stale after the run (newest {st.get('newest_event')})")
     for s, why in run["skips"].items():
-        if s not in req and s not in ("gmail", "calendar", "crm", "lead_touch", "floor",
-                                      "drafts"):
+        if s not in req and s not in KNOWN_STEPS:
             parts.append(f"{s} skipped ({why})")
     return parts, fails
 

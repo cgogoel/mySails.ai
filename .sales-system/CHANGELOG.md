@@ -6,6 +6,48 @@ gained — and, more importantly, what quietly means something different now.
 
 The format is one `## YYYY-MM-DD` heading per template version, matching `VERSION.json`.
 
+## 2026-11-16
+
+Scripts, skills and `CONVENTIONS.md`. Plugin `0.16.0`; `requires_template` moves to
+**2026-11-16**, because the daily brief now calls a new script. Run `update-system` — it also
+adds twelve `news_sweep_*` keys to your `config.md` — and in a split setup, run it with the
+device-copy steps.
+
+**The daily brief's news sweep is required, covers your whole book, and is never silent.** The
+live finding behind this release: from 10/29 to 11/16 one folder's brief carried no web news and
+no newsletter summaries, and nothing noticed. The sweep was the one section with no evidence
+check, was told to print nothing on a quiet morning, and was dropped when the scheduled prompt was
+rewritten — so a missing section looked exactly like a quiet one. The watchlist's `last_checked`
+had not moved since August.
+
+- **`market_sweep.py`** plans and evidences the sweep. `--plan` lists what is due today and
+  builds the newsletter query; `--record` stores what was read and searched, advances the
+  last-searched date per account, stamps `last_checked` on every watchlist row swept, and prints
+  the coverage line.
+- **`run_integrity.py` requires it** (step `market_sweep`, "news sweep"): `--finish` fails a run
+  with no sweep record, or one that left planned searches undone, and `--begin` trips on any
+  customer or prospect not searched in more than 7 days. Governed by `news_sweep_required:`, not
+  `preflight_required:`, so an override list written before this release does not drop it.
+  `--skip` now warns on a step name it does not know.
+- **Newsletters are fetched with their own query** — `from:(…) after:<last brief>` across every
+  Gmail category. Gmail files nearly every newsletter in Promotions, which the activity ingest
+  excludes; before, a newsletter appeared only when one happened to land in Primary. **What this
+  means for you:** the first brief after upgrading may carry more newsletter items than you are
+  used to — that is the sweep reading what it was always meant to.
+- **Four search groups replace the small fixed budget.** Every competitor, every run. Customers
+  renewing within 90 days and prospects closing within 60 days or among the 10 largest deals,
+  every run; everyone else in the book on a weekday rotation, so each account is searched at
+  least weekly. Watched themes (Daily and Weekly rows) every run. Watchlist Account and Prospect
+  rows fold into the customer and prospect groups. Competitor news is no longer out of bounds in
+  the daily: the line is now named news in, general commentary out.
+- **The `## Market and news` section is always there.** Capped sub-groups (newsletters 5,
+  customers, prospects, competitors and themes 3 each), then a one-line coverage summary — which
+  on a quiet morning is the whole section. Content-lens items are shown, labelled, by default.
+- **Config keys** — `news_sweep_required`, `_window_days`, `_newsletters`, `_competitors`,
+  `_customers`, `_prospects`, `_market_themes`, `_customer_renewal_days`, `_prospect_close_days`,
+  `_prospect_top_n`, `_quiet_morning`, `_content_lens`. `update-system` adds any that are missing
+  with their defaults; `configure-project` confirms them at setup.
+
 ## 2026-10-29
 
 Scripts, skills and `CONVENTIONS.md`. Plugin `0.15.0`; `requires_template` moves to

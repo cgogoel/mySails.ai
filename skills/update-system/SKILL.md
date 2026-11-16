@@ -106,6 +106,16 @@ python3 "$R/skills/update-system/scripts/upgrade.py" --apply <project>
 It backs up what it's about to replace, applies, and runs `csvguard --check-all` so new
 schema columns reach registries that already exist.
 
+It also adds any **config key a release introduced with a default** that the folder's
+`00-Config/config.md` lacks — today the `news_sweep_*` keys — under its own heading, and says
+which in its `config:` line. It never rewrites a key that is there. Repeat that line to the user:
+"Your daily brief's news sweep is now a required step; I added its twelve settings to config.md
+with the defaults — every competitor daily, customers and prospects on a weekly rotation." A
+default that lives only in skill prose disappears the first time a scheduled prompt is
+rewritten, which is how one folder's news section went missing for three weeks; a key in
+`config.md` survives that, and the user can see it. `--check` reports missing keys even when the
+schemas are current.
+
 A new column that nothing populates is worse than no column, because it reads as a value of
 nothing. Where a release adds derived columns with a script behind them, run that script too
 before saying the update is done — for the currency columns that is `fx.py --convert <project>`,

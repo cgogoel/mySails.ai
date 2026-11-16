@@ -229,7 +229,10 @@ negotiable. Slow-moving and easy to be early on.
 
 ### Sweep
 
-Work the watchlist by `cadence`. Sweep newsletters and feeds first — they're pre-filtered — then
+Work the watchlist by `cadence`. Newsletters are promotional mail by Gmail's definition, so fetch
+them with a sender query — `from:(a@x.com OR b@y.com …) after:<date>` — and **no category
+exclusion**; an approach that rides on the activity ingest (which excludes Promotions) misses
+nearly all of them. Open every issue and read the body. Sweep newsletters and feeds first — they're pre-filtered — then
 targeted search for watch terms that need it.
 
 Update `last_checked` and `signals_found` so each entry's value becomes visible over time. An entry
@@ -260,6 +263,24 @@ reframe the Q-Scout conversation that stalled in May" is usable. "Follow up on A
 Be careful with tone on sensitive events. Breaches, layoffs, and departures are bad days for real
 people, and outreach that reads as opportunistic does lasting damage. Under `review` automation,
 draft in a register the user would actually send. Never let this category run on `auto`.
+
+### What the daily brief already covers
+
+The daily brief's news sweep (daily-brief Step 6, `market_sweep.py`) is a **consumer** of this
+module: it reads the watchlist and logs to `03-Market/signals` through the guard, in four groups —
+every competitor every run; customers with an active contract and prospects on open deals and
+live leads, each in a daily tier (renewal or close inside the window, top deals, a meeting today)
+plus a weekday rotation that covers everyone at least weekly; and the Daily and Weekly theme rows.
+It reads newsletters with its own `from:(…)` query across every Gmail category, and stamps
+`last_checked` on every row it sweeps.
+
+So the weekly sweep here does **not** re-search an account the daily covered this week. Before
+searching, read `.sales-system/cache/market-sweep.json` — `last_searched` holds
+`<group>:<account key>` → date — and skip any account or competitor searched in the last 7 days;
+search only what the daily does not cover (Monthly and Quarterly rows, general market movement,
+the content lens where the daily leaves it off). `python3 "$S/market_sweep.py" --status <project>`
+names anything overdue. A newsletter the daily already read is not re-read for the weekly; work
+from the signals it logged.
 
 ### Scheduling
 

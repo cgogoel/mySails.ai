@@ -821,7 +821,8 @@ business rhythm — so ask rather than assuming.
 | **Weekly brief** | What's changing around us, what should we do differently | Friday PM or Monday AM |
 | **Forecast update** | Are we making the number, what would change the answer | Matches the forecast meeting |
 
-> **Daily** — tasks due, follow-ups owed, today's meetings with attendee research and prep
+> **Daily** — tasks due, follow-ups owed, today's meetings with attendee research and prep,
+> and the news sweep (newsletters; competitors, customers and prospects; watched market themes)
 > **Weekly** — trends, market signals, competitor news, changes at key accounts, content worth writing
 > **Forecast** — pipeline against goals, renewal coverage, deals ranked by engagement
 >
@@ -830,6 +831,41 @@ business rhythm — so ask rather than assuming.
 
 Record as `brief_content:` — a short list per brief. Every brief skill reads it and honours it
 over its own defaults.
+
+**Confirm the news sweep.** It is a required step of the daily brief — the run fails its
+Preflight without it — so say what it covers and confirm the keys rather than leaving them in
+skill prose, where they disappear the first time a scheduled prompt is rewritten:
+
+> Every morning the brief reads your newsletters (all Gmail categories — they live in
+> Promotions) and searches the news for every competitor, plus customers renewing within 90 days
+> and prospects closing within 60 days or among your 10 largest deals. Everyone else in your book
+> is searched once a week on a rotation. Items that only touch your content themes are shown,
+> labelled, for demand-gen. Change any of that?
+
+Write their answers — or the defaults — as flat keys under `### News sweep (daily brief)` in
+`config.md`:
+
+```markdown
+### News sweep (daily brief)
+
+- news_sweep_required: true
+- news_sweep_window_days: 3
+- news_sweep_newsletters: true
+- news_sweep_competitors: all   # all | off
+- news_sweep_customers: tiered   # tiered | daily | off
+- news_sweep_prospects: tiered   # tiered | daily | off
+- news_sweep_market_themes: true
+- news_sweep_customer_renewal_days: 90
+- news_sweep_prospect_close_days: 60
+- news_sweep_prospect_top_n: 10
+- news_sweep_quiet_morning: coverage_line   # coverage_line | silent
+- news_sweep_content_lens: label   # label | off
+```
+
+`python3 "$S/market_sweep.py" --add-config <project>` writes any of these that are missing, with
+the defaults, and never touches one already there. Newsletter sources come from the watchlist
+(market-tracking's first run); with no watchlist the competitor, customer and prospect searches
+still run from their registries.
 
 **Ask when the forecast call is** and schedule the forecast to land a few hours before it. A
 forecast produced after the meeting is a record, not a tool. Record `forecast_cadence:` and
@@ -873,6 +909,7 @@ Common asks and where they land:
 | "Turn on renewals too" | Add to `enabled-modules.md`, `--init`, run Track 4 for that module only |
 | "My quota changed" | Track 6; supersede the old goal row, don't overwrite it |
 | "Change the follow-up window / cap" | Edit the rule row; the floors are on by default, so this is a number, not a switch |
+| "Less news in the brief" / "search my whole book daily" | The `news_sweep_*` keys in `config.md` — narrow a group (`off`, a shorter window, a smaller top-N) or widen it (`daily`). `news_sweep_required: false` turns the step off and is said in the Preflight line by its absence |
 | "Stop asking me with cards / start asking with cards" | `approval_style:` in `config.md` — `numbered` or `prompts`; one key, every skill reads it |
 | "Why did the brief draft no follow-ups?" | Almost always an empty activity cache: `activity_sync.py --status`, then a full 90-day ingest and `--lead-touch`. A blank touch date is overdue, never a reason to skip |
 | "Move to Excel" | `csvguard.py --convert-all <project> --to xlsx` |
